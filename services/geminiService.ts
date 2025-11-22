@@ -11,6 +11,27 @@ interface StreamUpdate {
     newHistoryEntry?: OpenAIMessage;
 }
 
+// Helper to safely access environment variables across different build environments (Vite, Webpack, Node)
+const getEnvVar = (key: string): string => {
+    try {
+        // Check for standard process.env (Webpack/Node/Cloudflare)
+        // @ts-ignore
+        if (typeof process !== 'undefined' && process.env && process.env[key]) {
+            // @ts-ignore
+            return process.env[key];
+        }
+        // Check for import.meta.env (Vite)
+        // @ts-ignore
+        if (typeof import.meta !== 'undefined' && import.meta.env) {
+            // @ts-ignore
+            return import.meta.env[key] || import.meta.env[`VITE_${key}`];
+        }
+    } catch (e) {
+        // Ignore access errors in restricted environments
+    }
+    return '';
+};
+
 const PERSONALITY_PROMPTS: Record<PersonalityMode, string> = {
     'conversational': 'You are Nexus, a helpful, witty, and engaging AI assistant. Keep the tone natural and conversational.',
     'brainrot': 'You are Nexus, but you have terminal brainrot. Use Gen Z slang, skibidi toilet references, rizz, gyatt, fanum tax, and chaotic energy. Be barely coherent but hilarious.',
@@ -28,10 +49,12 @@ export async function* streamGemini(
 ): AsyncGenerator<StreamUpdate> {
     
     // Use OpenAI SDK for Text Generation (OpenRouter)
-    // API Key must be set in environment variables as API_KEY
+    // Retrieve API Key safely
+    const apiKey = getEnvVar('API_KEY');
+    
     const textClient = new OpenAI({
         baseURL: "https://openrouter.ai/api/v1",
-        apiKey: process.env.API_KEY,
+        apiKey: apiKey,
         dangerouslyAllowBrowser: true
     });
 
@@ -60,44 +83,45 @@ export async function* streamGemini(
             // 1. PROMPT REFINEMENT (Using Grok)
             let refinedPrompt = prompt;
             try {
-                const refinementResponse = await textClient.chat.completions.create({
-                    model: 'x-ai/grok-4.1-fast',
-                    messages: [
-                        { 
-                            role: 'system', 
-                            content: `You are an expert AI Art Prompt Engineer. 
-                            Your task is to rewrite the user's request into a highly detailed, photorealistic image generation prompt.
-                            
-                            MANDATORY REQUIREMENTS:
-                            1. Include keywords: "4k uhd", "ultrarealistic", "high detail", "photorealistic", "masterpiece".
-                            2. Ensure NO duplicate tags/keywords.
-                            3. Describe lighting, texture, and composition if not specified.
-                            4. Output ONLY the raw prompt string. Do not include "Here is the prompt:" or quotes.` 
-                        },
-                        { role: 'user', content: prompt }
-                    ],
-                    max_tokens: 300
-                });
-                
-                const refinedText = refinementResponse.choices[0]?.message?.content?.trim();
-                if (refinedText) {
-                    refinedPrompt = refinedText;
-                    // console.log("Refined Prompt:", refinedPrompt);
+                if (apiKey) {
+                    const refinementResponse = await textClient.chat.completions.create({
+                        model: 'x-ai/grok-4.1-fast',
+                        messages: [
+                            { 
+                                role: 'system', 
+                                content: `You are an expert AI Art Prompt Engineer. 
+                                Your task is to rewrite the user's request into a highly detailed, photorealistic image generation prompt.
+                                
+                                MANDATORY REQUIREMENTS:
+                                1. Include keywords: "4k uhd", "ultrarealistic", "high detail", "photorealistic", "masterpiece".
+                                2. Ensure NO duplicate tags/keywords.
+                                3. Describe lighting, texture, and composition if not specified.
+                                4. Output ONLY the raw prompt string. Do not include "Here is the prompt:" or quotes.` 
+                            },
+                            { role: 'user', content: prompt }
+                        ],
+                        max_tokens: 300
+                    });
+                    
+                    const refinedText = refinementResponse.choices[0]?.message?.content?.trim();
+                    if (refinedText) {
+                        refinedPrompt = refinedText;
+                        // console.log("Refined Prompt:", refinedPrompt);
+                    }
                 }
             } catch (refinementError) {
                 console.warn("Prompt refinement failed, using original:", refinementError);
             }
 
             // 2. IMAGE GENERATION (InfiP API)
-            // API Key must be set in environment variables as INFIP_API_KEY
-            const apiKey = process.env.INFIP_API_KEY;
+            const infipKey = getEnvVar('INFIP_API_KEY');
             
             // Use CORS Proxy with encoded URL to ensure robust routing
             const targetUrl = "https://api.infip.pro/v1/images/generations";
             const url = "https://corsproxy.io/?" + encodeURIComponent(targetUrl);
 
             const headers = {
-                "Authorization": `Bearer ${apiKey}`,
+                "Authorization": `Bearer ${infipKey}`,
                 "Content-Type": "application/json"
             };
 
