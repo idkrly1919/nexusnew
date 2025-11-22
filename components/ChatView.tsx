@@ -2,8 +2,8 @@ import React, { useState, useEffect, useRef, FormEvent } from 'react';
 import { Message, ChatHistory, PersonalityMode, Conversation, Role } from '../types';
 import { streamGemini } from '../services/geminiService';
 import { ThinkingProcess } from './ThinkingProcess';
-import { useSession } from '../contexts/SessionContext';
-import { supabase } from '../integrations/supabase/client';
+import { useSession } from '../src/contexts/SessionContext';
+import { supabase } from '../src/integrations/supabase/client';
 
 const NexusIconSmall = () => (
     <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center">
@@ -91,14 +91,14 @@ const ChatView: React.FC = () => {
             if (error) {
                 console.error('Error fetching messages:', error);
             } else {
-                const loadedMessages: Message[] = data.map(msg => ({
+                const loadedMessages: Message[] = data.map((msg: { id: string; role: string; content: string; }) => ({
                     id: msg.id,
                     role: msg.role as Role,
                     text: msg.content,
                 }));
                 setMessages(loadedMessages);
 
-                const history: ChatHistory = data.map(msg => ({
+                const history: ChatHistory = data.map((msg: { role: 'user' | 'assistant'; content: string; }) => ({
                     role: msg.role as 'user' | 'assistant',
                     content: msg.content,
                 }));
