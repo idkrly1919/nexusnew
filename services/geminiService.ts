@@ -25,7 +25,8 @@ export async function* streamGemini(
     history: ChatHistory,
     useSearch: boolean,
     personality: PersonalityMode = 'conversational',
-    attachedFile: { name: string, content: string, type: string } | null = null
+    attachedFile: { name: string, content: string, type: string } | null = null,
+    signal: AbortSignal
 ): AsyncGenerator<StreamUpdate> {
     
     // @ts-ignore
@@ -78,14 +79,15 @@ Respond ONLY with a JSON object with the following structure:
                         { role: 'user', content: prompt }
                     ],
                     response_format: { type: "json_object" },
-                });
+                }, { signal });
 
                 const result = JSON.parse(intentResponse.choices[0].message.content || '{}');
                 if (result.is_image_request && result.refined_prompt) {
                     isImageRequest = true;
                     imagePrompt = result.refined_prompt;
                 }
-            } catch (e) {
+            } catch (e: any) {
+                if (e.name === 'AbortError') throw e;
                 console.error("Intent detection failed, falling back to keyword check.", e);
                 const fallbackKeywords = ['generate image', 'create an image', 'draw', 'paint', 'visualize', 'picture of', 'photo of'];
                 isImageRequest = fallbackKeywords.some(k => prompt.toLowerCase().includes(k));
@@ -98,9 +100,11 @@ Respond ONLY with a JSON object with the following structure:
             
             const { data: functionData, error: functionError } = await supabase.functions.invoke('image-proxy', {
                 body: { prompt: imagePrompt },
+                signal,
             });
 
             if (functionError) {
+                if (functionError.name === 'AbortError') throw functionError;
                 let detailedMessage = functionError.message;
                 if (detailedMessage.includes("non-2xx status code")) {
                     detailedMessage += ". This often means the API key secret is missing in your Supabase project settings."
@@ -161,9 +165,6 @@ Respond ONLY with a JSON object with the following structure:
                 messages.push({ role: 'user', content: prompt });
             }
 
-            const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 30000);
-
             try {
                 const stream = await textClient.chat.completions.create({
                     model: activeModel, 
@@ -171,9 +172,8 @@ Respond ONLY with a JSON object with the following structure:
                     stream: true,
                     max_tokens: null,
                     ...((activeModel === 'x-ai/grok-4.1-fast' && useSearch) ? { include_search_results: true } : {}) 
-                }, { signal: controller.signal }) as any;
+                }, { signal }) as any;
 
-                clearTimeout(timeoutId);
                 let fullText = '';
                 let hasYielded = false;
 
@@ -193,22 +193,20 @@ Respond ONLY with a JSON object with the following structure:
                 const newHistoryEntry: OpenAIMessage = { role: 'assistant', content: fullText };
                 yield { text: fullText, isComplete: true, newHistoryEntry };
             } catch (apiError: any) {
-                clearTimeout(timeoutId);
                 throw apiError;
             }
         }
     } catch (error: any) {
+        if (error.name === 'AbortError') {
+            throw error;
+        }
         console.error("API Error:", error);
         let errorMessage = "An unexpected error occurred.";
         if (error instanceof Error) {
-             if (error.name === 'AbortError') {
-                 errorMessage = "**Timeout Error:** The request took too long to respond. Please try again.";
-             } else {
-                 errorMessage = `**System Error:** ${error.message}`;
-                 if (error.message.includes("401")) errorMessage += " (Unauthorized - Check API Key)";
-                 if (error.message.includes("402")) errorMessage += " (Insufficient Credits)";
-                 if (error.message.includes("NetworkError")) errorMessage += " (Connection Blocked - Check Network/Proxy)";
-             }
+             errorMessage = `**System Error:** ${error.message}`;
+             if (error.message.includes("401")) errorMessage += " (Unauthorized - Check API Key)";
+             if (error.message.includes("402")) errorMessage += " (Insufficient Credits)";
+             if (error.message.includes("NetworkError")) errorMessage += " (Connection Blocked - Check Network/Proxy)";
         }
         yield { text: errorMessage, isComplete: true };
     }
