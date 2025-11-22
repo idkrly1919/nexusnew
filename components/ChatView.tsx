@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef, FormEvent } from 'react';
 import { Message, ChatHistory, PersonalityMode } from '../types';
 import { streamGemini } from '../services/geminiService';
@@ -358,7 +357,7 @@ const ChatView: React.FC = () => {
         
         const imageRegex = /!\[([^\]]*)\]\(([^)]+)\)/g;
         
-        let parsed = text.replace(imageRegex, (match, alt, url) => {
+        let parsed = text.replace(imageRegex, (_, alt, url) => {
             return `
                 <div class="relative group mt-3 mb-3 inline-block max-w-full">
                     <img src="${url}" alt="${alt}" class="rounded-xl shadow-lg border border-white/10 max-w-full h-auto" />

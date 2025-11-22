@@ -1,4 +1,3 @@
-
 import OpenAI from 'openai';
 import { ChatHistory, OpenAIMessage, PersonalityMode } from '../types';
 
@@ -183,9 +182,8 @@ Use your online capabilities to search for up-to-date information when necessary
                     model: activeModel, 
                     messages: messages,
                     stream: true,
-                    max_tokens: 4000, 
-                    // Enable search for Grok
-                    ...((activeModel === 'x-ai/grok-4.1-fast') ? { include_search_results: true } : {}) 
+                    // Enable search for Grok only if supported AND requested
+                    ...((activeModel === 'x-ai/grok-4.1-fast' && useSearch) ? { include_search_results: true } : {}) 
                 }, { signal: controller.signal }) as any;
 
                 clearTimeout(timeoutId);
