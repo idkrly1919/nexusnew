@@ -168,7 +168,7 @@ const ChatView: React.FC = () => {
 
                 silenceTimer.current = setTimeout(() => {
                     submitTranscript(fullTranscript);
-                }, 5000);
+                }, 3000);
             };
 
             recognition.current.onend = () => {
@@ -213,10 +213,10 @@ const ChatView: React.FC = () => {
             const utterance = new SpeechSynthesisUtterance(text);
             
             const preferredVoiceNames = [
-                'Samantha', // macOS premium
-                'Google US English', // Chrome high quality
-                'Microsoft Zira - English (United States)', // Edge/Windows
-                'Daniel', // UK premium
+                'Daniel', // UK premium male
+                'Microsoft David - English (United States)', // Edge/Windows male
+                'Google UK English Male', // Chrome male
+                'Alex', // macOS default male
             ];
 
             let selectedVoice = null;
@@ -225,6 +225,10 @@ const ChatView: React.FC = () => {
                 if (selectedVoice) break;
             }
 
+            if (!selectedVoice) {
+                selectedVoice = voices.find(v => v.lang === 'en-US' && v.name.toLowerCase().includes('male'));
+            }
+            
             if (!selectedVoice) {
                 selectedVoice = voices.find(v => v.lang === 'en-US');
             }
@@ -269,7 +273,9 @@ const ChatView: React.FC = () => {
         }
 
         const userMessage: Message = { id: `user-${Date.now()}`, role: 'user', text: userDisplay };
-        setMessages(prev => [...prev, userMessage]);
+        const typingMessage: Message = { id: `typing-${Date.now()}`, role: 'typing', text: 'Thinking...' };
+        
+        setMessages(prev => [...prev, userMessage, typingMessage]);
         
         let conversationId = currentConversationId;
         if (!conversationId) {
@@ -287,9 +293,6 @@ const ChatView: React.FC = () => {
         const userContentForDb = attachedFile ? `[User attached file: ${attachedFile.name}]\n${userText}` : userText;
         await supabase.from('messages').insert({ conversation_id: conversationId, user_id: session.user.id, role: 'user', content: userContentForDb });
         setAttachedFile(null);
-
-        const typingId = `typing-${Date.now()}`;
-        setMessages(prev => [...prev, { id: typingId, role: 'typing', text: 'Thinking...' }]);
 
         const controller = new AbortController();
         abortControllerRef.current = controller;
@@ -400,7 +403,7 @@ const ChatView: React.FC = () => {
             <div className={`fixed inset-y-0 left-0 z-40 w-64 bg-[#101012] border-r border-white/5 transform transition-transform duration-300 ease-in-out ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
                 <div className="flex flex-col h-full">
                     <div className="p-4 border-b border-white/5 flex justify-between items-center"><div className="font-bold tracking-wide text-white flex items-center gap-2"><div className="w-6 h-6 bg-blue-600/20 rounded flex items-center justify-center text-blue-400"><svg width="14" height="14" viewBox="0 0 24 24"><path d="M2 20h20"/><path d="m12 10 4 10"/><path d="m12 10-4 10"/><circle cx="12" cy="5" r="3"/></svg></div>Nexus</div><button onClick={() => setIsSidebarOpen(false)} className="text-zinc-400 hover:text-white"><svg width="16" height="16" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></svg></button></div>
-                    <div className="p-3"><button onClick={() => { resetChat(); setIsSidebarOpen(false); }} className="w-full flex items-center gap-2 px-3 py-2.5 bg-white/5 hover:bg-white/10 text-zinc-200 rounded-lg transition-colors text-sm font-medium border border-white/5"><svg width="16" height="16" viewBox="0 0 24 24"><path d="M12 5v14"/><path d="M5 12h14"/></svg>New Chat</button></div>
+                    <div className="p-3"><button onClick={() => { resetChat(); setIsSidebarOpen(false); }} className="w-full flex items-center gap-2 px-3 py-2.5 bg-white/5 hover:bg-white/10 text-white rounded-lg transition-colors text-sm font-medium border border-white/5"><svg width="16" height="16" viewBox="0 0 24 24"><path d="M12 5v14"/><path d="M5 12h14"/></svg>New Chat</button></div>
                     <div className="flex-1 overflow-y-auto px-3 py-2 space-y-1">
                         <div className="text-xs font-semibold text-zinc-600 px-2 py-1 uppercase tracking-wider mb-1">Recent Chats</div>
                         {conversations.map(chat => (
@@ -410,10 +413,10 @@ const ChatView: React.FC = () => {
                         ))}
                     </div>
                     <div className="p-4 border-t border-white/5 space-y-2">
-                        <button onClick={() => setShowSettings(true)} className="w-full flex items-center gap-3 px-2 py-2 text-sm text-zinc-400 hover:text-white hover:bg-white/5 rounded-lg transition-colors"><svg width="16" height="16" viewBox="0 0 24 24"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.47a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.35a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>Settings</button>
+                        <button onClick={() => setShowSettings(true)} className="w-full flex items-center gap-3 px-2 py-2 text-sm text-zinc-300 hover:text-white hover:bg-white/5 rounded-lg transition-colors"><svg width="16" height="16" viewBox="0 0 24 24"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.47a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.35a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>Settings</button>
                         <div className="flex items-center justify-between gap-3 px-2 py-2">
                              <div className="flex items-center gap-3"><div className="w-7 h-7 rounded-full bg-gradient-to-br from-purple-500 to-blue-500"></div><div className="text-sm text-zinc-200 truncate">{session?.user?.email}</div></div>
-                             <button onClick={() => supabase.auth.signOut()} className="text-zinc-400 hover:text-white p-1.5 hover:bg-white/10 rounded-md" title="Log Out"><svg width="16" height="16" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg></button>
+                             <button onClick={() => supabase.auth.signOut()} className="text-zinc-300 hover:text-white p-1.5 hover:bg-white/10 rounded-md" title="Log Out"><svg width="16" height="16" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg></button>
                         </div>
                     </div>
                 </div>
@@ -474,9 +477,9 @@ const ChatView: React.FC = () => {
                                     <textarea ref={textareaRef} value={inputValue} onChange={(e) => setInputValue(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleChatSubmit(e); } }} rows={1} placeholder="Message Nexus..." className={`w-full bg-transparent border-none text-white placeholder-zinc-500 focus:ring-0 resize-none py-3.5 pl-5 pr-32 max-h-[200px] overflow-y-auto scrollbar-hide ${attachedFile ? 'pt-2' : ''}`} style={{ minHeight: '52px' }}></textarea>
                                     <div className="absolute bottom-2 right-2 flex items-center gap-1">
                                         <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" accept="image/*,application/pdf,text/plain,text/code,application/json" />
-                                        <button type="button" onClick={triggerFileSelect} className="p-2 rounded-full text-zinc-300 hover:text-white hover:bg-zinc-700/50 transition-colors" title="Attach File"><svg className="w-5 h-5" viewBox="0 0 24 24"><path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg></button>
-                                        <div className={`p-2 rounded-full transition-colors cursor-default ${isReasoningEnabled ? 'text-zinc-300' : 'text-zinc-600'}`} title="Reasoning Active"><svg className="w-5 h-5" viewBox="0 0 24 24"><path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96.44 2.5 2.5 0 0 1-2.96-3.08 3 3 0 0 1-.34-5.58 2.5 2.5 0 0 1 1.32-4.24 2.5 2.5 0 0 1 1.98-3A2.5 2.5 0 0 1 9.5 2Z"/><path d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96.44 2.5 2.5 0 0 0 2.96-3.08 3 3 0 0 0 .34-5.58 2.5 2.5 0 0 0-1.32-4.24 2.5 2.5 0 0 0-1.98-3A2.5 2.5 0 0 0 14.5 2Z"/></svg></div>
-                                        <button type="button" onClick={startListening} className={`p-2 rounded-full transition-all duration-200 text-zinc-300 hover:text-white hover:bg-zinc-700/50`}><svg className="w-5 h-5" viewBox="0 0 24 24"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/></svg></button>
+                                        <button type="button" onClick={triggerFileSelect} className="p-2 rounded-full text-white/70 hover:text-white hover:bg-zinc-700/50 transition-colors" title="Attach File"><svg className="w-5 h-5" viewBox="0 0 24 24"><path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg></button>
+                                        <div className={`p-2 rounded-full transition-colors cursor-default ${isReasoningEnabled ? 'text-white/70' : 'text-zinc-600'}`} title="Reasoning Active"><svg className="w-5 h-5" viewBox="0 0 24 24"><path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96.44 2.5 2.5 0 0 1-2.96-3.08 3 3 0 0 1-.34-5.58 2.5 2.5 0 0 1 1.32-4.24 2.5 2.5 0 0 1 1.98-3A2.5 2.5 0 0 1 9.5 2Z"/><path d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96.44 2.5 2.5 0 0 0 2.96-3.08 3 3 0 0 0 .34-5.58 2.5 2.5 0 0 0-1.32-4.24 2.5 2.5 0 0 0-1.98-3A2.5 2.5 0 0 0 14.5 2Z"/></svg></div>
+                                        <button type="button" onClick={startListening} className={`p-2 rounded-full transition-all duration-200 text-white/70 hover:text-white hover:bg-zinc-700/50`}><svg className="w-5 h-5" viewBox="0 0 24 24"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/></svg></button>
                                         <button type="submit" disabled={isLoading || (!inputValue.trim() && !attachedFile)} className={`p-2 rounded-full transition-all duration-200 ${(inputValue.trim() || attachedFile) && !isLoading ? 'bg-white text-black hover:bg-zinc-200 shadow-lg hover:shadow-white/20' : 'bg-zinc-700/50 text-zinc-500 cursor-not-allowed'}`}><svg className="w-5 h-5 ml-0.5" viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg></button>
                                     </div>
                                 </div>
