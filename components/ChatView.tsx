@@ -294,7 +294,7 @@ const ChatView: React.FC = () => {
                     <div className="bg-[#18181b] border border-zinc-800 rounded-2xl w-full max-w-md shadow-2xl animate-in zoom-in-95 duration-200">
                         <div className="p-6 border-b border-white/5 flex justify-between items-center">
                             <h2 className="text-xl font-bold text-white font-brand">Settings</h2>
-                            <button onClick={() => setShowSettings(false)} className="text-zinc-400 hover:text-white"><svg width="20" height="20" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+                            <button onClick={() => setShowSettings(false)} className="p-1.5 rounded-full text-zinc-400 hover:text-white hover:bg-white/10 transition-colors"><svg width="20" height="20" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5" fill="none"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
                         </div>
                         <div className="p-6 space-y-6">
                             <div>

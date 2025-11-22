@@ -1,5 +1,6 @@
 import OpenAI from 'openai';
 import { ChatHistory, OpenAIMessage, PersonalityMode } from '../types';
+import { supabase } from '../src/integrations/supabase/client';
 
 // Define the yield type for the stream
 interface StreamUpdate {
@@ -30,8 +31,6 @@ export async function* streamGemini(
     // 1. Retrieve API Keys from Environment
     // @ts-ignore
     const apiKey = process.env.API_KEY;
-    // @ts-ignore
-    const infipKey = process.env.INFLIP_API_KEY || process.env.INFIP_API_KEY;
 
     if (!apiKey) {
          throw new Error("API Key is missing. Please set API_KEY in your deployment environment variables.");
@@ -65,42 +64,29 @@ export async function* streamGemini(
     });
     
     try {
-        // --- PATH 1: IMAGE GENERATION (InfiP API) ---
+        // --- PATH 1: IMAGE GENERATION (Supabase Edge Function) ---
         if (isImageRequest) {
             
-            if (!infipKey) {
-                throw new Error("InfiP API Key is missing. Please set INFLIP_API_KEY in your deployment environment variables.");
-            }
-
-            // Using CORS Proxy to bypass browser restrictions
-            const url = "https://corsproxy.io/?https://api.infip.pro/v1/images/generations";
-
-            const headers = {
-                "Authorization": `Bearer ${infipKey}`,
-                "Content-Type": "application/json"
-            };
-
-            const payload = {
-                model: "img4",
-                prompt: prompt,
-                n: 1,
-                size: "1024x1024"
-            };
-
-            const response = await fetch(url, {
-                method: 'POST',
-                headers: headers,
-                body: JSON.stringify(payload)
+            const { data: functionData, error: functionError } = await supabase.functions.invoke('image-proxy', {
+                body: { prompt },
             });
 
-            if (!response.ok) {
-                 const errText = await response.text();
-                 throw new Error(`InfiP API Error ${response.status}: ${errText}`);
+            if (functionError) {
+                 throw new Error(`Image generation service error: ${functionError.message}`);
+            }
+            
+            if (functionData.error) {
+                // Handle errors returned from the function logic
+                let detailedError = functionData.error;
+                try {
+                    // The error might be a stringified JSON, try to parse it
+                    const parsedError = JSON.parse(detailedError.substring(detailedError.indexOf('{')));
+                    detailedError = parsedError.error?.message || detailedError;
+                } catch (e) { /* ignore parsing error */ }
+                throw new Error(`Image generation service error: ${detailedError}`);
             }
 
-            const data = await response.json();
-            console.log("InfiP Response:", data);
-
+            const data = functionData;
             let imageUrl: string | undefined;
 
             // Handle InfiP response format
