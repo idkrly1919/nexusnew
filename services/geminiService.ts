@@ -72,7 +72,11 @@ export async function* streamGemini(
             });
 
             if (functionError) {
-                 throw new Error(`Image generation service error: ${functionError.message}`);
+                let detailedMessage = functionError.message;
+                if (detailedMessage.includes("non-2xx status code")) {
+                    detailedMessage += ". This often means the API key secret is missing in your Supabase project settings."
+                }
+                 throw new Error(`Image generation service error: ${detailedMessage}`);
             }
             
             if (functionData.error) {
