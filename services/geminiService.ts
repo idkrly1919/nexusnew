@@ -1,5 +1,5 @@
 
-import OpenAI from 'openai';
+import { GoogleGenAI } from "@google/genai";
 import { ChatHistory, OpenAIMessage, PersonalityMode } from '../types';
 
 // Define the yield type for the stream
@@ -10,29 +10,6 @@ interface StreamUpdate {
     groundingChunks?: any[];
     newHistoryEntry?: OpenAIMessage;
 }
-
-// Helper to safely access environment variables across different build environments (Vite, Webpack, Node)
-const getEnvVar = (key: string): string => {
-    let value = '';
-    try {
-        // Check for import.meta.env (Vite) - check this first for frontend apps
-        // @ts-ignore
-        if (typeof import.meta !== 'undefined' && import.meta.env) {
-            // @ts-ignore
-            value = import.meta.env[key] || import.meta.env[`VITE_${key}`];
-        }
-        
-        // Fallback to process.env (Node/Webpack) if not found yet
-        // @ts-ignore
-        if (!value && typeof process !== 'undefined' && process.env) {
-            // @ts-ignore
-            value = process.env[key] || process.env[`VITE_${key}`];
-        }
-    } catch (e) {
-        // Ignore access errors in restricted environments
-    }
-    return value || '';
-};
 
 const PERSONALITY_PROMPTS: Record<PersonalityMode, string> = {
     'conversational': 'You are Nexus, a helpful, witty, and engaging AI assistant. Keep the tone natural and conversational.',
@@ -50,15 +27,16 @@ export async function* streamGemini(
     personality: PersonalityMode = 'conversational'
 ): AsyncGenerator<StreamUpdate> {
     
-    // Use OpenAI SDK for Text Generation (OpenRouter)
-    // Retrieve API Key safely
-    const apiKey = getEnvVar('API_KEY');
+    // Use Google GenAI SDK
+    // API Key must be obtained exclusively from process.env.API_KEY
+    const apiKey = process.env.API_KEY;
     
-    const textClient = new OpenAI({
-        baseURL: "https://openrouter.ai/api/v1",
-        apiKey: apiKey || "dummy-key", // Prevent crash on init if key missing (will fail gracefully on call)
-        dangerouslyAllowBrowser: true
-    });
+    if (!apiKey) {
+        yield { text: "Error: API_KEY is missing in environment variables.", isComplete: true };
+        return;
+    }
+
+    const ai = new GoogleGenAI({ apiKey });
 
     // Detect Image Intent
     const imageKeywords = [
@@ -68,7 +46,7 @@ export async function* streamGemini(
     ];
     const isImageRequest = imageKeywords.some(k => prompt.toLowerCase().includes(k));
 
-    // Inject dynamic real-time date
+    // System Instruction
     const now = new Date();
     const timeString = now.toLocaleString('en-US', { 
         weekday: 'long', 
@@ -80,172 +58,128 @@ export async function* streamGemini(
         timeZoneName: 'short'
     });
     
+    const personalityInstruction = PERSONALITY_PROMPTS[personality];
+    const systemInstruction = `You are Nexus. ${personalityInstruction}
+Current Date/Time: ${timeString}`;
+
     try {
-        if (!apiKey) {
-            throw new Error("API Key missing. Please set API_KEY in your environment variables.");
-        }
-
         if (isImageRequest) {
-            // 1. PROMPT REFINEMENT (Using Grok)
-            let refinedPrompt = prompt;
-            try {
-                const refinementResponse = await textClient.chat.completions.create({
-                    model: 'x-ai/grok-4.1-fast',
-                    messages: [
-                        { 
-                            role: 'system', 
-                            content: `You are an expert AI Art Prompt Engineer. 
-                            Your task is to rewrite the user's request into a highly detailed, photorealistic image generation prompt.
-                            
-                            MANDATORY REQUIREMENTS:
-                            1. Include keywords: "4k uhd", "ultrarealistic", "high detail", "photorealistic", "masterpiece".
-                            2. Ensure NO duplicate tags/keywords.
-                            3. Describe lighting, texture, and composition if not specified.
-                            4. Output ONLY the raw prompt string. Do not include "Here is the prompt:" or quotes.` 
-                        },
-                        { role: 'user', content: prompt }
-                    ],
-                    max_tokens: 300
-                });
-                
-                const refinedText = refinementResponse.choices[0]?.message?.content?.trim();
-                if (refinedText) {
-                    refinedPrompt = refinedText;
+            // Image Generation using gemini-2.5-flash-image
+            const response = await ai.models.generateContent({
+                model: 'gemini-2.5-flash-image',
+                contents: {
+                    parts: [{ text: prompt }]
                 }
-            } catch (refinementError) {
-                console.warn("Prompt refinement failed, using original:", refinementError);
-            }
-
-            // 2. IMAGE GENERATION (InfiP API)
-            const infipKey = getEnvVar('INFIP_API_KEY');
-            
-            if (!infipKey) {
-                 throw new Error("InfiP API Key missing. Please set INFIP_API_KEY in your environment variables.");
-            }
-
-            // Use CORS Proxy with encoded URL to ensure robust routing
-            const targetUrl = "https://api.infip.pro/v1/images/generations";
-            const url = "https://corsproxy.io/?" + encodeURIComponent(targetUrl);
-
-            const headers = {
-                "Authorization": `Bearer ${infipKey}`,
-                "Content-Type": "application/json"
-            };
-
-            const payload = {
-                model: "img4",
-                prompt: refinedPrompt, // Use the refined prompt
-                n: 1,
-                size: "1024x1024"
-            };
-
-            const response = await fetch(url, {
-                method: 'POST',
-                headers: headers,
-                body: JSON.stringify(payload)
             });
-
-            if (!response.ok) {
-                 const errText = await response.text();
-                 throw new Error(`Image API Error ${response.status}: ${errText}`);
-            }
-
-            const data = await response.json();
             
-            // Expecting format: { "images": [ "url" ], "seed": 123 }
-            // Also handle OpenAI-like fallback { "data": [{ "url": "..." }] }
-            let imageUrl: string | undefined;
-
-            if (data.images && Array.isArray(data.images) && data.images.length > 0) {
-                imageUrl = data.images[0];
-            } else if (data.data && Array.isArray(data.data) && data.data.length > 0) {
-                imageUrl = data.data[0].url;
-            } else if (typeof data.url === 'string') {
-                imageUrl = data.url;
+            let imageUrl = '';
+            let text = '';
+            
+            // The output response may contain both image and text parts; iterate through all parts.
+            const candidate = response.candidates?.[0];
+            if (candidate?.content?.parts) {
+                for (const part of candidate.content.parts) {
+                    if (part.inlineData) {
+                        const base64EncodeString = part.inlineData.data;
+                        const mimeType = part.inlineData.mimeType || 'image/png';
+                        imageUrl = `data:${mimeType};base64,${base64EncodeString}`;
+                    } else if (part.text) {
+                        text += part.text;
+                    }
+                }
             }
 
             if (imageUrl) {
-                // Display the prompt used in alt text for reference
-                const markdownImage = `![${refinedPrompt.replace(/[\[\]\(\)]/g, '')}](${imageUrl})`;
+                // Display the image in Markdown
+                const markdownImage = `![Generated Image](${imageUrl})`;
+                const combinedContent = text ? `${text}\n\n${markdownImage}` : markdownImage;
                 
                 yield {
-                    text: markdownImage,
+                    text: combinedContent,
                     isComplete: true,
                     newHistoryEntry: {
                         role: 'assistant',
-                        content: markdownImage
+                        content: combinedContent
                     }
                 };
             } else {
-                throw new Error(`No image URL returned from API. Raw response: ${JSON.stringify(data)}`);
+                yield {
+                    text: text || "Sorry, I couldn't generate an image.",
+                    isComplete: true,
+                    newHistoryEntry: {
+                        role: 'assistant',
+                        content: text || "Failed to generate image."
+                    }
+                };
             }
 
         } else {
-            // TEXT GENERATION PATH (Grok 4.1 via OpenRouter)
-            const personalityInstruction = PERSONALITY_PROMPTS[personality];
-            const systemInstruction = `You are Nexus.
-${personalityInstruction}
-Your knowledge base is strictly REAL-TIME.
-CURRENT DATE/TIME: ${timeString}
-Use your online capabilities to search for up-to-date information when necessary.
-`;
+            // Text Generation using gemini-2.5-flash
+            
+            // Convert history to Gemini Content format
+            const contents = history.map(msg => {
+                if (msg.role === 'system') return null;
+                return {
+                    role: msg.role === 'assistant' ? 'model' : 'user',
+                    parts: [{ text: msg.content }]
+                };
+            }).filter(c => c !== null);
 
-            const messages: any[] = [
-                { role: 'system', content: systemInstruction },
-                ...history,
-                { role: 'user', content: prompt }
-            ];
+            // Add current prompt
+            contents.push({
+                role: 'user',
+                parts: [{ text: prompt }]
+            });
 
-            // Fix: Cast result to any to allow iteration, fixing TS error 'must have a [Symbol.asyncIterator]() method'
-            const stream = await textClient.chat.completions.create({
-                model: 'x-ai/grok-4.1-fast', 
-                messages: messages,
-                stream: true,
-                max_tokens: 4000, 
-                // Force search capability
-                ...({ include_search_results: true } as any) 
-            }) as any;
-
-            let fullText = '';
-
-            for await (const chunk of stream) {
-                const content = chunk.choices[0]?.delta?.content || '';
-                if (content) {
-                    fullText += content;
-                    yield { text: fullText, isComplete: false };
-                }
+            // Configure tools
+            const tools = [];
+            if (useSearch) {
+                tools.push({ googleSearch: {} });
             }
 
-            const newHistoryEntry: OpenAIMessage = {
-                role: 'assistant',
-                content: fullText
-            };
+            const streamResponse = await ai.models.generateContentStream({
+                model: 'gemini-2.5-flash',
+                contents: contents,
+                config: {
+                    systemInstruction: systemInstruction,
+                    tools: tools.length > 0 ? tools : undefined,
+                }
+            });
+
+            let fullText = '';
+            let groundingChunks: any[] = [];
+
+            for await (const chunk of streamResponse) {
+                if (chunk.text) {
+                    fullText += chunk.text;
+                    yield { text: fullText, isComplete: false };
+                }
+                
+                if (chunk.candidates?.[0]?.groundingMetadata?.groundingChunks) {
+                    groundingChunks = chunk.candidates[0].groundingMetadata.groundingChunks;
+                    yield { text: fullText, isComplete: false, groundingChunks };
+                }
+            }
 
             yield {
                 text: fullText,
                 isComplete: true,
-                newHistoryEntry
+                groundingChunks,
+                newHistoryEntry: {
+                    role: 'assistant',
+                    content: fullText
+                }
             };
         }
 
     } catch (error: any) {
-        console.error("API Error:", error);
+        console.error("Gemini API Error:", error);
         let errorMessage = "An unexpected error occurred.";
         
         if (error instanceof Error) {
              errorMessage = `**System Error:** ${error.message}`;
-             
-             if (error.message.includes("402")) {
-                 errorMessage += "\n\n(Insufficient credits on API key)";
-             }
-             if (error.message.includes("400")) {
-                 errorMessage += "\n\n(Invalid request configuration)";
-             }
-             if (error.message.includes("NetworkError") || error.message.includes("Failed to fetch")) {
-                 errorMessage += "\n\n(Network Blocked: Trying to access API directly from browser. CORS Proxy implemented.)";
-             }
-             if (error.message.includes("API Key missing")) {
-                 errorMessage += "\n\n(Please configure your environment variables in the deployment settings)";
+             if (error.message.includes("API key")) {
+                 errorMessage += "\n\n(Please configure your environment variables)";
              }
         }
         
