@@ -1,3 +1,4 @@
+
 import OpenAI from 'openai';
 import { ChatHistory, OpenAIMessage, PersonalityMode } from '../types';
 
@@ -12,23 +13,25 @@ interface StreamUpdate {
 
 // Helper to safely access environment variables across different build environments (Vite, Webpack, Node)
 const getEnvVar = (key: string): string => {
+    let value = '';
     try {
-        // Check for standard process.env (Webpack/Node/Cloudflare)
-        // @ts-ignore
-        if (typeof process !== 'undefined' && process.env && process.env[key]) {
-            // @ts-ignore
-            return process.env[key];
-        }
-        // Check for import.meta.env (Vite)
+        // Check for import.meta.env (Vite) - check this first for frontend apps
         // @ts-ignore
         if (typeof import.meta !== 'undefined' && import.meta.env) {
             // @ts-ignore
-            return import.meta.env[key] || import.meta.env[`VITE_${key}`];
+            value = import.meta.env[key] || import.meta.env[`VITE_${key}`];
+        }
+        
+        // Fallback to process.env (Node/Webpack) if not found yet
+        // @ts-ignore
+        if (!value && typeof process !== 'undefined' && process.env) {
+            // @ts-ignore
+            value = process.env[key] || process.env[`VITE_${key}`];
         }
     } catch (e) {
         // Ignore access errors in restricted environments
     }
-    return '';
+    return value || '';
 };
 
 const PERSONALITY_PROMPTS: Record<PersonalityMode, string> = {
@@ -53,7 +56,7 @@ export async function* streamGemini(
     
     const textClient = new OpenAI({
         baseURL: "https://openrouter.ai/api/v1",
-        apiKey: apiKey,
+        apiKey: apiKey || "dummy-key", // Prevent crash on init if key missing (will fail gracefully on call)
         dangerouslyAllowBrowser: true
     });
 
@@ -78,34 +81,36 @@ export async function* streamGemini(
     });
     
     try {
+        if (!apiKey) {
+            throw new Error("API Key missing. Please set API_KEY in your environment variables.");
+        }
+
         if (isImageRequest) {
             // 1. PROMPT REFINEMENT (Using Grok)
             let refinedPrompt = prompt;
             try {
-                if (apiKey) {
-                    const refinementResponse = await textClient.chat.completions.create({
-                        model: 'x-ai/grok-4.1-fast',
-                        messages: [
-                            { 
-                                role: 'system', 
-                                content: `You are an expert AI Art Prompt Engineer. 
-                                Your task is to rewrite the user's request into a highly detailed, photorealistic image generation prompt.
-                                
-                                MANDATORY REQUIREMENTS:
-                                1. Include keywords: "4k uhd", "ultrarealistic", "high detail", "photorealistic", "masterpiece".
-                                2. Ensure NO duplicate tags/keywords.
-                                3. Describe lighting, texture, and composition if not specified.
-                                4. Output ONLY the raw prompt string. Do not include "Here is the prompt:" or quotes.` 
-                            },
-                            { role: 'user', content: prompt }
-                        ],
-                        max_tokens: 300
-                    });
-                    
-                    const refinedText = refinementResponse.choices[0]?.message?.content?.trim();
-                    if (refinedText) {
-                        refinedPrompt = refinedText;
-                    }
+                const refinementResponse = await textClient.chat.completions.create({
+                    model: 'x-ai/grok-4.1-fast',
+                    messages: [
+                        { 
+                            role: 'system', 
+                            content: `You are an expert AI Art Prompt Engineer. 
+                            Your task is to rewrite the user's request into a highly detailed, photorealistic image generation prompt.
+                            
+                            MANDATORY REQUIREMENTS:
+                            1. Include keywords: "4k uhd", "ultrarealistic", "high detail", "photorealistic", "masterpiece".
+                            2. Ensure NO duplicate tags/keywords.
+                            3. Describe lighting, texture, and composition if not specified.
+                            4. Output ONLY the raw prompt string. Do not include "Here is the prompt:" or quotes.` 
+                        },
+                        { role: 'user', content: prompt }
+                    ],
+                    max_tokens: 300
+                });
+                
+                const refinedText = refinementResponse.choices[0]?.message?.content?.trim();
+                if (refinedText) {
+                    refinedPrompt = refinedText;
                 }
             } catch (refinementError) {
                 console.warn("Prompt refinement failed, using original:", refinementError);
@@ -114,6 +119,10 @@ export async function* streamGemini(
             // 2. IMAGE GENERATION (InfiP API)
             const infipKey = getEnvVar('INFIP_API_KEY');
             
+            if (!infipKey) {
+                 throw new Error("InfiP API Key missing. Please set INFIP_API_KEY in your environment variables.");
+            }
+
             // Use CORS Proxy with encoded URL to ensure robust routing
             const targetUrl = "https://api.infip.pro/v1/images/generations";
             const url = "https://corsproxy.io/?" + encodeURIComponent(targetUrl);
@@ -234,6 +243,9 @@ Use your online capabilities to search for up-to-date information when necessary
              }
              if (error.message.includes("NetworkError") || error.message.includes("Failed to fetch")) {
                  errorMessage += "\n\n(Network Blocked: Trying to access API directly from browser. CORS Proxy implemented.)";
+             }
+             if (error.message.includes("API Key missing")) {
+                 errorMessage += "\n\n(Please configure your environment variables in the deployment settings)";
              }
         }
         
