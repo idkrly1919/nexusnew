@@ -4,6 +4,7 @@ import { streamGemini } from '../services/geminiService';
 import { ThinkingProcess } from './ThinkingProcess';
 import { useSession } from '../src/contexts/SessionContext';
 import { supabase } from '../src/integrations/supabase/client';
+import SpeechVisualizer from './SpeechVisualizer';
 
 const NexusIconSmall = () => (
     <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center">
@@ -31,6 +32,7 @@ const ChatView: React.FC = () => {
     const [inputValue, setInputValue] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [isListening, setIsListening] = useState(false);
+    const [transcript, setTranscript] = useState('');
     const [thinkingMode, setThinkingMode] = useState<'reasoning' | 'image'>('reasoning');
     
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -130,6 +132,17 @@ const ChatView: React.FC = () => {
         if (fileInputRef.current) fileInputRef.current.value = '';
     };
 
+    const submitTranscript = (text: string) => {
+        if (recognition.current) {
+            recognition.current.stop();
+        }
+        if (text.trim()) {
+            processSubmission(text.trim());
+        }
+        setTranscript('');
+        setIsListening(false);
+    };
+
     useEffect(() => {
         if (typeof window !== 'undefined' && ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window)) {
             // @ts-ignore
@@ -138,32 +151,49 @@ const ChatView: React.FC = () => {
             recognition.current.continuous = true;
             recognition.current.interimResults = true;
             recognition.current.lang = 'en-US';
-            recognition.current.onstart = () => setIsListening(true);
-            recognition.current.onresult = (event: any) => {
-                let finalTranscript = '';
-                for (let i = event.resultIndex; i < event.results.length; ++i) {
-                    finalTranscript += event.results[i][0].transcript;
-                }
-                if (finalTranscript) {
-                    setInputValue(prev => prev ? prev + ' ' + finalTranscript.trim() : finalTranscript.trim());
-                    if (silenceTimer.current) clearTimeout(silenceTimer.current);
-                    silenceTimer.current = setTimeout(() => {
-                        if (recognition.current) recognition.current.stop();
-                    }, 3000);
-                }
+            
+            recognition.current.onstart = () => {
+                setIsListening(true);
+                setTranscript('');
             };
-            recognition.current.onend = () => setIsListening(false);
+
+            recognition.current.onresult = (event: any) => {
+                if (silenceTimer.current) clearTimeout(silenceTimer.current);
+
+                let fullTranscript = '';
+                for (let i = 0; i < event.results.length; i++) {
+                    fullTranscript += event.results[i][0].transcript;
+                }
+                setTranscript(fullTranscript);
+
+                silenceTimer.current = setTimeout(() => {
+                    submitTranscript(fullTranscript);
+                }, 5000);
+            };
+
+            recognition.current.onend = () => {
+                if (silenceTimer.current) clearTimeout(silenceTimer.current);
+                setIsListening(false);
+            };
+
             recognition.current.onerror = (event: any) => {
                 console.error("Speech recognition error", event.error);
+                if (silenceTimer.current) clearTimeout(silenceTimer.current);
                 setIsListening(false);
             };
         }
     }, []);
 
-    const toggleListening = () => {
-        if (!recognition.current) return;
-        if (isListening) recognition.current.stop();
-        else recognition.current.start();
+    const startListening = () => {
+        if (recognition.current && !isListening) {
+            recognition.current.start();
+        }
+    };
+
+    const stopListening = () => {
+        if (recognition.current && isListening) {
+            recognition.current.stop();
+        }
     };
 
     const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
@@ -335,6 +365,14 @@ const ChatView: React.FC = () => {
 
     return (
         <div id="chat-view" className="fixed inset-0 z-50 flex flex-col bg-[#18181b] text-zinc-100 font-sans overflow-hidden">
+            {isListening && (
+                <SpeechVisualizer 
+                    transcript={transcript}
+                    onClose={stopListening}
+                    onSend={() => submitTranscript(transcript)}
+                />
+            )}
+
             {showSettings && (
                 <div className="fixed inset-0 z-[60] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
                     <div className="bg-[#18181b] border border-zinc-800 rounded-2xl w-full max-w-md shadow-2xl animate-in zoom-in-95 duration-200">
@@ -438,7 +476,7 @@ const ChatView: React.FC = () => {
                                         <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" accept="image/*,application/pdf,text/plain,text/code,application/json" />
                                         <button type="button" onClick={triggerFileSelect} className="p-2 rounded-full text-zinc-300 hover:text-white hover:bg-zinc-700/50 transition-colors" title="Attach File"><svg className="w-5 h-5" viewBox="0 0 24 24"><path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg></button>
                                         <div className={`p-2 rounded-full transition-colors cursor-default ${isReasoningEnabled ? 'text-zinc-300' : 'text-zinc-600'}`} title="Reasoning Active"><svg className="w-5 h-5" viewBox="0 0 24 24"><path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96.44 2.5 2.5 0 0 1-2.96-3.08 3 3 0 0 1-.34-5.58 2.5 2.5 0 0 1 1.32-4.24 2.5 2.5 0 0 1 1.98-3A2.5 2.5 0 0 1 9.5 2Z"/><path d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96.44 2.5 2.5 0 0 0 2.96-3.08 3 3 0 0 0 .34-5.58 2.5 2.5 0 0 0-1.32-4.24 2.5 2.5 0 0 0-1.98-3A2.5 2.5 0 0 0 14.5 2Z"/></svg></div>
-                                        <button type="button" onClick={toggleListening} className={`p-2 rounded-full transition-all duration-200 ${isListening ? 'bg-red-500/20 text-red-400 animate-pulse' : 'text-zinc-300 hover:text-white hover:bg-zinc-700/50'}`}><svg className="w-5 h-5" viewBox="0 0 24 24"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/></svg></button>
+                                        <button type="button" onClick={startListening} className={`p-2 rounded-full transition-all duration-200 text-zinc-300 hover:text-white hover:bg-zinc-700/50`}><svg className="w-5 h-5" viewBox="0 0 24 24"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/></svg></button>
                                         <button type="submit" disabled={isLoading || (!inputValue.trim() && !attachedFile)} className={`p-2 rounded-full transition-all duration-200 ${(inputValue.trim() || attachedFile) && !isLoading ? 'bg-white text-black hover:bg-zinc-200 shadow-lg hover:shadow-white/20' : 'bg-zinc-700/50 text-zinc-500 cursor-not-allowed'}`}><svg className="w-5 h-5 ml-0.5" viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg></button>
                                     </div>
                                 </div>
