@@ -60,6 +60,7 @@ export async function* streamGemini(
 
         if (!attachedFile && mightBeImageRequest) {
             let intentSystemPrompt = `You are an expert request analyzer. Your task is to determine if the user's prompt is a request to generate or modify an image. If it is, you must refine their request into a detailed, high-quality prompt for an image generation model.
+The generated image should be visually rich and fill the entire frame.
 Respond ONLY with a JSON object with the following structure:
 { "is_image_request": boolean, "refined_prompt": string | null }`;
 
@@ -84,7 +85,7 @@ Respond ONLY with a JSON object with the following structure:
                 const result = JSON.parse(intentResponse.choices[0].message.content || '{}');
                 if (result.is_image_request && result.refined_prompt) {
                     isImageRequest = true;
-                    imagePrompt = result.refined_prompt;
+                    imagePrompt = result.refined_prompt + ", full frame, fills the entire image, cinematic lighting";
                 }
             } catch (e: any) {
                 if (e.name === 'AbortError') throw e;
