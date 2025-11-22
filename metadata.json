@@ -1,0 +1,7 @@
+{
+  "name": "Nexus Reasoning Engine",
+  "description": "An advanced mathematical and logical reasoning engine powered by Gemini, designed to solve complex problems and provide detailed, step-by-step thinking processes.",
+  "requestFramePermissions": [
+    "microphone"
+  ]
+}
