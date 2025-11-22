@@ -25,7 +25,7 @@ const AppContent: React.FC = () => {
             ) : showLogin ? (
                 <LoginPage />
             ) : (
-                <LandingPage onLoginClick={() => setShowLogin(true)} />
+                <LandingPage onGetAccess={() => setShowLogin(true)} />
             )}
         </>
     );
