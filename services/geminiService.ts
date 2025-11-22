@@ -1,4 +1,3 @@
-
 import OpenAI from 'openai';
 import { ChatHistory, OpenAIMessage, PersonalityMode } from '../types';
 
@@ -106,7 +105,6 @@ export async function* streamGemini(
                     const refinedText = refinementResponse.choices[0]?.message?.content?.trim();
                     if (refinedText) {
                         refinedPrompt = refinedText;
-                        // console.log("Refined Prompt:", refinedPrompt);
                     }
                 }
             } catch (refinementError) {
@@ -158,7 +156,7 @@ export async function* streamGemini(
             }
 
             if (imageUrl) {
-                // Display the prompt used in alt text for reference, or just "Generated Image"
+                // Display the prompt used in alt text for reference
                 const markdownImage = `![${refinedPrompt.replace(/[\[\]\(\)]/g, '')}](${imageUrl})`;
                 
                 yield {
@@ -189,6 +187,7 @@ Use your online capabilities to search for up-to-date information when necessary
                 { role: 'user', content: prompt }
             ];
 
+            // Fix: Cast result to any to allow iteration, fixing TS error 'must have a [Symbol.asyncIterator]() method'
             const stream = await textClient.chat.completions.create({
                 model: 'x-ai/grok-4.1-fast', 
                 messages: messages,
@@ -196,7 +195,7 @@ Use your online capabilities to search for up-to-date information when necessary
                 max_tokens: 4000, 
                 // Force search capability
                 ...({ include_search_results: true } as any) 
-            });
+            }) as any;
 
             let fullText = '';
 
