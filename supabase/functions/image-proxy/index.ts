@@ -17,12 +17,11 @@ serve(async (req: Request) => {
   try {
     const { prompt } = await req.json()
     // @ts-ignore
-    // CORRECTED: Changed Deno.env.get from 'INFLIP_API_KEY' to 'INFIP_API_KEY'
-    const infipKey = Deno.env.get('INFIP_API_KEY')
+    const infipKey = Deno.env.get('INFLIP_API_KEY')
 
     if (!infipKey) {
       return new Response(
-        JSON.stringify({ error: 'INFIP_API_KEY is not set in function secrets.' }),
+        JSON.stringify({ error: 'INFLIP_API_KEY is not set in function secrets.' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
