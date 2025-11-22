@@ -21,6 +21,6 @@
     "noFallthroughCasesInSwitch": true
   },
   "include": ["src", "components", "services", "App.tsx", "index.tsx", "types.ts"],
-  "exclude": ["supabase"],
+  "exclude": ["node_modules", "supabase"],
   "references": [{ "path": "./tsconfig.node.json" }]
 }
