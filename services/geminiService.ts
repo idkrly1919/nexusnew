@@ -59,7 +59,8 @@ export async function* streamGemini(
         const preliminaryCheckKeywords = ['generate', 'create', 'draw', 'paint', 'visualize', 'picture', 'photo', 'image', 'edit', 'modify', 'change', 'make it'];
         const mightBeImageRequest = preliminaryCheckKeywords.some(k => prompt.toLowerCase().includes(k));
 
-        if (!attachedFile && mightBeImageRequest) {
+        // Critical Fix: If the last response was an image, we ALWAYS run intent detection to catch refinements like "make it darker" or "daytime please"
+        if (!attachedFile && (mightBeImageRequest || wasLastResponseAnImage)) {
             let intentSystemPrompt = `You are an expert request analyzer. Your task is to determine if the user's prompt is a request to generate or modify an image. If it is, you must refine their request into a detailed, high-quality prompt for an image generation model.
 The generated image should be visually rich and fill the entire frame.
 Respond ONLY with a JSON object with the following structure:
@@ -67,9 +68,9 @@ Respond ONLY with a JSON object with the following structure:
 
             if (wasLastResponseAnImage) {
                 intentSystemPrompt += `\n\nThe user was just shown an image. Analyze their latest prompt in the context of the conversation. Determine if they are asking to refine the previous image or asking for a completely new one.
-- If refining, create a new detailed prompt that incorporates their changes.
+- If refining, create a new detailed prompt that incorporates their changes into the previous image concept.
 - If it's a new image request, create a new detailed prompt from scratch.
-- If it's not an image request at all, set "is_image_request" to false.`;
+- If it's just a comment (e.g., "cool", "thanks"), set "is_image_request" to false.`;
             }
 
             try {
@@ -91,6 +92,12 @@ Respond ONLY with a JSON object with the following structure:
             } catch (e: any) {
                 if (e.name === 'AbortError') throw e;
                 console.error("Intent detection failed, falling back to keyword check.", e);
+                // Fallback logic: if intent detection fails but context strongly suggests image, default to simple check
+                if (wasLastResponseAnImage) {
+                     // If context is image, and keywords fail, we might still want to try, but safest is fallback keywords
+                     // or perhaps we assume it IS a refinement if it's short? 
+                     // For now, stick to keywords as safety net.
+                }
                 const fallbackKeywords = ['generate image', 'create an image', 'draw', 'paint', 'visualize', 'picture of', 'photo of'];
                 isImageRequest = fallbackKeywords.some(k => prompt.toLowerCase().includes(k));
             }
