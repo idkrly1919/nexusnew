@@ -21,7 +21,7 @@ serve(async (req: Request) => {
       )
     }
     
-    const { prompt } = await req.json()
+    const { prompt, size } = await req.json()
     
     // @ts-ignore
     const infipKey = Deno.env.get('INFIP_API_KEY') || Deno.env.get('VITE_INFIP_API_KEY');
@@ -42,7 +42,7 @@ serve(async (req: Request) => {
         model: "img4",
         prompt: prompt,
         n: 1,
-        size: "1024x1024"
+        size: size || "1024x1024"
     };
 
     // Make the request from the server-side function

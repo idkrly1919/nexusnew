@@ -52,6 +52,7 @@ export async function* streamGemini(
         // --- STEP 1: AI-Powered Intent Detection & Prompt Refinement ---
         let isImageRequest = false;
         let imagePrompt = prompt;
+        let imageSize = "1024x1024";
 
         const lastAssistantMessage = history.filter(m => m.role === 'assistant').pop();
         const wasLastResponseAnImage = lastAssistantMessage?.content.includes('![');
@@ -59,18 +60,18 @@ export async function* streamGemini(
         const preliminaryCheckKeywords = ['generate', 'create', 'draw', 'paint', 'visualize', 'picture', 'photo', 'image', 'edit', 'modify', 'change', 'make it'];
         const mightBeImageRequest = preliminaryCheckKeywords.some(k => prompt.toLowerCase().includes(k));
 
-        // Critical Fix: If the last response was an image, we ALWAYS run intent detection to catch refinements like "make it darker" or "daytime please"
         if (!attachedFile && (mightBeImageRequest || wasLastResponseAnImage)) {
-            let intentSystemPrompt = `You are an expert request analyzer. Your task is to determine if the user's prompt is a request to generate or modify an image. If it is, you must refine their request into a detailed, high-quality prompt for an image generation model.
-The generated image should be visually rich and fill the entire frame.
+            let intentSystemPrompt = `You are an expert request analyzer. Your task is to determine if the user's prompt is a request to generate or modify an image.
+If it is an image request, you must:
+1. Refine their request into a detailed, high-quality prompt for an image generation model. The prompt should explicitly mention that the subject fills the entire frame, avoiding any letterboxing or empty bars.
+2. Determine the desired aspect ratio from keywords like "landscape", "portrait", "wide", "tall", "16:9", "9:16".
+3. If no aspect ratio is specified, default to "square".
+
 Respond ONLY with a JSON object with the following structure:
-{ "is_image_request": boolean, "refined_prompt": string | null }`;
+{ "is_image_request": boolean, "refined_prompt": string | null, "aspect_ratio": "square" | "landscape" | "portrait" }`;
 
             if (wasLastResponseAnImage) {
-                intentSystemPrompt += `\n\nThe user was just shown an image. Analyze their latest prompt in the context of the conversation. Determine if they are asking to refine the previous image or asking for a completely new one.
-- If refining, create a new detailed prompt that incorporates their changes into the previous image concept.
-- If it's a new image request, create a new detailed prompt from scratch.
-- If it's just a comment (e.g., "cool", "thanks"), set "is_image_request" to false.`;
+                intentSystemPrompt += `\n\nCONTEXT: The user was just shown an image. Analyze their latest prompt in this context. They might be asking to refine the previous image, change its aspect ratio, or generate a new one. If it's just a comment (e.g., "cool", "thanks"), set "is_image_request" to false.`;
             }
 
             try {
@@ -87,17 +88,16 @@ Respond ONLY with a JSON object with the following structure:
                 const result = JSON.parse(intentResponse.choices[0].message.content || '{}');
                 if (result.is_image_request && result.refined_prompt) {
                     isImageRequest = true;
-                    imagePrompt = result.refined_prompt + ", full frame, fills the entire image, cinematic lighting";
+                    imagePrompt = result.refined_prompt;
+                    if (result.aspect_ratio === 'landscape') {
+                        imageSize = "1792x1024";
+                    } else if (result.aspect_ratio === 'portrait') {
+                        imageSize = "1024x1792";
+                    }
                 }
             } catch (e: any) {
                 if (e.name === 'AbortError') throw e;
                 console.error("Intent detection failed, falling back to keyword check.", e);
-                // Fallback logic: if intent detection fails but context strongly suggests image, default to simple check
-                if (wasLastResponseAnImage) {
-                     // If context is image, and keywords fail, we might still want to try, but safest is fallback keywords
-                     // or perhaps we assume it IS a refinement if it's short? 
-                     // For now, stick to keywords as safety net.
-                }
                 const fallbackKeywords = ['generate image', 'create an image', 'draw', 'paint', 'visualize', 'picture of', 'photo of'];
                 isImageRequest = fallbackKeywords.some(k => prompt.toLowerCase().includes(k));
             }
@@ -108,7 +108,7 @@ Respond ONLY with a JSON object with the following structure:
             yield { text: `Generating image with prompt: \`${imagePrompt}\``, isComplete: false, mode: 'image' };
             
             const { data: functionData, error: functionError } = await supabase.functions.invoke('image-proxy', {
-                body: { prompt: imagePrompt },
+                body: { prompt: imagePrompt, size: imageSize },
                 signal,
             });
 
