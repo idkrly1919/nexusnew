@@ -46,6 +46,11 @@ const ChatView: React.FC = () => {
     const silenceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
     const recognition = useRef<any>(null);
     const abortControllerRef = useRef<AbortController | null>(null);
+    const transcriptRef = useRef('');
+
+    useEffect(() => {
+        transcriptRef.current = transcript;
+    }, [transcript]);
 
     const scrollToBottom = () => {
         if (messagesEndRef.current) {
@@ -206,14 +211,14 @@ const ChatView: React.FC = () => {
             recognition.current.onresult = (event: any) => {
                 if (silenceTimer.current) clearTimeout(silenceTimer.current);
 
-                let fullTranscript = '';
-                for (let i = 0; i < event.results.length; i++) {
-                    fullTranscript += event.results[i][0].transcript;
-                }
+                const fullTranscript = Array.from(event.results)
+                    .map((result: any) => result[0].transcript)
+                    .join('');
+                
                 setTranscript(fullTranscript);
 
                 silenceTimer.current = setTimeout(() => {
-                    submitTranscript(fullTranscript);
+                    submitTranscript(transcriptRef.current);
                 }, 3000);
             };
 
@@ -238,7 +243,7 @@ const ChatView: React.FC = () => {
 
     const stopListening = () => {
         if (recognition.current && isListening) {
-            recognition.current.stop();
+            submitTranscript(transcriptRef.current);
         }
     };
 
