@@ -11,29 +11,6 @@ interface StreamUpdate {
     newHistoryEntry?: OpenAIMessage;
 }
 
-// Helper to safely access environment variables across different build environments (Vite, Webpack, Node)
-const getEnvVar = (key: string): string => {
-    let value = '';
-    try {
-        // Check for import.meta.env (Vite) - check this first for frontend apps
-        // @ts-ignore
-        if (typeof import.meta !== 'undefined' && import.meta.env) {
-            // @ts-ignore
-            value = import.meta.env[key] || import.meta.env[`VITE_${key}`];
-        }
-        
-        // Fallback to process.env (Node/Webpack) if not found yet
-        // @ts-ignore
-        if (!value && typeof process !== 'undefined' && process.env) {
-            // @ts-ignore
-            value = process.env[key] || process.env[`VITE_${key}`];
-        }
-    } catch (e) {
-        // Ignore access errors in restricted environments
-    }
-    return value || '';
-};
-
 const PERSONALITY_PROMPTS: Record<PersonalityMode, string> = {
     'conversational': 'You are Nexus, a helpful, witty, and engaging AI assistant. Keep the tone natural and conversational.',
     'brainrot': 'You are Nexus, but you have terminal brainrot. Use Gen Z slang, skibidi toilet references, rizz, gyatt, fanum tax, and chaotic energy. Be barely coherent but hilarious.',
@@ -51,17 +28,24 @@ export async function* streamGemini(
     attachedFile: { name: string, content: string, type: string } | null = null
 ): AsyncGenerator<StreamUpdate> {
     
-    // Use OpenAI SDK for Text Generation (OpenRouter)
-    // Retrieve API Key safely
-    const apiKey = process.env.API_KEY || getEnvVar('API_KEY');
-    
+    // 1. Retrieve API Keys from Environment
+    // @ts-ignore
+    const apiKey = process.env.API_KEY;
+    // @ts-ignore
+    const infipKey = process.env.INFLIP_API_KEY || process.env.INFIP_API_KEY;
+
+    if (!apiKey) {
+         throw new Error("API Key is missing. Please set API_KEY in your deployment environment variables.");
+    }
+
+    // Initialize OpenAI Client for OpenRouter
     const textClient = new OpenAI({
         baseURL: "https://openrouter.ai/api/v1",
-        apiKey: apiKey || "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",
+        apiKey: apiKey,
         dangerouslyAllowBrowser: true
     });
 
-    // Detect Image Intent
+    // Detect Image Generation Intent
     const imageKeywords = [
         'generate image', 'create an image', 'draw', 'paint', 'visualize', 
         'picture of', 'photo of', 'generate a image', 'make an image', 
@@ -69,7 +53,7 @@ export async function* streamGemini(
     ];
     const isImageRequest = imageKeywords.some(k => prompt.toLowerCase().includes(k));
 
-    // Inject dynamic real-time date
+    // Time Context
     const now = new Date();
     const timeString = now.toLocaleString('en-US', { 
         weekday: 'long', 
@@ -82,72 +66,67 @@ export async function* streamGemini(
     });
     
     try {
-        if (!apiKey) {
-             console.warn("API Key missing in env, using fallback.");
-        }
-
+        // --- PATH 1: IMAGE GENERATION (InfiP API) ---
         if (isImageRequest) {
-            // 1. PROMPT REFINEMENT (Using Grok)
-            let refinedPrompt = prompt;
-            try {
-                const refinementResponse = await textClient.chat.completions.create({
-                    model: 'x-ai/grok-4.1-fast',
-                    messages: [
-                        { 
-                            role: 'system', 
-                            content: `You are an expert AI Art Prompt Engineer. 
-                            Your task is to rewrite the user's request into a highly detailed, photorealistic image generation prompt.
-                            
-                            MANDATORY REQUIREMENTS:
-                            1. Include keywords: "4k uhd", "ultrarealistic", "high detail", "photorealistic", "masterpiece".
-                            2. Ensure NO duplicate tags/keywords.
-                            3. Describe lighting, texture, and composition if not specified.
-                            4. Output ONLY the raw prompt string. Do not include "Here is the prompt:" or quotes.` 
-                        },
-                        { role: 'user', content: prompt }
-                    ],
-                    max_tokens: 300
-                });
-                
-                const refinedText = refinementResponse.choices[0]?.message?.content?.trim();
-                if (refinedText) {
-                    refinedPrompt = refinedText;
-                }
-            } catch (refinementError) {
-                console.warn("Prompt refinement failed, using original:", refinementError);
+            
+            if (!infipKey) {
+                throw new Error("InfiP API Key is missing. Please set INFLIP_API_KEY in your deployment environment variables.");
             }
 
-            // 2. IMAGE GENERATION (OpenRouter via Flux)
-            // Using Flux 1 Schnell on OpenRouter as it's reliable and doesn't require a separate InfiP key
-            const response = await textClient.images.generate({
-                model: "black-forest-labs/flux-1-schnell",
-                prompt: refinedPrompt,
+            // Using CORS Proxy to bypass browser restrictions
+            const url = "https://corsproxy.io/?https://api.infip.pro/v1/images/generations";
+
+            const headers = {
+                "Authorization": `Bearer ${infipKey}`,
+                "Content-Type": "application/json"
+            };
+
+            const payload = {
+                model: "img4",
+                prompt: prompt,
                 n: 1,
                 size: "1024x1024"
+            };
+
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: headers,
+                body: JSON.stringify(payload)
             });
 
-            // Expecting OpenAI standard response format from OpenRouter
-            const imageUrl = response.data[0]?.url;
+            if (!response.ok) {
+                 const errText = await response.text();
+                 throw new Error(`InfiP API Error ${response.status}: ${errText}`);
+            }
+
+            const data = await response.json();
+            console.log("InfiP Response:", data);
+
+            let imageUrl: string | undefined;
+
+            // Handle InfiP response format
+            if (data.images && Array.isArray(data.images) && data.images.length > 0) {
+                imageUrl = data.images[0];
+            } else if (data.data && Array.isArray(data.data) && data.data.length > 0) {
+                imageUrl = data.data[0].url; // Fallback
+            } else if (typeof data.url === 'string') {
+                imageUrl = data.url;
+            }
 
             if (imageUrl) {
-                // Display the prompt used in alt text for reference
-                const markdownImage = `![${refinedPrompt.replace(/[\[\]\(\)]/g, '')}](${imageUrl})`;
-                
+                const markdownImage = `![${prompt.replace(/[\[\]\(\)]/g, '')}](${imageUrl})`;
                 yield {
                     text: markdownImage,
                     isComplete: true,
-                    newHistoryEntry: {
-                        role: 'assistant',
-                        content: markdownImage
-                    }
+                    newHistoryEntry: { role: 'assistant', content: markdownImage }
                 };
             } else {
-                throw new Error(`No image URL returned from OpenRouter.`);
+                throw new Error(`No image URL returned. Response: ${JSON.stringify(data)}`);
             }
 
-        } else {
-            // TEXT GENERATION PATH (OpenRouter)
-            
+        } 
+        // --- PATH 2: TEXT / VISION (OpenRouter) ---
+        else {
             const personalityInstruction = PERSONALITY_PROMPTS[personality];
             const systemInstruction = `You are Nexus.
 ${personalityInstruction}
@@ -156,18 +135,18 @@ CURRENT DATE/TIME: ${timeString}
 Use your online capabilities to search for up-to-date information when necessary.
 `;
 
-            // --- MULTIMODAL LOGIC ---
             let messages: any[] = [
                 { role: 'system', content: systemInstruction },
                 ...history,
             ];
 
-            let activeModel = 'x-ai/grok-4.1-fast'; // Default Text Model
+            // --- MODEL SELECTION LOGIC ---
+            // Default: Grok 4.1 Fast
+            let activeModel = 'x-ai/grok-4.1-fast'; 
 
             // If user attached a file
             if (attachedFile) {
-                // If Image -> Switch to Vision Capable Model (Flash 2.0 on OpenRouter)
-                // Grok 4.1 is primarily text; Flash 2.0 is excellent at vision and free/cheap on OpenRouter.
+                // If Image -> Switch to Gemini 2.0 Flash (Vision capable)
                 if (attachedFile.type.startsWith('image/')) {
                     activeModel = 'google/gemini-2.0-flash-001';
                     
@@ -178,13 +157,13 @@ Use your online capabilities to search for up-to-date information when necessary
                             {
                                 type: 'image_url',
                                 image_url: {
-                                    url: attachedFile.content // This is the Base64 string from ChatView
+                                    url: attachedFile.content // Base64
                                 }
                             }
                         ]
                     });
                 } else {
-                    // Text file - append content to prompt
+                    // Text/Code file -> Keep Grok, append content
                     messages.push({
                         role: 'user',
                         content: `${prompt}\n\n[File Content of ${attachedFile.name}]:\n${attachedFile.content}`
@@ -195,36 +174,52 @@ Use your online capabilities to search for up-to-date information when necessary
                 messages.push({ role: 'user', content: prompt });
             }
 
-            // Fix: Cast result to any to allow iteration, fixing TS error
-            const stream = await textClient.chat.completions.create({
-                model: activeModel, 
-                messages: messages,
-                stream: true,
-                max_tokens: 4000, 
-                // Force search capability for text model (Grok)
-                ...((activeModel === 'x-ai/grok-4.1-fast') ? { include_search_results: true } : {}) 
-            }) as any;
+            // Call OpenRouter with Timeout
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 30000); // 30s timeout
 
-            let fullText = '';
+            try {
+                const stream = await textClient.chat.completions.create({
+                    model: activeModel, 
+                    messages: messages,
+                    stream: true,
+                    max_tokens: 4000, 
+                    // Enable search for Grok
+                    ...((activeModel === 'x-ai/grok-4.1-fast') ? { include_search_results: true } : {}) 
+                }, { signal: controller.signal }) as any;
 
-            for await (const chunk of stream) {
-                const content = chunk.choices[0]?.delta?.content || '';
-                if (content) {
-                    fullText += content;
-                    yield { text: fullText, isComplete: false };
+                clearTimeout(timeoutId);
+
+                let fullText = '';
+                let hasYielded = false;
+
+                for await (const chunk of stream) {
+                    const content = chunk.choices[0]?.delta?.content || '';
+                    if (content) {
+                        fullText += content;
+                        yield { text: fullText, isComplete: false };
+                        hasYielded = true;
+                    }
                 }
+
+                if (!hasYielded) {
+                     throw new Error("API returned an empty response. The model might be busy or the context is too long.");
+                }
+
+                const newHistoryEntry: OpenAIMessage = {
+                    role: 'assistant',
+                    content: fullText
+                };
+
+                yield {
+                    text: fullText,
+                    isComplete: true,
+                    newHistoryEntry
+                };
+            } catch (apiError: any) {
+                clearTimeout(timeoutId);
+                throw apiError;
             }
-
-            const newHistoryEntry: OpenAIMessage = {
-                role: 'assistant',
-                content: fullText
-            };
-
-            yield {
-                text: fullText,
-                isComplete: true,
-                newHistoryEntry
-            };
         }
 
     } catch (error: any) {
@@ -232,19 +227,13 @@ Use your online capabilities to search for up-to-date information when necessary
         let errorMessage = "An unexpected error occurred.";
         
         if (error instanceof Error) {
-             errorMessage = `**System Error:** ${error.message}`;
-             
-             if (error.message.includes("402")) {
-                 errorMessage += "\n\n(Insufficient credits on API key)";
-             }
-             if (error.message.includes("401")) {
-                 errorMessage += "\n\n(Unauthorized: Check API Key)";
-             }
-             if (error.message.includes("400")) {
-                 errorMessage += "\n\n(Invalid request configuration)";
-             }
-             if (error.message.includes("NetworkError") || error.message.includes("Failed to fetch")) {
-                 errorMessage += "\n\n(Network Blocked: CORS issue or connection failed)";
+             if (error.name === 'AbortError') {
+                 errorMessage = "**Timeout Error:** The request took too long to respond. Please try again.";
+             } else {
+                 errorMessage = `**System Error:** ${error.message}`;
+                 if (error.message.includes("401")) errorMessage += " (Unauthorized - Check API Key)";
+                 if (error.message.includes("402")) errorMessage += " (Insufficient Credits)";
+                 if (error.message.includes("NetworkError")) errorMessage += " (Connection Blocked - Check Network/Proxy)";
              }
         }
         

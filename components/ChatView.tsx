@@ -310,10 +310,22 @@ const ChatView: React.FC = () => {
                     ]);
                 }
             }
-        } catch (err) {
+        } catch (err: any) {
             console.error("Streaming error", err);
+            // Ensure typing indicator is gone
             setMessages(prev => prev.filter(m => m.role !== 'typing'));
+            
+            // Display error in chat bubble
+            setMessages(prev => {
+                return [...prev, {
+                    id: `error-${Date.now()}`,
+                    role: 'assistant',
+                    text: `**System Error:** ${err.message || "An unexpected error occurred."}`
+                }];
+            });
         } finally {
+            // Safeguard: Ensure typing indicator is definitely gone
+            setMessages(prev => prev.filter(m => m.role !== 'typing'));
             setIsLoading(false);
         }
     };
@@ -678,4 +690,3 @@ const ChatView: React.FC = () => {
 };
 
 export default ChatView;
-    
