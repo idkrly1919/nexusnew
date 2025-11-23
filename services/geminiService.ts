@@ -156,7 +156,7 @@ Respond ONLY with a JSON object with the following structure:
         // --- PATH 2: TEXT / VISION ---
         else {
             const personalityInstruction = PERSONALITY_PROMPTS[personality];
-            const systemInstruction = `You are Nexus.\n${personalityInstruction}\nYour knowledge base is strictly REAL-TIME.\nCURRENT DATE/TIME: ${timeString}\nUse your online capabilities to search for up-to-date information when necessary.`;
+            const systemInstruction = `You are Nexus.\n${personalityInstruction}\nYour knowledge base is strictly REAL-TIME.\nCURRENT DATE/TIME: ${timeString}\nUse your online capabilities to search for up-to-date information when necessary. IMPORTANT: Keep all responses PG-13 and avoid explicit content.`;
 
             let messages: any[] = [{ role: 'system', content: systemInstruction }, ...history];
             let activeModel = 'x-ai/grok-4.1-fast'; 
