@@ -59,7 +59,7 @@ const ChatView: React.FC = () => {
         }
     };
 
-    useEffect(scrollToBottom, [messages]);
+    useEffect(scrollToBottom, [messages, isLoading]);
 
     // Fetch conversations on load
     useEffect(() => {
@@ -273,9 +273,7 @@ const ChatView: React.FC = () => {
         }
 
         const userMessage: Message = { id: `user-${Date.now()}`, role: 'user', text: userDisplay };
-        const typingMessage: Message = { id: `typing-${Date.now()}`, role: 'typing', text: 'Thinking...' };
-        
-        setMessages(prev => [...prev, userMessage, typingMessage]);
+        setMessages(prev => [...prev, userMessage]);
         
         let conversationId = currentConversationId;
         if (!conversationId) {
@@ -299,15 +297,14 @@ const ChatView: React.FC = () => {
 
         try {
             const stream = streamGemini(userText, chatHistory, true, personality, attachedFile, controller.signal);
-            let isFirstChunk = true;
+            let assistantMessageExists = false;
             let accumulatedText = "";
             const aiMsgId = `ai-${Date.now()}`;
 
             for await (const update of stream) {
-                if (isFirstChunk) {
-                    setMessages(prev => prev.filter(m => m.role !== 'typing'));
+                if (!assistantMessageExists) {
                     setMessages(prev => [...prev, { id: aiMsgId, role: 'assistant', text: '' }]);
-                    isFirstChunk = false;
+                    assistantMessageExists = true;
                 }
                 if (update.text) {
                     accumulatedText = update.text;
@@ -329,11 +326,10 @@ const ChatView: React.FC = () => {
                     if (lastMsg && lastMsg.role === 'assistant' && lastMsg.text) {
                         lastMsg.text += "\n\n*(Response stopped by user.)*";
                     }
-                    return newMessages.filter(m => m.role !== 'typing');
+                    return newMessages;
                 });
             } else {
                 console.error("Streaming error", err);
-                setMessages(prev => prev.filter(m => m.role !== 'typing'));
                 setMessages(prev => [...prev, { id: `error-${Date.now()}`, role: 'assistant', text: `**System Error:** ${err.message || "An unexpected error occurred."}` }]);
             }
         } finally {
@@ -441,7 +437,6 @@ const ChatView: React.FC = () => {
                     ) : (
                         <div className="max-w-3xl mx-auto px-4 py-8 space-y-8">
                             {messages.map((msg) => {
-                                if (msg.role === 'typing') return <div key={msg.id} className="animate-in fade-in slide-in-from-bottom-2"><ThinkingProcess thought="" isThinking={true} mode={thinkingMode} /></div>;
                                 if (msg.role === 'user') return <div key={msg.id} className="flex justify-end animate-in fade-in slide-in-from-bottom-2"><div className="bg-[#27272a] text-white px-5 py-3 rounded-[24px] rounded-tr-sm max-w-[85%] leading-relaxed shadow-sm"><div dangerouslySetInnerHTML={{ __html: parseMarkdown(msg.text) }} /></div></div>;
                                 return (
                                     <div key={msg.id} className="flex gap-4 animate-in fade-in slide-in-from-bottom-2">
@@ -454,6 +449,11 @@ const ChatView: React.FC = () => {
                                     </div>
                                 );
                             })}
+                            {isLoading && (
+                                <div className="animate-in fade-in slide-in-from-bottom-2">
+                                    <ThinkingProcess thought="" isThinking={true} mode={thinkingMode} />
+                                </div>
+                            )}
                             <div ref={messagesEndRef} className="h-48"></div>
                         </div>
                     )}
@@ -462,7 +462,7 @@ const ChatView: React.FC = () => {
                 <div className="absolute bottom-8 left-0 right-0 px-4 z-20 flex justify-center">
                     {isLoading ? (
                         <div className="w-full max-w-3xl relative flex flex-col items-center gap-3">
-                            <button onClick={handleStop} className="bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-white px-5 py-2.5 rounded-full font-medium transition-all shadow-[0_0_20px_rgba(39,39,42,0.5)] flex items-center gap-2 text-sm">
+                            <button onClick={handleStop} className="bg-white hover:bg-zinc-200 border border-zinc-300 text-black px-5 py-2.5 rounded-full font-medium transition-all shadow-lg flex items-center gap-2 text-sm">
                                 <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M6 6h12v12H6z"></path></svg>
                                 Stop Generating
                             </button>
