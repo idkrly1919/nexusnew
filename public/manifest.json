@@ -1,0 +1,20 @@
+{
+  "name": "Nexus Reasoning Engine",
+  "short_name": "Nexus",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#18181b",
+  "theme_color": "#18181b",
+  "icons": [
+    {
+      "src": "/nexus-logo.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/nexus-logo.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
