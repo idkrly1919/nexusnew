@@ -13,11 +13,14 @@ export default defineConfig(({ mode }) => {
     plugins: [react()],
     base: './',
     define: {
-      // Define process.env to allow direct access to these variables in the client
-      // The strings must be JSON stringified to be inserted as literals
-      'process.env.API_KEY': JSON.stringify(env.API_KEY),
-      'process.env.INFLIP_API_KEY': JSON.stringify(env.INFLIP_API_KEY || env.INFIP_API_KEY),
-      'process.env.INFIP_API_KEY': JSON.stringify(env.INFIP_API_KEY || env.INFLIP_API_KEY),
+      // This block makes environment variables available in your client-side code.
+      // It prioritizes VITE_ prefixed variables, which is the standard for Vite,
+      // but also includes fallbacks for the non-prefixed versions for compatibility.
+      'process.env.API_KEY': JSON.stringify(env.VITE_API_KEY || env.API_KEY),
+      // This handles both VITE_INFIP_API_KEY and the older INFLIP_API_KEY name.
+      'process.env.INFLIP_API_KEY': JSON.stringify(env.VITE_INFIP_API_KEY || env.INFLIP_API_KEY || env.INFIP_API_KEY),
+      // Defining this as well for consistency, although the service uses the one above.
+      'process.env.INFIP_API_KEY': JSON.stringify(env.VITE_INFIP_API_KEY || env.INFLIP_API_KEY || env.INFIP_API_KEY),
     }
   }
 })
