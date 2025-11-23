@@ -218,9 +218,10 @@ const ChatView: React.FC = () => {
             recognition.current.onresult = (event: any) => {
                 if (silenceTimer.current) clearTimeout(silenceTimer.current);
 
-                const fullTranscript = Array.from(event.results)
-                    .map((result: any) => result[0].transcript)
-                    .join('');
+                let fullTranscript = "";
+                for (let i = 0; i < event.results.length; i++) {
+                    fullTranscript += event.results[i][0].transcript;
+                }
                 
                 setTranscript(fullTranscript);
 
