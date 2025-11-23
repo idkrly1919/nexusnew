@@ -55,6 +55,48 @@ const ChatView: React.FC = () => {
 
     useEffect(scrollToBottom, [messages, isLoading]);
 
+    // Handle image downloads
+    useEffect(() => {
+        const handleImageDownload = async (e: MouseEvent) => {
+            const target = e.target as HTMLElement;
+            const downloadButton = target.closest('.download-image-btn');
+
+            if (downloadButton) {
+                e.preventDefault();
+                const imageUrl = downloadButton.getAttribute('href');
+                if (imageUrl) {
+                    try {
+                        const response = await fetch(imageUrl);
+                        if (!response.ok) throw new Error('Network response was not ok.');
+                        const blob = await response.blob();
+                        const url = window.URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.style.display = 'none';
+                        a.href = url;
+                        
+                        const filename = imageUrl.split('/').pop()?.split('?')[0] || 'nexus-generated-image.png';
+                        a.download = filename;
+                        
+                        document.body.appendChild(a);
+                        a.click();
+                        window.URL.revokeObjectURL(url);
+                        a.remove();
+                    } catch (error) {
+                        console.error('Failed to download image:', error);
+                        window.open(imageUrl, '_blank');
+                    }
+                }
+            }
+        };
+
+        const chatView = document.getElementById('chat-view');
+        chatView?.addEventListener('click', handleImageDownload);
+
+        return () => {
+            chatView?.removeEventListener('click', handleImageDownload);
+        };
+    }, []);
+
     // Fetch conversations on load
     useEffect(() => {
         const fetchConversations = async () => {
@@ -354,7 +396,22 @@ const ChatView: React.FC = () => {
 
     const parseMarkdown = (text: string) => {
         if (!text) return '';
-        let parsed = text.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, (_, alt, url) => `<div class="relative group mt-3 mb-3 block w-full"><img src="${url}" alt="${alt}" class="rounded-xl shadow-lg border border-white/10 w-full h-auto object-cover" /><a href="${url}" target="_blank" download="generated-image" class="absolute top-3 right-3 bg-black/60 hover:bg-black/80 backdrop-blur-md text-white p-2 rounded-lg opacity-0 group-hover:opacity-100 transition-all duration-200 shadow-xl border border-white/10 transform scale-95 group-hover:scale-100"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg></a></div>`);
+        let parsed = text.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, (_, alt, url) => {
+            const downloadIcon = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>`;
+            const fullscreenIcon = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg>`;
+            
+            return `<div class="relative group mt-3 mb-3 block w-full">
+                <img src="${url}" alt="${alt}" class="rounded-xl shadow-lg border border-white/10 w-full h-auto object-cover" />
+                <div class="absolute top-3 right-3 flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-all duration-200">
+                    <a href="${url}" target="_blank" title="View Fullscreen" class="bg-black/60 hover:bg-black/80 backdrop-blur-md text-white p-2 rounded-lg shadow-xl border border-white/10 transform scale-95 group-hover:scale-100">
+                        ${fullscreenIcon}
+                    </a>
+                    <a href="${url}" title="Download Image" class="download-image-btn bg-black/60 hover:bg-black/80 backdrop-blur-md text-white p-2 rounded-lg shadow-xl border border-white/10 transform scale-95 group-hover:scale-100">
+                        ${downloadIcon}
+                    </a>
+                </div>
+            </div>`;
+        });
         parsed = parsed.replace(/\*\*(.*?)\*\*/g, '<strong class="text-white font-semibold">$1</strong>').replace(/`([^`]+)`/g, '<code class="bg-zinc-800 px-1.5 py-0.5 rounded text-sm font-mono text-cyan-300 border border-zinc-700">$1</code>').replace(/\n/g, '<br />');
         return parsed;
     };
@@ -432,7 +489,7 @@ const ChatView: React.FC = () => {
                     {messages.length === 0 && !isLoading ? (
                         <div className="h-full flex flex-col items-center justify-center pb-32 animate-in fade-in duration-700"><OrbLogo /><h1 className="text-2xl font-medium text-white mb-2 tracking-tight">How can I help you?</h1></div>
                     ) : (
-                        <div className="max-w-3xl mx-auto px-4 py-8 space-y-8">
+                        <div className="max-w-3xl mx-auto px-4 py-8 space-y-8 chat-messages-container">
                             {messages.map((msg) => {
                                 if (msg.role === 'user') return <div key={msg.id} className="flex justify-end animate-in fade-in slide-in-from-bottom-2"><div className="bg-[#27272a] text-white px-5 py-3 rounded-[24px] rounded-tr-sm max-w-[85%] leading-relaxed shadow-sm"><div dangerouslySetInnerHTML={{ __html: parseMarkdown(msg.text) }} /></div></div>;
                                 return (
@@ -456,7 +513,7 @@ const ChatView: React.FC = () => {
                     )}
                 </div>
 
-                <div className="absolute bottom-8 left-0 right-0 px-4 z-20 flex justify-center">
+                <div className="absolute bottom-8 left-0 right-0 px-4 z-20 flex justify-center chat-input-container">
                     {isLoading ? (
                         <div className="w-full max-w-3xl relative flex flex-col items-center gap-3">
                             <button onClick={handleStop} className="bg-white hover:bg-zinc-200 border border-zinc-300 text-black px-5 py-2.5 rounded-full font-medium transition-all shadow-lg flex items-center gap-2 text-sm">
@@ -467,12 +524,12 @@ const ChatView: React.FC = () => {
                         </div>
                     ) : (
                         <div className="w-full max-w-3xl relative">
-                            <form onSubmit={handleChatSubmit} className="relative group">
+                            <form onSubmit={handleChatSubmit} className="relative group chat-input-form">
                                 <div className="absolute inset-0 bg-zinc-800/50 rounded-3xl blur-xl transition-opacity duration-500 opacity-0 group-hover:opacity-100"></div>
                                 <div className="relative flex flex-col bg-[#27272a] border border-zinc-700/50 rounded-3xl shadow-2xl overflow-hidden transition-colors focus-within:border-zinc-600">
                                     {attachedFile && (<div className="px-4 pt-3 pb-1"><div className="inline-flex items-center gap-2 bg-zinc-800/80 text-zinc-200 text-xs px-3 py-1.5 rounded-full border border-zinc-700 animate-in fade-in slide-in-from-bottom-2"><div className="w-4 h-4 flex items-center justify-center">{attachedFile.type.startsWith('image/') ? <svg className="w-3 h-3" viewBox="0 0 24 24"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg> : <svg className="w-3 h-3" viewBox="0 0 24 24"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/></svg>}</div><span className="max-w-[150px] truncate font-medium">{attachedFile.name}</span><button type="button" onClick={removeFile} className="ml-1 hover:text-white p-0.5 rounded-full hover:bg-white/10 transition-colors"><svg className="w-3 h-3" viewBox="0 0 24 24"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></button></div></div>)}
                                     <textarea ref={textareaRef} value={inputValue} onChange={(e) => setInputValue(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleChatSubmit(e); } }} rows={1} placeholder="Message Nexus..." className={`w-full bg-transparent border-none text-white placeholder-zinc-500 focus:ring-0 resize-none py-3.5 pl-5 pr-32 max-h-[200px] overflow-y-auto scrollbar-hide ${attachedFile ? 'pt-2' : ''}`} style={{ minHeight: '52px' }}></textarea>
-                                    <div className="absolute bottom-2 right-2 flex items-center gap-1">
+                                    <div className="absolute bottom-2 right-2 flex items-center gap-1 chat-input-buttons">
                                         <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" accept="image/*,application/pdf,text/plain,text/code,application/json" />
                                         <button type="button" onClick={triggerFileSelect} className="p-2 rounded-full text-white hover:bg-zinc-700/50 transition-colors" title="Attach File"><svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg></button>
                                         <div className={`p-2 rounded-full transition-colors cursor-default ${isReasoningEnabled ? 'text-white' : 'text-zinc-600'}`} title="Reasoning Active"><svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96.44 2.5 2.5 0 0 1-2.96-3.08 3 3 0 0 1-.34-5.58 2.5 2.5 0 0 1 1.32-4.24 2.5 2.5 0 0 1 1.98-3A2.5 2.5 0 0 1 9.5 2Z"/><path d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96.44 2.5 2.5 0 0 0 2.96-3.08 3 3 0 0 0 .34-5.58 2.5 2.5 0 0 0-1.32-4.24 2.5 2.5 0 0 0-1.98-3A2.5 2.5 0 0 0 14.5 2Z"/></svg></div>
