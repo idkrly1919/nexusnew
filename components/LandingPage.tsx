@@ -1,4 +1,3 @@
-
 import React, { FormEvent } from 'react';
 
 interface LandingPageProps {
@@ -27,9 +26,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onGetAccess }) => {
             <nav className="fixed w-full z-50 top-0 border-b border-white/5 bg-black/50 backdrop-blur-md">
                 <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 20h20"></path><path d="m12 10 4 10"></path><path d="m12 10-4 10"></path><circle cx="12" cy="5" r="3"></circle></svg>
-                        </div>
+                        <img src="/nexus-logo.png" alt="Nexus Logo" className="w-8 h-8 animate-spin-slow" />
                         <span className="text-xl font-bold tracking-tight brand-font">Nexus</span>
                     </div>
                     

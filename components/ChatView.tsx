@@ -8,20 +8,14 @@ import SpeechVisualizer from './SpeechVisualizer';
 
 const NexusIconSmall = () => (
     <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center">
-        <svg className="text-white w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+        <img src="/nexus-logo.png" alt="Nexus Logo" className="w-5 h-5" />
     </div>
 );
 
 const OrbLogo = () => (
     <div className="relative w-24 h-24 flex items-center justify-center mb-8">
-        <div className="absolute inset-0 rounded-full bg-blue-500 blur-2xl opacity-20 animate-pulse"></div>
-        <div className="relative w-20 h-20 rounded-full bg-gradient-to-b from-slate-800 to-black border border-slate-700 shadow-2xl flex items-center justify-center overflow-hidden">
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_30%,rgba(56,189,248,0.4),transparent_70%)]"></div>
-            <div className="absolute bottom-0 left-0 right-0 h-1/2 bg-gradient-to-t from-blue-600/20 to-transparent"></div>
-            <svg className="text-blue-400 w-10 h-10 drop-shadow-[0_0_15px_rgba(96,165,250,0.8)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
-        </div>
-        <div className="absolute inset-0 border border-blue-500/30 rounded-full w-full h-full rotate-45 scale-110 opacity-40"></div>
-        <div className="absolute inset-0 border border-cyan-400/20 rounded-full w-full h-full -rotate-12 scale-125 opacity-30"></div>
+        <div className="absolute inset-0 rounded-full bg-blue-500 blur-2xl opacity-20"></div>
+        <img src="/nexus-logo.png" alt="Nexus Logo" className="w-20 h-20 animate-spin-slow" />
     </div>
 );
 
@@ -401,7 +395,7 @@ const ChatView: React.FC = () => {
 
             <div className={`fixed inset-y-0 left-0 z-40 w-64 bg-[#101012] border-r border-white/5 transform transition-transform duration-300 ease-in-out ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
                 <div className="flex flex-col h-full">
-                    <div className="p-4 border-b border-white/5 flex justify-between items-center"><div className="font-bold tracking-wide text-white flex items-center gap-2"><div className="w-6 h-6 bg-blue-600/20 rounded flex items-center justify-center text-blue-400"><svg width="14" height="14" viewBox="0 0 24 24"><path d="M2 20h20"/><path d="m12 10 4 10"/><path d="m12 10-4 10"/><circle cx="12" cy="5" r="3"/></svg></div>Nexus</div><button onClick={() => setIsSidebarOpen(false)} className="text-zinc-400 hover:text-white"><svg width="16" height="16" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></svg></button></div>
+                    <div className="p-4 border-b border-white/5 flex justify-between items-center"><div className="font-bold tracking-wide text-white flex items-center gap-2"><img src="/nexus-logo.png" alt="Nexus Logo" className="w-6 h-6 animate-spin-slow" />Nexus</div><button onClick={() => setIsSidebarOpen(false)} className="text-zinc-400 hover:text-white"><svg width="16" height="16" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></svg></button></div>
                     <div className="p-3"><button onClick={() => { resetChat(); setIsSidebarOpen(false); }} className="w-full flex items-center justify-center gap-2 px-3 py-2.5 bg-white hover:bg-zinc-200 text-black rounded-lg transition-colors text-sm font-medium"><svg width="16" height="16" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5" fill="none"><path d="M12 5v14"/><path d="M5 12h14"/></svg>New Chat</button></div>
                     <div className="flex-1 overflow-y-auto px-3 py-2 space-y-1">
                         <div className="text-xs font-semibold text-zinc-600 px-2 py-1 uppercase tracking-wider mb-1">Recent Chats</div>
@@ -425,8 +419,8 @@ const ChatView: React.FC = () => {
 
             <header className="h-14 flex items-center justify-between px-4 border-b border-white/5 bg-[#18181b]/80 backdrop-blur-md z-20 shrink-0">
                 <div className="flex items-center gap-3">
-                    <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="p-2 hover:bg-white/5 rounded-lg text-zinc-400 hover:text-white transition-colors" title="Menu"><svg width="20" height="20" viewBox="0 0 24 24"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><line x1="9" y1="3" x2="9" y2="21"/></svg></button>
-                    <button onClick={resetChat} className="p-2 hover:bg-white/5 rounded-lg text-zinc-400 hover:text-white transition-colors" title="New Chat"><svg width="20" height="20" viewBox="0 0 24 24"><path d="M5 12h14"/><path d="M12 5v14"/></svg></button>
+                    <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="p-2 hover:bg-white/5 rounded-lg text-zinc-400 hover:text-white transition-colors" title="Menu"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><line x1="9" y1="3" x2="9" y2="21"/></svg></button>
+                    <button onClick={resetChat} className="p-2 hover:bg-white/5 rounded-lg text-zinc-400 hover:text-white transition-colors" title="New Chat"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M5 12h14"/><path d="M12 5v14"/></svg></button>
                     <span className="font-semibold text-sm tracking-wide text-zinc-300">{currentConversationId ? conversations.find(c => c.id === currentConversationId)?.title : 'Nexus'}</span>
                 </div>
                 <div className="flex items-center gap-2"><button onClick={() => setShowSettings(true)} className="text-xs font-medium text-zinc-500 hover:text-zinc-300 cursor-pointer px-2 py-1 rounded transition-colors">{personality !== 'conversational' ? personality.charAt(0).toUpperCase() + personality.slice(1) + ' Mode' : 'Settings'}</button></div>
@@ -480,29 +474,10 @@ const ChatView: React.FC = () => {
                                     <textarea ref={textareaRef} value={inputValue} onChange={(e) => setInputValue(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleChatSubmit(e); } }} rows={1} placeholder="Message Nexus..." className={`w-full bg-transparent border-none text-white placeholder-zinc-500 focus:ring-0 resize-none py-3.5 pl-5 pr-32 max-h-[200px] overflow-y-auto scrollbar-hide ${attachedFile ? 'pt-2' : ''}`} style={{ minHeight: '52px' }}></textarea>
                                     <div className="absolute bottom-2 right-2 flex items-center gap-1">
                                         <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" accept="image/*,application/pdf,text/plain,text/code,application/json" />
-                                        <button type="button" onClick={triggerFileSelect} className="p-2 rounded-full text-white hover:bg-zinc-700/50 transition-colors" title="Attach File">
-                                            <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                                <path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/>
-                                            </svg>
-                                        </button>
-                                        <div className={`p-2 rounded-full transition-colors cursor-default ${isReasoningEnabled ? 'text-white' : 'text-zinc-600'}`} title="Reasoning Active">
-                                            <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
-                                                <path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96.44 2.5 2.5 0 0 1-2.96-3.08 3 3 0 0 1-.34-5.58 2.5 2.5 0 0 1 1.32-4.24 2.5 2.5 0 0 1 1.98-3A2.5 2.5 0 0 1 9.5 2Z"/>
-                                                <path d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96.44 2.5 2.5 0 0 0 2.96-3.08 3 3 0 0 0 .34-5.58 2.5 2.5 0 0 0-1.32-4.24 2.5 2.5 0 0 0-1.98-3A2.5 2.5 0 0 0 14.5 2Z"/>
-                                            </svg>
-                                        </div>
-                                        <button type="button" onClick={startListening} className={`p-2 rounded-full transition-all duration-200 text-white hover:bg-zinc-700/50`}>
-                                            <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                                <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/>
-                                                <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
-                                                <line x1="12" y1="19" x2="12" y2="22"/>
-                                            </svg>
-                                        </button>
-                                        <button type="submit" disabled={isLoading || (!inputValue.trim() && !attachedFile)} className={`p-2 rounded-full transition-all duration-200 ${(inputValue.trim() || attachedFile) && !isLoading ? 'bg-white text-black hover:bg-zinc-200 shadow-lg hover:shadow-white/20' : 'bg-zinc-700/50 text-zinc-500 cursor-not-allowed'}`}>
-                                            <svg className="w-5 h-5 ml-0.5" viewBox="0 0 24 24" fill="currentColor">
-                                                <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
-                                            </svg>
-                                        </button>
+                                        <button type="button" onClick={triggerFileSelect} className="p-2 rounded-full text-white hover:bg-zinc-700/50 transition-colors" title="Attach File"><svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg></button>
+                                        <div className={`p-2 rounded-full transition-colors cursor-default ${isReasoningEnabled ? 'text-white' : 'text-zinc-600'}`} title="Reasoning Active"><svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96.44 2.5 2.5 0 0 1-2.96-3.08 3 3 0 0 1-.34-5.58 2.5 2.5 0 0 1 1.32-4.24 2.5 2.5 0 0 1 1.98-3A2.5 2.5 0 0 1 9.5 2Z"/><path d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96.44 2.5 2.5 0 0 0 2.96-3.08 3 3 0 0 0 .34-5.58 2.5 2.5 0 0 0-1.32-4.24 2.5 2.5 0 0 0-1.98-3A2.5 2.5 0 0 0 14.5 2Z"/></svg></div>
+                                        <button type="button" onClick={startListening} className={`p-2 rounded-full transition-all duration-200 text-white hover:bg-zinc-700/50`}><svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/></svg></button>
+                                        <button type="submit" disabled={isLoading || (!inputValue.trim() && !attachedFile)} className={`p-2 rounded-full transition-all duration-200 ${(inputValue.trim() || attachedFile) && !isLoading ? 'bg-white text-black hover:bg-zinc-200 shadow-lg hover:shadow-white/20' : 'bg-zinc-700/50 text-zinc-500 cursor-not-allowed'}`}><svg className="w-5 h-5 ml-0.5" viewBox="0 0 24 24" fill="currentColor"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg></button>
                                     </div>
                                 </div>
                             </form>

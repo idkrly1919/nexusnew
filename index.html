@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Nexus | Advanced Reasoning Engine</title>
+    <title>Nexus</title>
+    <link rel="icon" type="image/png" href="/nexus-logo.png" />
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
@@ -109,6 +110,15 @@
         }
         .animate-draw-wireframe { animation: draw-wireframe 2s ease-in-out infinite alternate; }
         .animate-scan-line { animation: scan-line 2s linear infinite; }
+
+        /* Slow Spin Animation */
+        @keyframes spin-slow {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        .animate-spin-slow {
+            animation: spin-slow 20s linear infinite;
+        }
 
     </style>
 <script type="importmap">
