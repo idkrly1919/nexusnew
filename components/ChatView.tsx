@@ -65,25 +65,35 @@ const ChatView: React.FC = () => {
                 e.preventDefault();
                 const imageUrl = downloadButton.getAttribute('href');
                 if (imageUrl) {
+                    let blobUrl: string | null = null;
                     try {
-                        const response = await fetch(imageUrl);
-                        if (!response.ok) throw new Error('Network response was not ok.');
-                        const blob = await response.blob();
-                        const url = window.URL.createObjectURL(blob);
+                        // Try proxy download first to handle CORS
+                        const { data, error } = await supabase.functions.invoke('proxy-download', {
+                            body: { url: imageUrl },
+                            // @ts-ignore
+                            responseType: 'blob'
+                        });
+
+                        if (error) throw error;
+                        if (!(data instanceof Blob)) throw new Error('Invalid response');
+
+                        blobUrl = window.URL.createObjectURL(data);
                         const a = document.createElement('a');
                         a.style.display = 'none';
-                        a.href = url;
+                        a.href = blobUrl;
                         
-                        const filename = imageUrl.split('/').pop()?.split('?')[0] || 'nexus-generated-image.png';
+                        const filename = 'nexus-generated-image.png';
                         a.download = filename;
                         
                         document.body.appendChild(a);
                         a.click();
-                        window.URL.revokeObjectURL(url);
                         a.remove();
                     } catch (error) {
-                        console.error('Failed to download image:', error);
+                        console.error('Proxy download failed, falling back to direct:', error);
+                        // Fallback to direct open if proxy fails
                         window.open(imageUrl, '_blank');
+                    } finally {
+                        if (blobUrl) window.URL.revokeObjectURL(blobUrl);
                     }
                 }
             }
@@ -400,13 +410,14 @@ const ChatView: React.FC = () => {
             const downloadIcon = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>`;
             const fullscreenIcon = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg>`;
             
+            // Updated to use rounded-full and circle dimensions
             return `<div class="relative group mt-3 mb-3 block w-full">
                 <img src="${url}" alt="${alt}" class="rounded-xl shadow-lg border border-white/10 w-full h-auto object-cover" />
                 <div class="absolute top-3 right-3 flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-all duration-200">
-                    <a href="${url}" target="_blank" title="View Fullscreen" class="bg-black/60 hover:bg-black/80 backdrop-blur-md text-white p-2 rounded-lg shadow-xl border border-white/10 transform scale-95 group-hover:scale-100">
+                    <a href="${url}" target="_blank" title="View Fullscreen" class="bg-black/60 hover:bg-black/80 backdrop-blur-md text-white w-10 h-10 flex items-center justify-center rounded-full shadow-xl border border-white/10 transform scale-95 group-hover:scale-100 transition-transform">
                         ${fullscreenIcon}
                     </a>
-                    <a href="${url}" title="Download Image" class="download-image-btn bg-black/60 hover:bg-black/80 backdrop-blur-md text-white p-2 rounded-lg shadow-xl border border-white/10 transform scale-95 group-hover:scale-100">
+                    <a href="${url}" title="Download Image" class="download-image-btn bg-black/60 hover:bg-black/80 backdrop-blur-md text-white w-10 h-10 flex items-center justify-center rounded-full shadow-xl border border-white/10 transform scale-95 group-hover:scale-100 transition-transform">
                         ${downloadIcon}
                     </a>
                 </div>
@@ -463,7 +474,7 @@ const ChatView: React.FC = () => {
                         ))}
                     </div>
                     <div className="p-4 border-t border-white/5 space-y-2">
-                        <button onClick={() => setShowSettings(true)} className="w-full flex items-center gap-3 px-2 py-2 text-sm text-zinc-300 hover:text-white hover:bg-white/5 rounded-lg transition-colors"><svg width="16" height="16" viewBox="0 0 24 24"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.47a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.35a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>Settings</button>
+                        <button onClick={() => setShowSettings(true)} className="w-full flex items-center gap-3 px-2 py-2 text-sm text-zinc-300 hover:text-white hover:bg-white/5 rounded-lg transition-colors"><svg width="16" height="16" viewBox="0 0 24 24"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.47a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.35a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>Settings</button>
                         <div className="flex items-center justify-between gap-3 px-2 py-2">
                              <div className="flex items-center gap-3"><div className="w-7 h-7 rounded-full bg-gradient-to-br from-purple-500 to-blue-500"></div><div className="text-sm text-zinc-200 truncate">{session?.user?.email}</div></div>
                              <button onClick={() => supabase.auth.signOut()} className="text-zinc-300 hover:text-white p-1.5 hover:bg-white/10 rounded-md" title="Log Out"><svg width="16" height="16" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg></button>
