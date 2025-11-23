@@ -1,7 +1,7 @@
 // This comment tells the TypeScript compiler where to find the types for Deno's standard library.
-// @deno-types="https://deno.land/std@0.190.0/http/server.ts"
+// @deno-types="https://deno.land/std@0.224.0/http/server.ts"
 // @ts-ignore
-import { serve } from "https://deno.land/std@0.190.0/http/server.ts"
+import { serve } from "https://deno.land/std@0.224.0/http/server.ts"
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
