@@ -47,10 +47,16 @@ const ChatView: React.FC = () => {
     const recognition = useRef<any>(null);
     const abortControllerRef = useRef<AbortController | null>(null);
     const transcriptRef = useRef('');
+    const manualStop = useRef(false);
+    const isListeningRef = useRef(false);
 
     useEffect(() => {
         transcriptRef.current = transcript;
     }, [transcript]);
+
+    useEffect(() => {
+        isListeningRef.current = isListening;
+    }, [isListening]);
 
     const scrollToBottom = () => {
         if (messagesEndRef.current) {
@@ -184,14 +190,14 @@ const ChatView: React.FC = () => {
     };
 
     const submitTranscript = (text: string) => {
-        if (recognition.current) {
+        if (recognition.current && isListeningRef.current) {
+            manualStop.current = true;
             recognition.current.stop();
         }
         if (text.trim()) {
             processSubmission(text.trim());
         }
         setTranscript('');
-        setIsListening(false);
     };
 
     useEffect(() => {
@@ -204,6 +210,7 @@ const ChatView: React.FC = () => {
             recognition.current.lang = 'en-US';
             
             recognition.current.onstart = () => {
+                manualStop.current = false;
                 setIsListening(true);
                 setTranscript('');
             };
@@ -218,13 +225,31 @@ const ChatView: React.FC = () => {
                 setTranscript(fullTranscript);
 
                 silenceTimer.current = setTimeout(() => {
-                    submitTranscript(transcriptRef.current);
+                    if (transcriptRef.current.trim()) {
+                        submitTranscript(transcriptRef.current);
+                    }
                 }, 3000);
             };
 
             recognition.current.onend = () => {
                 if (silenceTimer.current) clearTimeout(silenceTimer.current);
-                setIsListening(false);
+
+                if (manualStop.current) {
+                    setIsListening(false);
+                    manualStop.current = false;
+                    return;
+                }
+                
+                if (isListeningRef.current) {
+                    try {
+                        recognition.current.start();
+                    } catch (e) {
+                        console.error("Could not restart recognition:", e);
+                        setIsListening(false);
+                    }
+                } else {
+                    setIsListening(false);
+                }
             };
 
             recognition.current.onerror = (event: any) => {
@@ -242,7 +267,7 @@ const ChatView: React.FC = () => {
     };
 
     const stopListening = () => {
-        if (recognition.current && isListening) {
+        if (recognition.current && isListeningRef.current) {
             submitTranscript(transcriptRef.current);
         }
     };
@@ -472,7 +497,7 @@ const ChatView: React.FC = () => {
                 <SpeechVisualizer 
                     transcript={transcript}
                     onClose={stopListening}
-                    onSend={() => submitTranscript(transcript)}
+                    onSend={() => submitTranscript(transcriptRef.current)}
                 />
             )}
 
