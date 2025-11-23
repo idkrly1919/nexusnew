@@ -75,33 +75,32 @@ const ChatView: React.FC = () => {
         const file = e.target.files?.[0];
         if (!file) return;
 
-        // If it's a text file, read content. If binary, just store name.
-        const isText = file.type.startsWith('text/') || 
-                       file.name.endsWith('.js') || 
-                       file.name.endsWith('.ts') || 
-                       file.name.endsWith('.tsx') || 
-                       file.name.endsWith('.json') || 
-                       file.name.endsWith('.md') ||
-                       file.name.endsWith('.py');
-
-        if (isText) {
-            const reader = new FileReader();
-            reader.onload = (event) => {
-                const text = event.target?.result as string;
-                setAttachedFile({
-                    name: file.name,
-                    content: text,
-                    type: file.type
-                });
-            };
-            reader.readAsText(file);
-        } else {
-            // For binary files, we don't read content for this text-only model context
+        // Helper to set file state
+        const setFile = (content: string) => {
             setAttachedFile({
                 name: file.name,
-                content: "[Binary File attached - Content not read]",
+                content: content, // For images, this is base64; for text, it's the string
                 type: file.type
             });
+        };
+
+        const reader = new FileReader();
+
+        // Handle Images (Read as Data URL for base64)
+        if (file.type.startsWith('image/')) {
+            reader.onload = (event) => {
+                const base64 = event.target?.result as string;
+                setFile(base64);
+            };
+            reader.readAsDataURL(file);
+        } 
+        // Handle Text Files
+        else {
+            reader.onload = (event) => {
+                const text = event.target?.result as string;
+                setFile(text);
+            };
+            reader.readAsText(file);
         }
     };
 
@@ -231,15 +230,17 @@ const ChatView: React.FC = () => {
 
         if (textareaRef.current) textareaRef.current.style.height = '52px';
 
-        // Combine text and file content
-        const fullPrompt = attachedFile 
-            ? `${userText}\n\n[Attachment: ${attachedFile.name} (${attachedFile.type})]\n${attachedFile.content}` 
-            : userText;
-
         // 1. UI Message (User)
-        const userDisplay = attachedFile 
-            ? `${userText} <br/><div class="inline-flex items-center gap-1 mt-2 px-2 py-1 rounded bg-white/10 text-xs font-mono"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>${attachedFile.name}</div>`
-            : userText;
+        // If it's an image, we show a thumbnail preview in the user message
+        let userDisplay = userText;
+        if (attachedFile) {
+            const isImg = attachedFile.type.startsWith('image/');
+            const fileIcon = isImg 
+                ? `<img src="${attachedFile.content}" class="w-8 h-8 rounded object-cover border border-white/20" />`
+                : `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>`;
+                
+            userDisplay = `${userText} <br/><div class="inline-flex items-center gap-2 mt-2 px-2 py-1 rounded bg-white/10 text-xs font-mono">${fileIcon}<span>${attachedFile.name}</span></div>`;
+        }
 
         const userMessage: Message = { id: `user-${Date.now()}`, role: 'user', text: userDisplay };
         setMessages(prev => [...prev, userMessage]);
@@ -252,8 +253,8 @@ const ChatView: React.FC = () => {
         setMessages(prev => [...prev, { id: typingId, role: 'typing', text: 'Thinking...' }]);
 
         try {
-            // Pass personality to service
-            const stream = streamGemini(fullPrompt, chatHistory, true, personality);
+            // Pass the raw attached file object so service can handle base64
+            const stream = streamGemini(userText, chatHistory, true, personality, attachedFile);
             
             let isFirstChunk = true;
             let accumulatedText = "";
@@ -290,9 +291,14 @@ const ChatView: React.FC = () => {
                 }));
 
                 if (update.isComplete && update.newHistoryEntry) {
+                    // Update history - Note: we simplify file context for history to save tokens/complexity
+                    const historyContent = attachedFile 
+                        ? `[User attached file: ${attachedFile.name}]\n${userText}`
+                        : userText;
+                        
                     setChatHistory(prev => [
                         ...prev, 
-                        { role: 'user', content: fullPrompt },
+                        { role: 'user', content: historyContent },
                         update.newHistoryEntry!
                     ]);
                 }
@@ -587,7 +593,12 @@ const ChatView: React.FC = () => {
                                     <div className="flex items-center justify-between bg-[#2a2a2d] border border-white/10 rounded-lg px-3 py-2 animate-in fade-in zoom-in-95 duration-200">
                                         <div className="flex items-center gap-2 overflow-hidden">
                                             <div className="bg-indigo-500/20 text-indigo-300 p-1 rounded">
-                                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+                                                {/* Show image preview icon if image */}
+                                                {attachedFile.type.startsWith('image/') ? (
+                                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                                                ) : (
+                                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+                                                )}
                                             </div>
                                             <div className="flex flex-col min-w-0">
                                                 <span className="text-xs text-zinc-200 font-medium truncate max-w-[200px]">{attachedFile.name}</span>
@@ -608,7 +619,7 @@ const ChatView: React.FC = () => {
                                     ref={fileInputRef} 
                                     onChange={handleFileChange} 
                                     className="hidden" 
-                                    accept="image/*,video/*,audio/*,.pdf,.txt,.md,.js,.ts,.tsx,.py,.json,.html,.css,.csv"
+                                    accept="image/*,.pdf,.txt,.md,.js,.ts,.tsx,.py,.json,.html,.css,.csv"
                                 />
                                 
                                 <textarea
