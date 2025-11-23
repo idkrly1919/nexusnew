@@ -1,5 +1,3 @@
-// This comment tells the TypeScript compiler where to find the types for Deno's standard library.
-// @deno-types="https://deno.land/std@0.224.0/http/server.ts"
 // @ts-ignore
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts"
 
@@ -15,7 +13,16 @@ serve(async (req: Request) => {
   }
 
   try {
+    // Ensure the request has a body
+    if (req.headers.get('content-type') !== 'application/json') {
+      return new Response(
+        JSON.stringify({ error: 'Invalid Content-Type. Must be application/json' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+    
     const { prompt } = await req.json()
+    
     // @ts-ignore
     const infipKey = Deno.env.get('INFIP_API_KEY') || Deno.env.get('VITE_INFIP_API_KEY');
 
