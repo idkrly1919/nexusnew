@@ -9,6 +9,7 @@ interface StreamUpdate {
     isComplete: boolean;
     groundingChunks?: any[];
     newHistoryEntry?: OpenAIMessage;
+    mode?: 'reasoning' | 'image';
 }
 
 const PERSONALITY_PROMPTS: Record<PersonalityMode, string> = {
@@ -97,7 +98,7 @@ Respond ONLY with a JSON object with the following structure:
 
         // --- PATH 1: IMAGE GENERATION ---
         if (isImageRequest) {
-            yield { text: `Generating image with prompt: \`${imagePrompt}\``, isComplete: false };
+            yield { text: `Generating image with prompt: \`${imagePrompt}\``, isComplete: false, mode: 'image' };
             
             const { data: functionData, error: functionError } = await supabase.functions.invoke('image-proxy', {
                 body: { prompt: imagePrompt },
@@ -138,7 +139,8 @@ Respond ONLY with a JSON object with the following structure:
                 yield {
                     text: markdownImage,
                     isComplete: true,
-                    newHistoryEntry: { role: 'assistant', content: markdownImage }
+                    newHistoryEntry: { role: 'assistant', content: markdownImage },
+                    mode: 'image'
                 };
             } else {
                 throw new Error(`No image URL returned. Response: ${JSON.stringify(data)}`);
@@ -182,7 +184,7 @@ Respond ONLY with a JSON object with the following structure:
                     const content = chunk.choices[0]?.delta?.content || '';
                     if (content) {
                         fullText += content;
-                        yield { text: fullText, isComplete: false };
+                        yield { text: fullText, isComplete: false, mode: 'reasoning' };
                         hasYielded = true;
                     }
                 }
@@ -192,7 +194,7 @@ Respond ONLY with a JSON object with the following structure:
                 }
 
                 const newHistoryEntry: OpenAIMessage = { role: 'assistant', content: fullText };
-                yield { text: fullText, isComplete: true, newHistoryEntry };
+                yield { text: fullText, isComplete: true, newHistoryEntry, mode: 'reasoning' };
             } catch (apiError: any) {
                 throw apiError;
             }

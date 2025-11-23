@@ -302,6 +302,9 @@ const ChatView: React.FC = () => {
             const aiMsgId = `ai-${Date.now()}`;
 
             for await (const update of stream) {
+                if (update.mode) {
+                    setThinkingMode(update.mode);
+                }
                 if (!assistantMessageExists) {
                     setMessages(prev => [...prev, { id: aiMsgId, role: 'assistant', text: '' }]);
                     assistantMessageExists = true;

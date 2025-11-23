@@ -1,5 +1,6 @@
 // This comment tells the TypeScript compiler where to find the types for Deno's standard library.
 // @deno-types="https://deno.land/std@0.190.0/http/server.ts"
+// @ts-ignore
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts"
 
 const corsHeaders = {
@@ -7,7 +8,6 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-// FIX 2: Added the 'Request' type to the 'req' parameter.
 serve(async (req: Request) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -17,11 +17,11 @@ serve(async (req: Request) => {
   try {
     const { prompt } = await req.json()
     // @ts-ignore
-    const infipKey = Deno.env.get('INFIP_API_KEY') // Corrected from INFLIP_API_KEY
+    const infipKey = Deno.env.get('INFIP_API_KEY') || Deno.env.get('VITE_INFIP_API_KEY');
 
     if (!infipKey) {
       return new Response(
-        JSON.stringify({ error: 'INFIP_API_KEY is not set in function secrets.' }),
+        JSON.stringify({ error: 'API key secret (INFIP_API_KEY or VITE_INFIP_API_KEY) is not set in function secrets.' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
@@ -61,7 +61,6 @@ serve(async (req: Request) => {
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
   } catch (error) {
-    // FIX 3: Safely handle the 'unknown' type of the error object.
     const errorMessage = error instanceof Error ? error.message : "An unknown error occurred";
     return new Response(
       JSON.stringify({ error: errorMessage }),
