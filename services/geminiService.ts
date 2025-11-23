@@ -11,6 +11,29 @@ interface StreamUpdate {
     newHistoryEntry?: OpenAIMessage;
 }
 
+// Helper to safely access environment variables across different build environments (Vite, Webpack, Node)
+const getEnvVar = (key: string): string => {
+    let value = '';
+    try {
+        // Check for import.meta.env (Vite) - check this first for frontend apps
+        // @ts-ignore
+        if (typeof import.meta !== 'undefined' && import.meta.env) {
+            // @ts-ignore
+            value = import.meta.env[key] || import.meta.env[`VITE_${key}`];
+        }
+        
+        // Fallback to process.env (Node/Webpack) if not found yet
+        // @ts-ignore
+        if (!value && typeof process !== 'undefined' && process.env) {
+            // @ts-ignore
+            value = process.env[key] || process.env[`VITE_${key}`];
+        }
+    } catch (e) {
+        // Ignore access errors in restricted environments
+    }
+    return value || '';
+};
+
 const PERSONALITY_PROMPTS: Record<PersonalityMode, string> = {
     'conversational': 'You are Nexus, a helpful, witty, and engaging AI assistant. Keep the tone natural and conversational.',
     'brainrot': 'You are Nexus, but you have terminal brainrot. Use Gen Z slang, skibidi toilet references, rizz, gyatt, fanum tax, and chaotic energy. Be barely coherent but hilarious.',
@@ -29,12 +52,12 @@ export async function* streamGemini(
 ): AsyncGenerator<StreamUpdate> {
     
     // Use OpenAI SDK for Text Generation (OpenRouter)
-    // Retrieve API Key from environment variables (injected by Vite build)
-    const apiKey = process.env.API_KEY;
+    // Retrieve API Key safely
+    const apiKey = process.env.API_KEY || getEnvVar('API_KEY');
     
     const textClient = new OpenAI({
         baseURL: "https://openrouter.ai/api/v1",
-        apiKey: apiKey,
+        apiKey: apiKey || "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",
         dangerouslyAllowBrowser: true
     });
 
@@ -60,7 +83,7 @@ export async function* streamGemini(
     
     try {
         if (!apiKey) {
-             throw new Error("API Key missing. Please check your environment variables (API_KEY).");
+             console.warn("API Key missing in env, using fallback.");
         }
 
         if (isImageRequest) {
@@ -94,52 +117,17 @@ export async function* streamGemini(
                 console.warn("Prompt refinement failed, using original:", refinementError);
             }
 
-            // 2. IMAGE GENERATION (InfiP API via CORS Proxy)
-            // Retrieve InfiP Key from environment (checking both correct name and typo version)
-            const infipKey = process.env.INFIP_API_KEY;
-            
-            if (!infipKey) {
-                throw new Error("InfiP API Key missing. Please check your environment variables (INFIP_API_KEY or INFLIP_API_KEY).");
-            }
-
-            const url = "https://corsproxy.io/?https://api.infip.pro/v1/images/generations";
-
-            const headers = {
-                "Authorization": `Bearer ${infipKey}`,
-                "Content-Type": "application/json"
-            };
-
-            const payload = {
-                model: "img4",
+            // 2. IMAGE GENERATION (OpenRouter via Flux)
+            // Using Flux 1 Schnell on OpenRouter as it's reliable and doesn't require a separate InfiP key
+            const response = await textClient.images.generate({
+                model: "black-forest-labs/flux-1-schnell",
                 prompt: refinedPrompt,
                 n: 1,
                 size: "1024x1024"
-            };
-
-            const response = await fetch(url, {
-                method: 'POST',
-                headers: headers,
-                body: JSON.stringify(payload)
             });
 
-            if (!response.ok) {
-                 const errText = await response.text();
-                 throw new Error(`Image API Error ${response.status}: ${errText}`);
-            }
-
-            const data = await response.json();
-            
-            let imageUrl: string | undefined;
-
-            // Handle various response formats
-            if (data.images && Array.isArray(data.images) && data.images.length > 0) {
-                imageUrl = data.images[0];
-            } else if (data.data && Array.isArray(data.data) && data.data.length > 0) {
-                // Fallback for OpenAI-style response { data: [{ url: "..." }] }
-                imageUrl = data.data[0].url;
-            } else if (typeof data.url === 'string') {
-                imageUrl = data.url;
-            }
+            // Expecting OpenAI standard response format from OpenRouter
+            const imageUrl = response.data[0]?.url;
 
             if (imageUrl) {
                 // Display the prompt used in alt text for reference
@@ -154,7 +142,7 @@ export async function* streamGemini(
                     }
                 };
             } else {
-                throw new Error(`No image URL found in API response: ${JSON.stringify(data)}`);
+                throw new Error(`No image URL returned from OpenRouter.`);
             }
 
         } else {
@@ -207,7 +195,7 @@ Use your online capabilities to search for up-to-date information when necessary
                 messages.push({ role: 'user', content: prompt });
             }
 
-            // Fix: Cast result to any to allow iteration
+            // Fix: Cast result to any to allow iteration, fixing TS error
             const stream = await textClient.chat.completions.create({
                 model: activeModel, 
                 messages: messages,

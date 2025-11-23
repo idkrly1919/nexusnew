@@ -19,4 +19,13 @@ export default {
         'float-2': 'float-2 15s ease-in-out infinite',
         'float-3': 'float-3 10s ease-in-out infinite',
         'float-4': 'float-4 18s ease-in-out infinite',
-        'float
+        'float-5': 'float-5 14s ease-in-out infinite',
+        'draw-wireframe': 'draw-wireframe 2s ease-in-out infinite alternate',
+        'scan-line': 'scan-line 2s linear infinite',
+      },
+    },
+  },
+  plugins: [
+    require('@tailwindcss/typography'),
+  ],
+}
