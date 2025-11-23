@@ -11,29 +11,6 @@ interface StreamUpdate {
     newHistoryEntry?: OpenAIMessage;
 }
 
-// Helper to safely access environment variables across different build environments (Vite, Webpack, Node)
-const getEnvVar = (key: string): string => {
-    let value = '';
-    try {
-        // Check for import.meta.env (Vite) - check this first for frontend apps
-        // @ts-ignore
-        if (typeof import.meta !== 'undefined' && import.meta.env) {
-            // @ts-ignore
-            value = import.meta.env[key] || import.meta.env[`VITE_${key}`];
-        }
-        
-        // Fallback to process.env (Node/Webpack) if not found yet
-        // @ts-ignore
-        if (!value && typeof process !== 'undefined' && process.env) {
-            // @ts-ignore
-            value = process.env[key] || process.env[`VITE_${key}`];
-        }
-    } catch (e) {
-        // Ignore access errors in restricted environments
-    }
-    return value || '';
-};
-
 const PERSONALITY_PROMPTS: Record<PersonalityMode, string> = {
     'conversational': 'You are Nexus, a helpful, witty, and engaging AI assistant. Keep the tone natural and conversational.',
     'brainrot': 'You are Nexus, but you have terminal brainrot. Use Gen Z slang, skibidi toilet references, rizz, gyatt, fanum tax, and chaotic energy. Be barely coherent but hilarious.',
@@ -52,12 +29,12 @@ export async function* streamGemini(
 ): AsyncGenerator<StreamUpdate> {
     
     // Use OpenAI SDK for Text Generation (OpenRouter)
-    // Retrieve API Key safely
-    const apiKey = process.env.API_KEY || getEnvVar('API_KEY');
+    // Retrieve API Key from environment variables (injected by Vite build)
+    const apiKey = process.env.API_KEY;
     
     const textClient = new OpenAI({
         baseURL: "https://openrouter.ai/api/v1",
-        apiKey: apiKey || "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",
+        apiKey: apiKey,
         dangerouslyAllowBrowser: true
     });
 
@@ -83,8 +60,7 @@ export async function* streamGemini(
     
     try {
         if (!apiKey) {
-            // If no key found in env, log warning but try fallback (for preview)
-             console.warn("API Key missing in env, using fallback.");
+             throw new Error("API Key missing. Please check your environment variables (API_KEY).");
         }
 
         if (isImageRequest) {
@@ -118,25 +94,24 @@ export async function* streamGemini(
                 console.warn("Prompt refinement failed, using original:", refinementError);
             }
 
-            // 2. IMAGE GENERATION (InfiP API)
-            const infipKey = process.env.INFIP_API_KEY || getEnvVar('INFIP_API_KEY');
+            // 2. IMAGE GENERATION (InfiP API via CORS Proxy)
+            // Retrieve InfiP Key from environment (checking both correct name and typo version)
+            const infipKey = process.env.INFIP_API_KEY;
             
-            if (!infipKey && !apiKey) { // Logic check: ensure we have at least one key mechanism working
-                 // Fallback logic for preview if needed
+            if (!infipKey) {
+                throw new Error("InfiP API Key missing. Please check your environment variables (INFIP_API_KEY or INFLIP_API_KEY).");
             }
 
-            // Use CORS Proxy with encoded URL to ensure robust routing
-            const targetUrl = "https://api.infip.pro/v1/images/generations";
-            const url = "https://corsproxy.io/?" + encodeURIComponent(targetUrl);
+            const url = "https://corsproxy.io/?https://api.infip.pro/v1/images/generations";
 
             const headers = {
-                "Authorization": `Bearer ${infipKey || 'infip-107724af'}`,
+                "Authorization": `Bearer ${infipKey}`,
                 "Content-Type": "application/json"
             };
 
             const payload = {
                 model: "img4",
-                prompt: refinedPrompt, // Use the refined prompt
+                prompt: refinedPrompt,
                 n: 1,
                 size: "1024x1024"
             };
@@ -154,13 +129,13 @@ export async function* streamGemini(
 
             const data = await response.json();
             
-            // Expecting format: { "images": [ "url" ], "seed": 123 }
-            // Also handle OpenAI-like fallback { "data": [{ "url": "..." }] }
             let imageUrl: string | undefined;
 
+            // Handle various response formats
             if (data.images && Array.isArray(data.images) && data.images.length > 0) {
                 imageUrl = data.images[0];
             } else if (data.data && Array.isArray(data.data) && data.data.length > 0) {
+                // Fallback for OpenAI-style response { data: [{ url: "..." }] }
                 imageUrl = data.data[0].url;
             } else if (typeof data.url === 'string') {
                 imageUrl = data.url;
@@ -179,7 +154,7 @@ export async function* streamGemini(
                     }
                 };
             } else {
-                throw new Error(`No image URL returned from API. Raw response: ${JSON.stringify(data)}`);
+                throw new Error(`No image URL found in API response: ${JSON.stringify(data)}`);
             }
 
         } else {
@@ -232,7 +207,7 @@ Use your online capabilities to search for up-to-date information when necessary
                 messages.push({ role: 'user', content: prompt });
             }
 
-            // Fix: Cast result to any to allow iteration, fixing TS error 'must have a [Symbol.asyncIterator]() method'
+            // Fix: Cast result to any to allow iteration
             const stream = await textClient.chat.completions.create({
                 model: activeModel, 
                 messages: messages,
@@ -274,14 +249,14 @@ Use your online capabilities to search for up-to-date information when necessary
              if (error.message.includes("402")) {
                  errorMessage += "\n\n(Insufficient credits on API key)";
              }
+             if (error.message.includes("401")) {
+                 errorMessage += "\n\n(Unauthorized: Check API Key)";
+             }
              if (error.message.includes("400")) {
                  errorMessage += "\n\n(Invalid request configuration)";
              }
              if (error.message.includes("NetworkError") || error.message.includes("Failed to fetch")) {
-                 errorMessage += "\n\n(Network Blocked: Trying to access API directly from browser. CORS Proxy implemented.)";
-             }
-             if (error.message.includes("API Key missing")) {
-                 errorMessage += "\n\n(Please configure your environment variables in the deployment settings)";
+                 errorMessage += "\n\n(Network Blocked: CORS issue or connection failed)";
              }
         }
         
