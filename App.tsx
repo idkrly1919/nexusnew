@@ -3,16 +3,16 @@ import { SessionProvider, useSession } from './src/contexts/SessionContext';
 import ChatView from './components/ChatView';
 import LandingPage from './components/LandingPage';
 import Onboarding from './src/components/Onboarding';
-import LoginModal from './src/components/LoginModal';
+import AuthPage from './src/pages/AuthPage';
 
 const AppContent: React.FC = () => {
     const { session, profile, isLoading } = useSession();
-    const [showLoginModal, setShowLoginModal] = useState(false);
+    const [isAuthPageVisible, setIsAuthPageVisible] = useState(false);
     const [isGuest, setIsGuest] = useState(false);
 
     useEffect(() => {
         if (session) {
-            setShowLoginModal(false);
+            setIsAuthPageVisible(false);
             setIsGuest(false);
         }
     }, [session]);
@@ -36,18 +36,14 @@ const AppContent: React.FC = () => {
         return <ChatView />;
     }
 
-    return (
-        <>
-            <LandingPage onGetAccess={() => setShowLoginModal(true)} />
-            <LoginModal 
-                isVisible={showLoginModal} 
-                onClose={() => {
-                    setShowLoginModal(false);
-                    setIsGuest(true);
-                }} 
-            />
-        </>
-    );
+    if (isAuthPageVisible) {
+        return <AuthPage onExit={() => {
+            setIsAuthPageVisible(false);
+            setIsGuest(true);
+        }} />;
+    }
+
+    return <LandingPage onGetAccess={() => setIsAuthPageVisible(true)} />;
 };
 
 const App: React.FC = () => {

@@ -8,7 +8,7 @@ import SpeechVisualizer from './SpeechVisualizer';
 import DynamicBackground from './DynamicBackground';
 import CosmosView from './CosmosView';
 import EmbeddedView from './EmbeddedView';
-import LoginModal from '../src/components/LoginModal';
+import AuthPage from '../src/pages/AuthPage';
 
 const NexusIconSmall = () => (
     <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center border border-white/10 shadow-lg">
@@ -416,12 +416,7 @@ const ChatView: React.FC = () => {
             <CosmosView isActive={cosmosViewActive} onSelectPlanet={handleSelectPlanet} />
             {embeddedUrl && <EmbeddedView url={embeddedUrl} onClose={() => setEmbeddedUrl(null)} />}
             {showLoginPrompt && (
-                <LoginModal 
-                    isVisible={showLoginPrompt} 
-                    onClose={() => setShowLoginPrompt(false)}
-                    promptText="You've reached the guest message limit. Please sign in to continue."
-                    isDismissible={false}
-                />
+                <AuthPage onExit={() => setShowLoginPrompt(false)} />
             )}
 
             {isListening && (
