@@ -1,5 +1,6 @@
 import React, { FormEvent, useState } from 'react';
 import EmbeddedView from './EmbeddedView';
+import DynamicBackground from './DynamicBackground';
 
 interface LandingPageProps {
     onGetAccess: () => void;
@@ -25,6 +26,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onGetAccess }) => {
 
     return (
         <>
+            <DynamicBackground status="loading-text" />
             {showEmbeddedView && (
                 <EmbeddedView url={embeddedUrl} onClose={() => setShowEmbeddedView(false)} />
             )}

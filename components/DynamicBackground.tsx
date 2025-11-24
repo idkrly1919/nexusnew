@@ -5,7 +5,7 @@ interface DynamicBackgroundProps {
 }
 
 const DynamicBackground: React.FC<DynamicBackgroundProps> = ({ status }) => {
-    const orbCount = 6;
+    const orbCount = 10;
     const orbs = Array.from({ length: orbCount });
 
     return (
