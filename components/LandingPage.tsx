@@ -12,16 +12,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onGetAccess }) => {
 
     const handleSignup = (e: FormEvent<HTMLFormElement>) => {
         e.preventDefault();
-        const form = e.currentTarget;
-        const input = form.querySelector('input');
-        const btn = form.querySelector('button');
-        
-        if(input && input.value && btn) {
-            btn.innerText = "Access Granted";
-            btn.classList.remove('bg-indigo-600', 'hover:bg-indigo-500');
-            btn.classList.add('bg-green-600', 'hover:bg-green-500');
-            setTimeout(() => onGetAccess(), 1000);
-        }
+        onGetAccess();
     };
 
     return (

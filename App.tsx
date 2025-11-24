@@ -1,12 +1,19 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { SessionProvider, useSession } from './src/contexts/SessionContext';
 import ChatView from './components/ChatView';
 import LandingPage from './components/LandingPage';
 import Onboarding from './src/components/Onboarding';
+import LoginModal from './src/components/LoginModal';
 
 const AppContent: React.FC = () => {
     const { session, profile, isLoading } = useSession();
-    const [isGuest, setIsGuest] = useState(false);
+    const [showLoginModal, setShowLoginModal] = useState(false);
+
+    useEffect(() => {
+        if (session) {
+            setShowLoginModal(false);
+        }
+    }, [session]);
 
     if (isLoading) {
         return (
@@ -23,11 +30,19 @@ const AppContent: React.FC = () => {
         return <Onboarding />;
     }
 
-    if (session || isGuest) {
+    if (session) {
         return <ChatView />;
     }
 
-    return <LandingPage onGetAccess={() => setIsGuest(true)} />;
+    return (
+        <>
+            <LandingPage onGetAccess={() => setShowLoginModal(true)} />
+            <LoginModal 
+                isVisible={showLoginModal} 
+                onClose={() => setShowLoginModal(false)} 
+            />
+        </>
+    );
 };
 
 const App: React.FC = () => {
