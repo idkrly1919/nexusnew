@@ -44,7 +44,7 @@ export const ThinkingProcess: React.FC<ThinkingProcessProps> = ({ isThinking = f
     if (!isThinking) return null;
 
     return (
-        <div className="liquid-glass inline-flex items-center gap-3 py-2 px-4 rounded-full">
+        <div data-liquid-glass className="liquid-glass inline-flex items-center gap-3 py-2 px-4 rounded-full">
             <div className="text-sm font-mono text-zinc-400 animate-pulse">
                 {statusText}
             </div>

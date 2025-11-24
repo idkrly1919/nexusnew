@@ -82,7 +82,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onGetAccess }) => {
 
                     <div className="max-w-6xl mx-auto px-6 mt-32">
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                            <div className="liquid-glass p-8 interactive-lift group">
+                            <div data-liquid-glass className="liquid-glass p-8 interactive-lift group">
                                 <div className="w-12 h-12 bg-zinc-900 rounded-xl flex items-center justify-center mb-6 border border-zinc-800 group-hover:border-indigo-500/50 transition-colors duration-300">
                                     <svg className="text-indigo-400" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
                                 </div>
@@ -91,7 +91,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onGetAccess }) => {
                                     Advanced pattern matching and symbolic computation capabilities that go beyond standard LLM arithmetic.
                                 </p>
                             </div>
-                            <div className="liquid-glass p-8 interactive-lift group">
+                            <div data-liquid-glass className="liquid-glass p-8 interactive-lift group">
                                 <div className="w-12 h-12 bg-zinc-900 rounded-xl flex items-center justify-center mb-6 border border-zinc-800 group-hover:border-purple-500/50 transition-colors duration-300">
                                     <svg className="text-purple-400" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
                                 </div>
@@ -100,7 +100,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onGetAccess }) => {
                                     Low-latency inference engine optimized for mathematical queries and complex data structuring tasks.
                                 </p>
                             </div>
-                            <div className="liquid-glass p-8 interactive-lift group">
+                            <div data-liquid-glass className="liquid-glass p-8 interactive-lift group">
                                 <div className="w-12 h-12 bg-zinc-900 rounded-xl flex items-center justify-center mb-6 border border-zinc-800 group-hover:border-cyan-500/50 transition-colors duration-300">
                                     <svg className="text-cyan-400" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line></svg>
                                 </div>
@@ -151,7 +151,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onGetAccess }) => {
                                 </ul>
                             </div>
                             <div className="flex-1 w-full">
-                                <div className="liquid-glass rounded-xl overflow-hidden">
+                                <div data-liquid-glass className="liquid-glass rounded-xl overflow-hidden">
                                     <div className="flex items-center gap-2 px-4 py-3 bg-black/20 border-b border-white/10">
                                         <div className="w-3 h-3 rounded-full bg-red-500"></div>
                                         <div className="w-3 h-3 rounded-full bg-yellow-500"></div>

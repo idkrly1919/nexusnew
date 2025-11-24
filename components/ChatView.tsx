@@ -348,7 +348,7 @@ const ChatView: React.FC = () => {
 
             {showSettings && (
                 <div className="fixed inset-0 z-[60] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4" onClick={() => setShowSettings(false)}>
-                    <div className="liquid-glass w-full max-w-md shadow-2xl animate-pop-in" onClick={(e) => e.stopPropagation()}>
+                    <div data-liquid-glass className="liquid-glass w-full max-w-md shadow-2xl animate-pop-in" onClick={(e) => e.stopPropagation()}>
                         <div className="p-6 border-b border-white/10 flex justify-between items-center">
                             <h2 className="text-xl font-bold text-white font-brand">Settings</h2>
                             <button onClick={() => setShowSettings(false)} className="p-1.5 rounded-full text-zinc-400 hover:text-white hover:bg-white/10 transition-colors"><svg width="20" height="20" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5" fill="none"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
@@ -370,7 +370,7 @@ const ChatView: React.FC = () => {
                 </div>
             )}
 
-            <div className={`fixed inset-y-0 left-0 z-40 w-72 liquid-glass border-l-0 border-t-0 border-b-0 rounded-none rounded-r-2xl transform transition-transform duration-300 ease-in-out ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+            <div data-liquid-glass className={`fixed inset-y-0 left-0 z-40 w-72 liquid-glass border-l-0 border-t-0 border-b-0 rounded-none rounded-r-2xl transform transition-transform duration-300 ease-in-out ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
                 <div className="flex flex-col h-full p-4 space-y-4">
                     <div className="flex justify-between items-center"><div className="font-bold tracking-wide text-white flex items-center gap-2"><img src="/nexus-logo.png" alt="Nexus Logo" className="w-6 h-6 animate-spin-slow" />Nexus</div><button onClick={() => setIsSidebarOpen(false)} className="text-zinc-400 hover:text-white p-1 rounded-full hover:bg-white/10"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m15 18-6-6 6-6"/></svg></button></div>
                     <button onClick={() => { resetChat(); setIsSidebarOpen(false); }} className="w-full flex items-center justify-center gap-2 px-3 py-2.5 bg-white hover:bg-zinc-200 text-black rounded-full transition-colors duration-300 text-sm font-semibold interactive-lift"><svg width="16" height="16" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5" fill="none"><path d="M12 5v14"/><path d="M5 12h14"/></svg>New Chat</button>
@@ -414,7 +414,7 @@ const ChatView: React.FC = () => {
                             {messages.map((msg) => (
                                 <div key={msg.id} className={`flex items-start gap-4 animate-pop-in ${msg.role === 'user' ? 'justify-end' : ''}`}>
                                     {msg.role === 'assistant' && <div className="shrink-0 mt-1"><NexusIconSmall /></div>}
-                                    <div className={`max-w-[85%] leading-relaxed ${msg.role === 'user' ? 'light-liquid-glass text-white px-5 py-3 rounded-3xl rounded-br-lg' : 'dark-liquid-glass px-5 py-3 rounded-3xl rounded-bl-lg'}`}>
+                                    <div data-liquid-glass className={`max-w-[85%] leading-relaxed ${msg.role === 'user' ? 'light-liquid-glass text-white px-5 py-3 rounded-3xl rounded-br-lg' : 'dark-liquid-glass px-5 py-3 rounded-3xl rounded-bl-lg'}`}>
                                         {msg.role === 'assistant' && <div className="font-medium text-sm text-zinc-400 mb-2">Nexus</div>}
                                         <div className={`${msg.role === 'assistant' ? 'text-zinc-100 prose prose-invert prose-sm max-w-none' : ''}`} dangerouslySetInnerHTML={{ __html: parseMarkdown(msg.text) }} />
                                         {msg.role === 'assistant' && !isLoading && (<div className="flex items-center gap-2 mt-3"><button onClick={() => handleTTS(msg.text)} className="p-1.5 text-zinc-500 hover:text-zinc-300 hover:bg-white/5 rounded-md transition-colors" title="Read Aloud"><svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path></svg></button></div>)}
@@ -442,7 +442,7 @@ const ChatView: React.FC = () => {
                     ) : (
                         <div className="relative">
                             <form onSubmit={handleChatSubmit} className="relative">
-                                <div className="liquid-glass rounded-full flex items-center p-2 transition-all duration-300 focus-within:shadow-2xl focus-within:shadow-indigo-500/20">
+                                <div data-liquid-glass className="liquid-glass rounded-full flex items-center p-2 transition-all duration-300 focus-within:shadow-2xl focus-within:shadow-indigo-500/20">
                                     <button type="button" onClick={triggerFileSelect} className="p-2 rounded-full text-zinc-300 hover:text-white hover:bg-white/10 transition-colors ml-1" title="Attach File"><svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg></button>
                                     <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" accept="image/*,application/pdf,text/plain,text/code,application/json" />
                                     <textarea ref={textareaRef} value={inputValue} onChange={(e) => setInputValue(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleChatSubmit(e); } }} rows={1} placeholder="Message Nexus..." className="flex-1 bg-transparent border-none text-white placeholder-zinc-500 focus:ring-0 resize-none py-2 px-3 max-h-[120px] overflow-y-auto scrollbar-hide"></textarea>

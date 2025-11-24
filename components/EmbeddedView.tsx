@@ -14,7 +14,7 @@ const EmbeddedView: React.FC<EmbeddedViewProps> = ({ url, onClose }) => {
                 </button>
             </div>
 
-            <div className="w-full h-full max-w-6xl max-h-[90vh] flex flex-col liquid-glass rounded-2xl overflow-hidden">
+            <div data-liquid-glass className="w-full h-full max-w-6xl max-h-[90vh] flex flex-col liquid-glass rounded-2xl overflow-hidden">
                 <div className="flex-shrink-0 p-4 bg-black/20 border-b border-white/10 flex items-center justify-between">
                     <p className="text-sm text-zinc-400">Third-Party Tool Integration</p>
                     <a href={url} target="_blank" rel="noopener noreferrer" className="text-xs text-indigo-400 hover:text-indigo-300 flex items-center gap-1">

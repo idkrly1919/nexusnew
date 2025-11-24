@@ -20,7 +20,7 @@ const SpeechVisualizer: React.FC<SpeechVisualizerProps> = ({ transcript, onClose
                 <div className="relative w-32 h-32 flex items-center justify-center mb-8">
                     <div className="absolute inset-0 bg-blue-500 rounded-full animate-pulse opacity-50 blur-xl"></div>
                     <div className="absolute inset-2 bg-blue-400 rounded-full animate-pulse [animation-delay:200ms] opacity-40 blur-lg"></div>
-                    <div className="relative w-20 h-20 liquid-glass rounded-full flex items-center justify-center">
+                    <div data-liquid-glass className="relative w-20 h-20 liquid-glass rounded-full flex items-center justify-center">
                         <svg className="w-8 h-8 text-blue-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/></svg>
                     </div>
                 </div>

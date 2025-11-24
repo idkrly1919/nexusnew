@@ -15,7 +15,7 @@ const LoginPage: React.FC = () => {
                     <h1 className="text-2xl font-bold text-white">Welcome to Nexus</h1>
                     <p className="text-zinc-400">Sign in to enter the fluid workspace</p>
                 </div>
-                <div className="liquid-glass p-8 rounded-2xl animate-pop-in" style={{ animationDelay: '100ms' }}>
+                <div data-liquid-glass className="liquid-glass p-8 rounded-2xl animate-pop-in" style={{ animationDelay: '100ms' }}>
                      <Auth
                         supabaseClient={supabase}
                         appearance={{ 
