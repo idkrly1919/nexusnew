@@ -229,31 +229,21 @@
         }
 
         /* Cosmos View Styles */
-        .stars-bg {
+        .star {
             position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            width: 100%;
-            height: 100%;
-            display: block;
-            background: transparent url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900"><circle fill="%23fff" cx="200" cy="200" r="1.5"/><circle fill="%23fff" cx="800" cy="200" r="1"/><circle fill="%23fff" cx="1200" cy="100" r="1"/><circle fill="%23fff" cx="1400" cy="300" r="1.2"/><circle fill="%23fff" cx="1000" cy="400" r="0.8"/><circle fill="%23fff" cx="400" cy="500" r="1.5"/><circle fill="%23fff" cx="1100" cy="600" r="1"/><circle fill="%23fff" cx="1500" cy="700" r="0.9"/><circle fill="%23fff" cx="600" cy="800" r="1.2"/><circle fill="%23fff" cx="900" cy="50" r="0.8"/></svg>') repeat;
-            background-size: 1600px 900px;
-            animation: twinkle-pan linear infinite;
+            background: white;
+            border-radius: 50%;
+            animation: twinkle 5s infinite ease-in-out;
+            will-change: opacity;
         }
-        .stars-1 { opacity: 0.4; animation-duration: 150s; }
-        .stars-2 { opacity: 0.6; animation-duration: 100s; animation-direction: reverse; }
-        .stars-3 { opacity: 0.8; animation-duration: 75s; }
-
-        @keyframes twinkle-pan {
-            0% { transform: translateY(0); }
-            100% { transform: translateY(-900px); }
+        @keyframes twinkle {
+            0%, 100% { opacity: var(--start-opacity, 0.5); }
+            50% { opacity: 1; }
         }
 
         .planet-container {
             filter: grayscale(100%) contrast(1.1);
-            transition: filter 0.5s ease;
+            transition: filter 0.5s ease, transform 0.3s ease-out;
         }
         .planet-container:hover {
             filter: grayscale(20%) contrast(1);
@@ -265,12 +255,15 @@
             left: 50%;
             transform-style: preserve-3d;
             animation: orbit linear infinite;
+            will-change: animation-duration;
         }
         .orbit-planet {
             position: absolute;
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
+            transition: transform 0.3s ease-out;
+            will-change: transform;
         }
 
         @keyframes orbit {
