@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 
 interface ThinkingProcessProps {
@@ -46,7 +45,7 @@ export const ThinkingProcess: React.FC<ThinkingProcessProps> = ({ isThinking = f
     if (!isThinking) return null;
 
     return (
-        <div className="flex items-center gap-3 py-4">
+        <div className="liquid-glass inline-flex items-center gap-3 py-2 px-4 rounded-full">
             {/* Animation based on mode */}
             {mode === 'reasoning' ? (
                 // Subtle Circular Video-Style Spinner

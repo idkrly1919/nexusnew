@@ -360,7 +360,7 @@ const ChatView: React.FC = () => {
                 </div>
             )}
 
-            <div className={`fixed inset-y-0 left-0 z-40 w-72 bg-black/30 backdrop-blur-2xl border-r border-white/10 transform transition-transform duration-300 ease-in-out ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+            <div className={`fixed inset-y-0 left-0 z-40 w-72 liquid-glass border-l-0 border-t-0 border-b-0 rounded-none rounded-r-2xl transform transition-transform duration-300 ease-in-out ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
                 <div className="flex flex-col h-full p-4 space-y-4">
                     <div className="flex justify-between items-center"><div className="font-bold tracking-wide text-white flex items-center gap-2"><img src="/nexus-logo.png" alt="Nexus Logo" className="w-6 h-6 animate-spin-slow" />Nexus</div><button onClick={() => setIsSidebarOpen(false)} className="text-zinc-400 hover:text-white p-1 rounded-full hover:bg-white/10"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m15 18-6-6 6-6"/></svg></button></div>
                     <button onClick={() => { resetChat(); setIsSidebarOpen(false); }} className="w-full flex items-center justify-center gap-2 px-3 py-2.5 bg-white hover:bg-zinc-200 text-black rounded-full transition-colors duration-300 text-sm font-semibold interactive-lift"><svg width="16" height="16" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5" fill="none"><path d="M12 5v14"/><path d="M5 12h14"/></svg>New Chat</button>
@@ -388,7 +388,7 @@ const ChatView: React.FC = () => {
             {isSidebarOpen && <div className="fixed inset-0 bg-black/50 z-30" onClick={() => setIsSidebarOpen(false)}></div>}
 
             <main className="flex-1 relative flex flex-col overflow-hidden transition-all duration-300 ease-in-out" style={{ marginLeft: isSidebarOpen ? '18rem' : '0' }}>
-                <header className="h-16 flex items-center justify-between px-6 shrink-0">
+                <header className="h-16 flex items-center justify-between px-6 shrink-0 border-b border-white/10 backdrop-blur-md bg-black/10">
                     <div className="flex items-center gap-3">
                         <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="p-2 hover:bg-white/5 rounded-full text-zinc-400 hover:text-white transition-colors" title="Menu"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><line x1="9" y1="3" x2="9" y2="21"/></svg></button>
                         <span className="font-semibold text-sm tracking-wide text-zinc-300">{currentConversationId ? conversations.find(c => c.id === currentConversationId)?.title : 'Nexus'}</span>
@@ -404,7 +404,7 @@ const ChatView: React.FC = () => {
                             {messages.map((msg) => (
                                 <div key={msg.id} className={`flex items-start gap-4 animate-pop-in ${msg.role === 'user' ? 'justify-end' : ''}`}>
                                     {msg.role === 'assistant' && <div className="shrink-0 mt-1"><NexusIconSmall /></div>}
-                                    <div className={`max-w-[85%] leading-relaxed ${msg.role === 'user' ? 'bg-gradient-to-br from-indigo-500 to-purple-600 text-white px-5 py-3 rounded-3xl rounded-br-lg shadow-lg' : 'flex-1'}`}>
+                                    <div className={`max-w-[85%] leading-relaxed ${msg.role === 'user' ? 'bg-gradient-to-br from-indigo-500 to-purple-600 text-white px-5 py-3 rounded-3xl rounded-br-lg shadow-lg' : 'liquid-glass px-5 py-3 rounded-3xl rounded-bl-lg'}`}>
                                         {msg.role === 'assistant' && <div className="font-medium text-sm text-zinc-400 mb-2">Nexus</div>}
                                         <div className={`${msg.role === 'assistant' ? 'text-zinc-100 prose prose-invert prose-sm max-w-none' : ''}`} dangerouslySetInnerHTML={{ __html: parseMarkdown(msg.text) }} />
                                         {msg.role === 'assistant' && !isLoading && (<div className="flex items-center gap-2 mt-3"><button onClick={() => handleTTS(msg.text)} className="p-1.5 text-zinc-500 hover:text-zinc-300 hover:bg-white/5 rounded-md transition-colors" title="Read Aloud"><svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path></svg></button></div>)}
