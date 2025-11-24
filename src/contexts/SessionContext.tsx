@@ -14,6 +14,7 @@ interface SessionContextType {
     user: User | null;
     profile: Profile | null;
     isLoading: boolean;
+    refreshProfile: () => Promise<void>;
 }
 
 const SessionContext = createContext<SessionContextType | undefined>(undefined);
@@ -23,6 +24,22 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
     const [user, setUser] = useState<User | null>(null);
     const [profile, setProfile] = useState<Profile | null>(null);
     const [isLoading, setIsLoading] = useState(true);
+
+    const refreshProfile = async () => {
+        if (session?.user) {
+            const { data: profileData, error } = await supabase
+                .from('profiles')
+                .select('*')
+                .eq('id', session.user.id)
+                .single();
+            if (profileData) {
+                setProfile(profileData);
+            }
+            if(error) {
+                console.error("Error refreshing profile:", error);
+            }
+        }
+    };
 
     useEffect(() => {
         const fetchSessionAndProfile = async () => {
@@ -66,7 +83,7 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
     }, []);
 
     return (
-        <SessionContext.Provider value={{ session, user, profile, isLoading }}>
+        <SessionContext.Provider value={{ session, user, profile, isLoading, refreshProfile }}>
             {children}
         </SessionContext.Provider>
     );

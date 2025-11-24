@@ -4,7 +4,7 @@ import { useSession } from '../contexts/SessionContext';
 import DynamicBackground from '../../components/DynamicBackground';
 
 const Onboarding: React.FC = () => {
-    const { user } = useSession();
+    const { user, refreshProfile } = useSession();
     const [step, setStep] = useState(1);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [formData, setFormData] = useState({
@@ -42,6 +42,9 @@ const Onboarding: React.FC = () => {
             setIsSubmitting(false);
         } else {
             setStep(4);
+            setTimeout(() => {
+                refreshProfile();
+            }, 2000);
         }
     };
 
