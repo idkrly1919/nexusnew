@@ -114,11 +114,23 @@ Respond ONLY with a JSON object with the following structure:
 
             if (functionError) {
                 if (functionError.name === 'AbortError') throw functionError;
-                let detailedMessage = functionError.message;
-                if (detailedMessage.includes("non-2xx status code")) {
-                    detailedMessage += ". This often means the API key secret is missing in your Supabase project settings."
+                
+                // Attempt to parse the detailed error from the function's response
+                let detailedError = "An unknown error occurred in the image generation service.";
+                // @ts-ignore
+                if (functionError.context && typeof functionError.context.json === 'function') {
+                    try {
+                        // @ts-ignore
+                        const errorJson = await functionError.context.json();
+                        detailedError = errorJson.error || JSON.stringify(errorJson);
+                    } catch (e) {
+                        detailedError = `Failed to parse error response: ${functionError.message}`;
+                    }
+                } else {
+                    detailedError = functionError.message;
                 }
-                 throw new Error(`Image generation service error: ${detailedMessage}`);
+
+                throw new Error(`Image generation service error: ${detailedError}`);
             }
             
             if (functionData.error) {
