@@ -228,6 +228,45 @@
             40% { transform: scale(1.0); }
         }
 
+        /* Cosmos View Styles */
+        @keyframes star-pan {
+            from { background-position: 0 0; }
+            to { background-position: 0 -10000px; }
+        }
+        .stars-bg {
+            position: absolute;
+            inset: 0;
+            background-repeat: repeat;
+            animation: star-pan linear infinite;
+        }
+        .stars-1 {
+            background-image: radial-gradient(white 0.5px, transparent 0);
+            background-size: 40px 40px;
+            opacity: 0.8;
+            animation-duration: 200s;
+        }
+        .stars-2 {
+            background-image: radial-gradient(white 0.7px, transparent 0);
+            background-size: 80px 80px;
+            opacity: 0.6;
+            animation-duration: 150s;
+        }
+        .stars-3 {
+            background-image: radial-gradient(white 1px, transparent 0);
+            background-size: 120px 120px;
+            opacity: 0.4;
+            animation-duration: 100s;
+        }
+
+        @keyframes pulse-glow {
+            0%, 100% { box-shadow: 0 0 20px 5px rgba(129, 140, 248, 0.3), inset 0 0 10px 2px rgba(165, 180, 252, 0.2); }
+            50% { box-shadow: 0 0 35px 10px rgba(129, 140, 248, 0.4), inset 0 0 15px 4px rgba(165, 180, 252, 0.3); }
+        }
+        @keyframes swirl {
+            from { background-position: 0% 0%; }
+            to { background-position: 200% 0%; }
+        }
+
     </style>
 <script type="importmap">
 {
