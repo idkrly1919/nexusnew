@@ -42,32 +42,34 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
     };
 
     useEffect(() => {
-        // Rely solely on onAuthStateChange. It fires immediately with the cached session.
         const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
-            setSession(session);
-            setUser(session?.user ?? null);
-            
-            if (session?.user) {
-                // Fetch profile, but don't let it block the UI from loading.
-                const { data: profileData, error } = await supabase
-                    .from('profiles')
-                    .select('*')
-                    .eq('id', session.user.id)
-                    .single();
+            try {
+                setSession(session);
+                setUser(session?.user ?? null);
                 
-                if (error && error.code !== 'PGRST116') { // PGRST116 means no row was found
-                    console.error("Error fetching profile on auth state change:", error);
-                    setProfile(null);
+                if (session?.user) {
+                    const { data: profileData, error } = await supabase
+                        .from('profiles')
+                        .select('*')
+                        .eq('id', session.user.id)
+                        .single();
+                    
+                    if (error && error.code !== 'PGRST116') { // PGRST116 means no row was found
+                        console.error("Error fetching profile on auth state change:", error);
+                        setProfile(null);
+                    } else {
+                        setProfile(profileData);
+                    }
                 } else {
-                    setProfile(profileData);
+                    // If there's no session, clear the profile.
+                    setProfile(null);
                 }
-            } else {
-                // If there's no session, clear the profile.
-                setProfile(null);
+            } catch (e) {
+                console.error("A critical error occurred in the authentication handler:", e);
+            } finally {
+                // This GUARANTEES the loading screen is removed, even if errors occur.
+                setIsLoading(false);
             }
-            
-            // We now know the auth state, so we can stop loading.
-            setIsLoading(false);
         });
 
         return () => {
