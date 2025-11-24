@@ -8,6 +8,7 @@ import SpeechVisualizer from './SpeechVisualizer';
 import DynamicBackground from './DynamicBackground';
 import CosmosView from './CosmosView';
 import EmbeddedView from './EmbeddedView';
+import LoginPage from '../src/pages/Login';
 
 const NexusIconSmall = () => (
     <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center border border-white/10 shadow-lg">
@@ -21,6 +22,21 @@ const OrbLogo = () => (
         <img src="/nexus-logo.png" alt="Nexus Logo" className="w-20 h-20 animate-spin-slow" />
     </div>
 );
+
+const LoginPrompt: React.FC<{ onClose: () => void }> = ({ onClose }) => (
+    <div className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-lg flex flex-col items-center justify-center p-4 animate-pop-in">
+        <div className="absolute top-4 right-4 z-10">
+            <button onClick={onClose} className="p-2 rounded-full text-zinc-300 hover:text-white bg-black/20 hover:bg-black/40 backdrop-blur-md border border-white/10 transition-colors">
+                <svg width="24" height="24" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5" fill="none"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+        </div>
+        <div className="w-full max-w-md">
+            <p className="text-center text-lg text-zinc-300 mb-4">You've reached the guest message limit. Please sign in to continue.</p>
+            <LoginPage />
+        </div>
+    </div>
+);
+
 
 const ChatView: React.FC = () => {
     const { session } = useSession();
@@ -44,6 +60,9 @@ const ChatView: React.FC = () => {
 
     const [cosmosViewActive, setCosmosViewActive] = useState(false);
     const [embeddedUrl, setEmbeddedUrl] = useState<string | null>(null);
+
+    const [guestMessageCount, setGuestMessageCount] = useState(0);
+    const [showLoginPrompt, setShowLoginPrompt] = useState(false);
 
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -124,8 +143,8 @@ const ChatView: React.FC = () => {
         };
     }, []);
     useEffect(() => {
+        if (!session) return;
         const fetchConversations = async () => {
-            if (!session) return;
             const { data, error } = await supabase.from('conversations').select('*').order('created_at', { ascending: false });
             if (error) console.error('Error fetching conversations:', error);
             else setConversations(data as Conversation[]);
@@ -133,12 +152,12 @@ const ChatView: React.FC = () => {
         fetchConversations();
     }, [session]);
     useEffect(() => {
+        if (!currentConversationId || !session) {
+            setMessages([]);
+            setChatHistory([]);
+            return;
+        }
         const fetchMessages = async () => {
-            if (!currentConversationId) {
-                setMessages([]);
-                setChatHistory([]);
-                return;
-            }
             const { data, error } = await supabase.from('messages').select('*').eq('conversation_id', currentConversationId).order('created_at', { ascending: true });
             if (error) {
                 console.error('Error fetching messages:', error);
@@ -150,7 +169,7 @@ const ChatView: React.FC = () => {
             }
         };
         fetchMessages();
-    }, [currentConversationId]);
+    }, [currentConversationId, session]);
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file) return;
@@ -237,7 +256,14 @@ const ChatView: React.FC = () => {
         setIsLoading(false);
     };
     const processSubmission = async (userText: string) => {
-        if (isLoading || (!userText.trim() && !attachedFile) || !session) return;
+        if (isLoading || (!userText.trim() && !attachedFile)) return;
+
+        if (!session) {
+            if (guestMessageCount >= 5) {
+                setShowLoginPrompt(true);
+                return;
+            }
+        }
         
         const imageKeywords = ['draw', 'paint', 'generate image', 'create an image', 'visualize', 'edit image', 'modify image', 'make an image'];
         const isImage = imageKeywords.some(k => userText.toLowerCase().includes(k));
@@ -254,16 +280,35 @@ const ChatView: React.FC = () => {
         }
         const userMessage: Message = { id: `user-${Date.now()}`, role: 'user', text: userDisplay };
         setMessages(prev => [...prev, userMessage]);
+        
         let conversationId = currentConversationId;
-        if (!conversationId) {
+        if (session && !conversationId) {
             const { data, error } = await supabase.from('conversations').insert({ user_id: session.user.id, title: userText.substring(0, 50) }).select().single();
             if (error) { console.error("Error creating conversation", error); setIsLoading(false); return; }
             conversationId = data.id;
             setCurrentConversationId(data.id);
             setConversations(prev => [data as Conversation, ...prev]);
+
+            supabase.functions.invoke('generate-title', { body: { message: userText } })
+                .then(({ data: titleData, error: titleError }) => {
+                    if (!titleError && titleData.title) {
+                        supabase.from('conversations').update({ title: titleData.title }).eq('id', conversationId!).then();
+                        setConversations(prev => prev.map(c => c.id === conversationId ? { ...c, title: titleData.title } : c));
+                    } else if (titleError) {
+                        console.error('Error generating title:', titleError);
+                    }
+                });
         }
+
         const userContentForDb = attachedFile ? `[User attached file: ${attachedFile.name}]\n${userText}` : userText;
-        await supabase.from('messages').insert({ conversation_id: conversationId, user_id: session.user.id, role: 'user', content: userContentForDb });
+        if (session && conversationId) {
+            await supabase.from('messages').insert({ conversation_id: conversationId, user_id: session.user.id, role: 'user', content: userContentForDb });
+        }
+        
+        if (!session) {
+            setGuestMessageCount(prev => prev + 1);
+        }
+
         setAttachedFile(null);
         const controller = new AbortController();
         abortControllerRef.current = controller;
@@ -280,7 +325,9 @@ const ChatView: React.FC = () => {
                     setMessages(prev => prev.map(msg => msg.id === aiMsgId ? { ...msg, text: accumulatedText } : msg));
                 }
                 if (update.isComplete) {
-                    await supabase.from('messages').insert({ conversation_id: conversationId, user_id: session.user.id, role: 'assistant', content: accumulatedText });
+                    if (session && conversationId) {
+                        await supabase.from('messages').insert({ conversation_id: conversationId, user_id: session.user.id, role: 'assistant', content: accumulatedText });
+                    }
                     if (update.newHistoryEntry) { setChatHistory(prev => [...prev, { role: 'user', content: userContentForDb }, update.newHistoryEntry!]); }
                 }
             }
@@ -310,7 +357,12 @@ const ChatView: React.FC = () => {
             textareaRef.current.style.height = `${Math.min(scrollHeight, 200)}px`;
         }
     }, [inputValue]);
-    const resetChat = () => { setCurrentConversationId(null); };
+    const resetChat = () => { 
+        if (!session) {
+            setGuestMessageCount(0);
+        }
+        setCurrentConversationId(null); 
+    };
     const handleDeleteConversation = async (conversationId: string) => {
         if (window.confirm('Are you sure you want to delete this chat?')) {
             await supabase.from('messages').delete().eq('conversation_id', conversationId);
@@ -354,6 +406,7 @@ const ChatView: React.FC = () => {
             
             <CosmosView isActive={cosmosViewActive} onSelectPlanet={handleSelectPlanet} />
             {embeddedUrl && <EmbeddedView url={embeddedUrl} onClose={() => setEmbeddedUrl(null)} />}
+            {showLoginPrompt && <LoginPrompt onClose={() => setShowLoginPrompt(false)} />}
 
             {isListening && (
                 <SpeechVisualizer 
@@ -391,23 +444,30 @@ const ChatView: React.FC = () => {
                 <div className="flex flex-col h-full p-4 space-y-4">
                     <div className="flex justify-between items-center"><div className="font-bold tracking-wide text-white flex items-center gap-2"><img src="/nexus-logo.png" alt="Nexus Logo" className="w-6 h-6 animate-spin-slow" />Nexus</div><button onClick={() => setIsSidebarOpen(false)} className="text-zinc-400 hover:text-white p-1 rounded-full hover:bg-white/10"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m15 18-6-6 6-6"/></svg></button></div>
                     <button onClick={() => { resetChat(); setIsSidebarOpen(false); }} className="w-full flex items-center justify-center gap-2 px-3 py-2.5 bg-white hover:bg-zinc-200 text-black rounded-full transition-colors duration-300 text-sm font-semibold interactive-lift"><svg width="16" height="16" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5" fill="none"><path d="M12 5v14"/><path d="M5 12h14"/></svg>New Chat</button>
-                    <div className="flex-1 overflow-y-auto space-y-1 pr-2 -mr-2 scrollbar-hide">
-                        <div className="text-xs font-semibold text-zinc-500 px-2 py-1 uppercase tracking-wider mb-1">Recent Chats</div>
-                        {conversations.map(chat => (
-                            <div key={chat.id} className="relative group">
-                                <button onClick={() => setCurrentConversationId(chat.id)} className={`w-full text-left pl-3 pr-8 py-2 text-sm rounded-lg transition-colors duration-200 truncate ${currentConversationId === chat.id ? 'bg-white/10 text-white' : 'text-zinc-400 hover:bg-white/5 hover:text-white'}`}>
-                                    <div className="truncate">{chat.title || 'New Chat'}</div>
-                                </button>
-                                <button onClick={(e) => { e.stopPropagation(); handleDeleteConversation(chat.id); }} className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-zinc-500 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity" title="Delete Chat"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg></button>
-                            </div>
-                        ))}
-                    </div>
+                    {session && (
+                        <div className="flex-1 overflow-y-auto space-y-1 pr-2 -mr-2 scrollbar-hide">
+                            <div className="text-xs font-semibold text-zinc-500 px-2 py-1 uppercase tracking-wider mb-1">Recent Chats</div>
+                            {conversations.map(chat => (
+                                <div key={chat.id} className="relative group">
+                                    <button onClick={() => setCurrentConversationId(chat.id)} className={`w-full text-left pl-3 pr-8 py-2 text-sm rounded-lg transition-colors duration-200 truncate ${currentConversationId === chat.id ? 'bg-white/10 text-white' : 'text-zinc-400 hover:bg-white/5 hover:text-white'}`}>
+                                        <div className="truncate">{chat.title || 'New Chat'}</div>
+                                    </button>
+                                    <button onClick={(e) => { e.stopPropagation(); handleDeleteConversation(chat.id); }} className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-zinc-500 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity" title="Delete Chat"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg></button>
+                                </div>
+                            ))}
+                        </div>
+                    )}
                     <div className="space-y-2">
                         <button onClick={() => setShowSettings(true)} className="w-full flex items-center gap-3 px-3 py-2 text-sm text-zinc-300 hover:text-white hover:bg-white/5 rounded-lg transition-colors"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.47a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.35a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>Settings</button>
-                        <div className="flex items-center justify-between gap-3 px-3 py-2 bg-white/5 rounded-lg">
-                             <div className="flex items-center gap-3"><div className="w-7 h-7 rounded-full bg-gradient-to-br from-purple-500 to-blue-500"></div><div className="text-sm text-zinc-200 truncate">{session?.user?.email}</div></div>
-                             <button onClick={() => supabase.auth.signOut()} className="text-zinc-300 hover:text-white p-1.5 hover:bg-white/10 rounded-md" title="Log Out"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg></button>
-                        </div>
+                        {session && (
+                            <div className="flex items-center justify-between gap-3 px-3 py-2 bg-white/5 rounded-lg">
+                                <div className="flex items-center gap-3 min-w-0">
+                                    <div className="w-7 h-7 rounded-full bg-gradient-to-br from-purple-500 to-blue-500 shrink-0"></div>
+                                    <div className="text-sm text-zinc-200 truncate">{session.user.email}</div>
+                                </div>
+                                <button onClick={() => supabase.auth.signOut()} className="text-zinc-300 hover:text-white p-1.5 hover:bg-white/10 rounded-md" title="Log Out"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg></button>
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>
@@ -418,7 +478,7 @@ const ChatView: React.FC = () => {
                 <header className="h-16 flex items-center justify-between px-6 shrink-0 border-b border-white/10 backdrop-blur-md bg-black/10">
                     <div className="flex items-center gap-3">
                         <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="p-2 hover:bg-white/5 rounded-full text-zinc-400 hover:text-white transition-colors" title="Menu"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><line x1="9" y1="3" x2="9" y2="21"/></svg></button>
-                        <span className="font-semibold text-sm tracking-wide text-zinc-300">{currentConversationId ? conversations.find(c => c.id === currentConversationId)?.title : 'Nexus'}</span>
+                        <span className="font-semibold text-sm tracking-wide text-zinc-300">{currentConversationId && session ? conversations.find(c => c.id === currentConversationId)?.title : 'Nexus'}</span>
                     </div>
                     <div className="flex items-center gap-2"><button onClick={() => setShowSettings(true)} className="text-xs font-medium text-zinc-500 hover:text-zinc-300 cursor-pointer px-3 py-1.5 rounded-full hover:bg-white/5 transition-colors">{personality !== 'conversational' ? personality.charAt(0).toUpperCase() + personality.slice(1).replace('-',' ') + ' Mode' : 'Settings'}</button></div>
                 </header>

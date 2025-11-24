@@ -1,12 +1,11 @@
 import React, { useState } from 'react';
 import { SessionProvider, useSession } from './src/contexts/SessionContext';
 import ChatView from './components/ChatView';
-import LoginPage from './src/pages/Login';
 import LandingPage from './components/LandingPage';
 
 const AppContent: React.FC = () => {
     const { session, isLoading } = useSession();
-    const [showLogin, setShowLogin] = useState(false);
+    const [isGuest, setIsGuest] = useState(false);
 
     if (isLoading) {
         return (
@@ -19,17 +18,11 @@ const AppContent: React.FC = () => {
         );
     }
 
-    return (
-        <>
-            {session ? (
-                <ChatView />
-            ) : showLogin ? (
-                <LoginPage />
-            ) : (
-                <LandingPage onGetAccess={() => setShowLogin(true)} />
-            )}
-        </>
-    );
+    if (session || isGuest) {
+        return <ChatView />;
+    }
+
+    return <LandingPage onGetAccess={() => setIsGuest(true)} />;
 };
 
 const App: React.FC = () => {
