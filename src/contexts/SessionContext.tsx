@@ -42,45 +42,38 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
     };
 
     useEffect(() => {
-        setIsLoading(true);
+        // First, try to get the session immediately.
+        supabase.auth.getSession().then(async ({ data: { session } }) => {
+            setSession(session);
+            setUser(session?.user ?? null);
+            if (session?.user) {
+                const { data: profileData } = await supabase
+                    .from('profiles')
+                    .select('*')
+                    .eq('id', session.user.id)
+                    .single();
+                setProfile(profileData);
+            }
+            setIsLoading(false);
+        });
 
+        // Then, set up a listener for future auth state changes.
         const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
             setSession(session);
             setUser(session?.user ?? null);
-
             if (session?.user) {
-                try {
-                    const { data: profileData, error } = await supabase
-                        .from('profiles')
-                        .select('*')
-                        .eq('id', session.user.id)
-                        .single();
-
-                    if (error) throw error;
-                    
-                    setProfile(profileData);
-                } catch (error) {
-                    console.error("Error fetching profile:", error);
-                    setProfile(null);
-                } finally {
-                    setIsLoading(false);
-                }
+                const { data: profileData } = await supabase
+                    .from('profiles')
+                    .select('*')
+                    .eq('id', session.user.id)
+                    .single();
+                setProfile(profileData);
             } else {
                 setProfile(null);
-                setIsLoading(false);
             }
         });
 
-        // Failsafe to ensure loading is false if the user is not logged in initially.
-        supabase.auth.getSession().then(({ data: { session } }) => {
-            if (!session) {
-                setIsLoading(false);
-            }
-        });
-
-        return () => {
-            subscription.unsubscribe();
-        };
+        return () => subscription.unsubscribe();
     }, []);
 
     return (

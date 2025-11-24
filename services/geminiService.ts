@@ -98,11 +98,16 @@ Respond ONLY with a JSON object with the following structure:
 
         // --- PATH 1: IMAGE GENERATION ---
         if (isImageRequest) {
-            yield { text: `Generating image with prompt: \`${imagePrompt}\``, isComplete: false, mode: 'image' };
+            let finalImagePrompt = imagePrompt;
+            if (imageModelPreference === 'img4') {
+                finalImagePrompt += ", using all available pixels for maximum detail, 4k, photorealistic";
+            }
+
+            yield { text: `Generating image with prompt: \`${finalImagePrompt}\``, isComplete: false, mode: 'image' };
             
             const { data: functionData, error: functionError } = await supabase.functions.invoke('infip-image-gen', {
                 body: { 
-                    prompt: imagePrompt,
+                    prompt: finalImagePrompt,
                     model: imageModelPreference
                 },
                 signal,
