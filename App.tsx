@@ -2,9 +2,10 @@ import React, { useState } from 'react';
 import { SessionProvider, useSession } from './src/contexts/SessionContext';
 import ChatView from './components/ChatView';
 import LandingPage from './components/LandingPage';
+import Onboarding from './src/components/Onboarding';
 
 const AppContent: React.FC = () => {
-    const { session, isLoading } = useSession();
+    const { session, profile, isLoading } = useSession();
     const [isGuest, setIsGuest] = useState(false);
 
     if (isLoading) {
@@ -16,6 +17,10 @@ const AppContent: React.FC = () => {
                 </svg>
             </div>
         );
+    }
+
+    if (session && profile && !profile.onboarding_completed) {
+        return <Onboarding />;
     }
 
     if (session || isGuest) {
