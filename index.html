@@ -229,38 +229,57 @@
         }
 
         /* Cosmos View Styles */
-        @keyframes star-pan {
-            from { background-position: 0 0; }
-            to { background-position: 0 -10000px; }
-        }
-        .stars-bg {
+        .star {
             position: absolute;
-            inset: 0;
-            background-repeat: repeat;
-            animation: star-pan linear infinite;
+            background: white;
+            border-radius: 50%;
+            animation: twinkle 5s infinite ease-in-out;
+            will-change: opacity;
         }
-        .stars-1 {
-            background-image: radial-gradient(white 0.5px, transparent 0);
-            background-size: 40px 40px;
-            opacity: 0.8;
-            animation-duration: 200s;
+        @keyframes twinkle {
+            0%, 100% { opacity: var(--start-opacity, 0.5); }
+            50% { opacity: 1; }
         }
-        .stars-2 {
-            background-image: radial-gradient(white 0.7px, transparent 0);
-            background-size: 80px 80px;
-            opacity: 0.6;
-            animation-duration: 150s;
+
+        .planet-container {
+            filter: grayscale(100%) contrast(1.1);
+            transition: filter 0.5s ease;
         }
-        .stars-3 {
-            background-image: radial-gradient(white 1px, transparent 0);
-            background-size: 120px 120px;
-            opacity: 0.4;
-            animation-duration: 100s;
+        .planet-container:hover {
+            filter: grayscale(20%) contrast(1);
+        }
+        .planet-orbit {
+            will-change: transform;
+        }
+        .drift-1 { animation: orbital-drift-1 25s infinite ease-in-out; }
+        .drift-2 { animation: orbital-drift-2 30s infinite ease-in-out; }
+        .drift-3 { animation: orbital-drift-3 20s infinite ease-in-out; }
+
+        @keyframes orbital-drift-1 {
+            0% { transform: translate(0, 0); }
+            25% { transform: translate(8px, 12px); }
+            50% { transform: translate(-4px, 0px); }
+            75% { transform: translate(0px, -12px); }
+            100% { transform: translate(0, 0); }
+        }
+        @keyframes orbital-drift-2 {
+            0% { transform: translate(0, 0); }
+            25% { transform: translate(-10px, -5px); }
+            50% { transform: translate(5px, 5px); }
+            75% { transform: translate(0px, 10px); }
+            100% { transform: translate(0, 0); }
+        }
+        @keyframes orbital-drift-3 {
+            0% { transform: translate(0, 0); }
+            25% { transform: translate(5px, -10px); }
+            50% { transform: translate(-8px, 2px); }
+            75% { transform: translate(4px, 8px); }
+            100% { transform: translate(0, 0); }
         }
 
         @keyframes pulse-glow {
-            0%, 100% { box-shadow: 0 0 20px 5px rgba(129, 140, 248, 0.3), inset 0 0 10px 2px rgba(165, 180, 252, 0.2); }
-            50% { box-shadow: 0 0 35px 10px rgba(129, 140, 248, 0.4), inset 0 0 15px 4px rgba(165, 180, 252, 0.3); }
+            0%, 100% { box-shadow: 0 0 20px 5px rgba(255, 255, 255, 0.2), inset 0 0 10px 2px rgba(255, 255, 255, 0.1); }
+            50% { box-shadow: 0 0 35px 10px rgba(255, 255, 255, 0.3), inset 0 0 15px 4px rgba(255, 255, 255, 0.15); }
         }
         @keyframes swirl {
             from { background-position: 0% 0%; }
