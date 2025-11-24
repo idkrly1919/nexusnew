@@ -40,7 +40,7 @@ serve(async (req: Request) => {
     const systemPrompt = "You are a title generation expert. Based on the user's first message, create a concise and relevant title for the conversation. The title must be 4 words or less. Respond ONLY with the generated title, nothing else.";
 
     const response = await textClient.chat.completions.create({
-        model: 'x-ai/grok-4.1-fast',
+        model: 'mistralai/mistral-7b-instruct-v0.2',
         messages: [
             { role: 'system', content: systemPrompt },
             { role: 'user', content: message }
