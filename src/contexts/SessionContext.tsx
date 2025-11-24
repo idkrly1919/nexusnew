@@ -42,53 +42,57 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
     };
 
     useEffect(() => {
-        // Safety Net: Add a timeout to prevent infinite loading under any circumstance.
-        const loadingTimeout = setTimeout(() => {
-            if (isLoading) {
-                console.error("Authentication timed out after 4 seconds. Forcing UI to load.");
-                setIsLoading(false); // Force the loading to stop
-            }
-        }, 4000);
-
         const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
-            // We have a response from Supabase, so clear the safety net timeout
-            clearTimeout(loadingTimeout);
+            try {
+                if (session?.user) {
+                    setSession(session);
+                    setUser(session.user);
 
-            setSession(session);
-            setUser(session?.user ?? null);
-            
-            // **THE FIX**: Stop the main app loading spinner as soon as we know the auth state.
-            // The profile can now load in the background without blocking the UI.
-            setIsLoading(false);
-
-            if (session?.user) {
-                // Fetch profile data in the background
-                try {
-                    const { data: profileData, error } = await supabase
+                    // Fetch profile with a timeout to prevent infinite loading.
+                    // This is the critical safety net.
+                    const profilePromise = supabase
                         .from('profiles')
                         .select('*')
                         .eq('id', session.user.id)
                         .single();
                     
-                    if (error && error.code !== 'PGRST116') {
-                        console.error("Error fetching profile:", error);
+                    const timeoutPromise = new Promise((_, reject) => 
+                        setTimeout(() => reject(new Error('Profile fetch timed out after 5 seconds.')), 5000)
+                    );
+
+                    // @ts-ignore
+                    const { data: profileData, error } = await Promise.race([profilePromise, timeoutPromise]);
+
+                    if (error) {
+                        // Don't throw the error, as it would crash the app.
+                        // Log it and continue loading the app without profile data.
+                        // The chat will still be functional.
+                        console.error("Error fetching profile:", error.message);
                         setProfile(null);
                     } else {
                         setProfile(profileData);
                     }
-                } catch (e) {
-                     console.error("A critical error occurred while fetching the profile:", e);
-                     setProfile(null);
+                } else {
+                    // User is logged out, clear all session data.
+                    setSession(null);
+                    setUser(null);
+                    setProfile(null);
                 }
-            } else {
-                // No session, so no profile.
+            } catch (e: any) {
+                console.error("A critical error occurred during the authentication process:", e.message);
+                // Clear everything on a critical failure to prevent a broken state.
+                setSession(null);
+                setUser(null);
                 setProfile(null);
+            } finally {
+                // This is the key: Only set isLoading to false after the session AND profile check is complete.
+                // This guarantees that the rest of the app has the correct, fully-authenticated data before it renders.
+                setIsLoading(false);
             }
         });
 
         return () => {
             subscription.unsubscribe();
-            clearTimeout(loadingTimeout); // Clean up timeout on component unmount
         };
     }, []);
 
