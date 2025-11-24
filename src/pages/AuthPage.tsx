@@ -18,16 +18,30 @@ const AuthPage: React.FC<{ onExit: () => void }> = ({ onExit }) => {
         setIsLoading(true);
         setError(null);
         
-        const { data, error: rpcError } = await supabase.rpc('user_exists', { user_email: email });
+        try {
+            const checkUserPromise = supabase.rpc('user_exists', { user_email: email });
+            
+            const timeoutPromise = new Promise((_, reject) => 
+                setTimeout(() => reject(new Error('Request timed out. Please check your connection and try again.')), 5000)
+            );
 
-        if (rpcError) {
-            setError('Could not verify email. Please try again.');
-        } else if (data) {
-            setStep('login');
-        } else {
-            setStep('signup');
+            // @ts-ignore
+            const { data, error: rpcError } = await Promise.race([checkUserPromise, timeoutPromise]);
+
+            if (rpcError) {
+                throw rpcError;
+            }
+
+            if (data) {
+                setStep('login');
+            } else {
+                setStep('signup');
+            }
+        } catch (err: any) {
+            setError(err.message || 'Could not verify email. Please try again.');
+        } finally {
+            setIsLoading(false);
         }
-        setIsLoading(false);
     };
 
     const handleLogin = async (e: FormEvent) => {

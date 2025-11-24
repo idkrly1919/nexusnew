@@ -42,53 +42,43 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
     };
 
     useEffect(() => {
-        // Safety Net: Add a timeout to prevent infinite loading
-        const loadingTimeout = setTimeout(() => {
-            if (isLoading) {
-                console.error("Authentication timed out after 4 seconds. Forcing logout.");
-                // Force logout and stop loading
-                supabase.auth.signOut(); 
-                setIsLoading(false);
-            }
-        }, 4000);
-
+        // This subscription is the single source of truth for authentication state.
+        // It fires once on initial load with the session from localStorage, and again whenever the auth state changes.
         const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
-            // We have a response from Supabase, so clear the safety net timeout
-            clearTimeout(loadingTimeout);
+            try {
+                setSession(session);
+                setUser(session?.user ?? null);
 
-            setSession(session);
-            setUser(session?.user ?? null);
-            
-            // IMPORTANT: Stop loading the main UI as soon as we know the auth state.
-            // The profile can load in the background.
-            setIsLoading(false);
-
-            if (session?.user) {
-                try {
+                if (session?.user) {
+                    // If a session exists, we MUST fetch the profile before we consider loading complete.
                     const { data: profileData, error } = await supabase
                         .from('profiles')
                         .select('*')
                         .eq('id', session.user.id)
                         .single();
                     
-                    if (error && error.code !== 'PGRST116') {
+                    if (error && error.code !== 'PGRST116') { // PGRST116 means no row was found, which is not a critical error.
                         console.error("Error fetching profile:", error);
                         setProfile(null);
                     } else {
                         setProfile(profileData);
                     }
-                } catch (e) {
-                    console.error("A critical error occurred while fetching the profile:", e);
+                } else {
+                    // No session, so no profile.
                     setProfile(null);
                 }
-            } else {
-                setProfile(null);
+            } catch (e) {
+                console.error("A critical error occurred in onAuthStateChange:", e);
+                setProfile(null); // Clear profile on error to prevent inconsistent state.
+            } finally {
+                // This is the key: only set isLoading to false after the session AND profile check is complete.
+                // This guarantees that the rest of the app has the correct data before it renders.
+                setIsLoading(false);
             }
         });
 
         return () => {
             subscription.unsubscribe();
-            clearTimeout(loadingTimeout); // Clean up timeout on component unmount
         };
     }, []);
 
