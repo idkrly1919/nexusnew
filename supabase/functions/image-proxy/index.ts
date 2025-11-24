@@ -14,7 +14,6 @@ serve(async (req: Request) => {
   }
 
   try {
-    // Ensure the request has a body
     if (req.headers.get('content-type') !== 'application/json') {
       return new Response(
         JSON.stringify({ error: 'Invalid Content-Type. Must be application/json' }),
@@ -34,19 +33,31 @@ serve(async (req: Request) => {
       )
     }
 
-    const higgsfieldUrl = "https://api.higgsfield.ai/v1/images/generations";
+    // --- NEW LOGIC BASED ON YOUR INSTRUCTIONS ---
+
+    // 1. Determine aspect_ratio from the incoming 'size' parameter
+    let aspect_ratio = '1:1'; // Default to square
+    if (size === "1792x1024") {
+        aspect_ratio = '16:9'; // Landscape
+    } else if (size === "1024x1792") {
+        aspect_ratio = '9:16'; // Portrait
+    }
+
+    // 2. Construct the new API endpoint and payload
+    const higgsfieldUrl = "https://platform.higgsfield.ai/nano-banana-pro";
     const headers = {
         "Authorization": `Bearer ${higgsfieldKey}`,
         "Content-Type": "application/json"
     };
     const payload = {
-        model: "nano-banana-pro",
         prompt: prompt,
-        n: 1,
-        size: size || "1024x1024"
+        num_images: 1,
+        resolution: '2k',
+        aspect_ratio: aspect_ratio,
+        output_format: 'png'
     };
 
-    // Make the request from the server-side function
+    // 3. Make the request to the new endpoint
     const response = await fetch(higgsfieldUrl, {
         method: 'POST',
         headers: headers,
@@ -55,7 +66,6 @@ serve(async (req: Request) => {
 
     if (!response.ok) {
         const errText = await response.text();
-        // Return a structured error
         return new Response(
           JSON.stringify({ error: `Higgsfield API Error ${response.status}: ${errText}` }),
           { status: response.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
