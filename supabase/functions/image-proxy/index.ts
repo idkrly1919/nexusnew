@@ -24,29 +24,29 @@ serve(async (req: Request) => {
     const { prompt, size } = await req.json()
     
     // @ts-ignore
-    const infipKey = Deno.env.get('INFIP_API_KEY') || Deno.env.get('VITE_INFIP_API_KEY');
+    const higgsfieldKey = Deno.env.get('HIGGSFIELD_API_KEY');
 
-    if (!infipKey) {
+    if (!higgsfieldKey) {
       return new Response(
-        JSON.stringify({ error: 'API key secret (INFIP_API_KEY or VITE_INFIP_API_KEY) is not set in function secrets.' }),
+        JSON.stringify({ error: 'API key secret (HIGGSFIELD_API_KEY) is not set in your Supabase project function secrets.' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
-    const infipUrl = "https://api.infip.pro/v1/images/generations";
+    const higgsfieldUrl = "https://api.higgsfield.ai/v1/images/generations";
     const headers = {
-        "Authorization": `Bearer ${infipKey}`,
+        "Authorization": `Bearer ${higgsfieldKey}`,
         "Content-Type": "application/json"
     };
     const payload = {
-        model: "img4",
+        model: "nano-banana-pro",
         prompt: prompt,
         n: 1,
         size: size || "1024x1024"
     };
 
     // Make the request from the server-side function
-    const response = await fetch(infipUrl, {
+    const response = await fetch(higgsfieldUrl, {
         method: 'POST',
         headers: headers,
         body: JSON.stringify(payload)
@@ -56,7 +56,7 @@ serve(async (req: Request) => {
         const errText = await response.text();
         // Return a structured error
         return new Response(
-          JSON.stringify({ error: `InfiP API Error ${response.status}: ${errText}` }),
+          JSON.stringify({ error: `Higgsfield API Error ${response.status}: ${errText}` }),
           { status: response.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         )
     }
