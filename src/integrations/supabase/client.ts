@@ -6,14 +6,7 @@ const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiO
 // Import the supabase client like this:
 // import { supabase } from "@/integrations/supabase/client";
 
-export const supabase = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
-  auth: {
-    // By default, Supabase uses localStorage to persist sessions across browser restarts.
-    // We are changing it to sessionStorage to make sessions expire when the browser tab is closed.
-    // This gives the user more control over their login state.
-    storage: window.sessionStorage,
-    autoRefreshToken: true,
-    persistSession: true,
-    detectSessionInUrl: true
-  }
-});
+// By removing the custom 'auth' configuration, we revert to Supabase's default
+// behavior, which is to use localStorage. This will keep the user logged in
+// across browser sessions.
+export const supabase = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
