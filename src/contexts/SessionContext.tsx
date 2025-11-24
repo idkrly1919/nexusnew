@@ -42,21 +42,34 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
     };
 
     useEffect(() => {
+        // First, get the initial session. This runs once on page load.
+        supabase.auth.getSession().then(async ({ data: { session } }) => {
+            setSession(session);
+            setUser(session?.user ?? null);
+            if (session?.user) {
+                const { data: profileData } = await supabase
+                    .from('profiles')
+                    .select('*')
+                    .eq('id', session.user.id)
+                    .single();
+                setProfile(profileData);
+            }
+            setIsLoading(false);
+        });
+
+        // Then, set up a listener for any future auth state changes.
         const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
             setSession(session);
             setUser(session?.user ?? null);
-            setIsLoading(false); // Set loading to false as soon as auth state is known
-
             if (session?.user) {
-                // Fetch profile in the background without holding up the UI
                 const { data: profileData, error } = await supabase
                     .from('profiles')
                     .select('*')
                     .eq('id', session.user.id)
                     .single();
                 
-                if (error && error.code !== 'PGRST116') { // 'PGRST116' is "exact one row not found"
-                    console.error("Error fetching profile:", error);
+                if (error && error.code !== 'PGRST116') {
+                    console.error("Error fetching profile on auth state change:", error);
                     setProfile(null);
                 } else {
                     setProfile(profileData);
@@ -64,9 +77,12 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
             } else {
                 setProfile(null);
             }
+            // No need to set loading here, as this handles subsequent changes, not the initial load.
         });
 
-        return () => subscription.unsubscribe();
+        return () => {
+            subscription.unsubscribe();
+        };
     }, []);
 
     return (
