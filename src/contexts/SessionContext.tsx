@@ -5,6 +5,8 @@ import { supabase } from '../integrations/supabase/client';
 interface Profile {
     onboarding_completed: boolean;
     image_model_preference?: string;
+    first_name?: string;
+    last_name?: string;
 }
 
 interface SessionContextType {
@@ -50,7 +52,7 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
             if (session?.user) {
                 const { data: profileData } = await supabase
                     .from('profiles')
-                    .select('*')
+                    .select('*, first_name, last_name')
                     .eq('id', session.user.id)
                     .single();
                 setProfile(profileData);

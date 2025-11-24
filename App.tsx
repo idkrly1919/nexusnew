@@ -8,10 +8,12 @@ import LoginModal from './src/components/LoginModal';
 const AppContent: React.FC = () => {
     const { session, profile, isLoading } = useSession();
     const [showLoginModal, setShowLoginModal] = useState(false);
+    const [isGuest, setIsGuest] = useState(false);
 
     useEffect(() => {
         if (session) {
             setShowLoginModal(false);
+            setIsGuest(false);
         }
     }, [session]);
 
@@ -30,7 +32,7 @@ const AppContent: React.FC = () => {
         return <Onboarding />;
     }
 
-    if (session) {
+    if (session || isGuest) {
         return <ChatView />;
     }
 
@@ -39,7 +41,10 @@ const AppContent: React.FC = () => {
             <LandingPage onGetAccess={() => setShowLoginModal(true)} />
             <LoginModal 
                 isVisible={showLoginModal} 
-                onClose={() => setShowLoginModal(false)} 
+                onClose={() => {
+                    setShowLoginModal(false);
+                    setIsGuest(true);
+                }} 
             />
         </>
     );

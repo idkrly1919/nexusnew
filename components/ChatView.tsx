@@ -24,7 +24,7 @@ const OrbLogo = () => (
 );
 
 const ChatView: React.FC = () => {
-    const { session } = useSession();
+    const { session, profile } = useSession();
     const [messages, setMessages] = useState<Message[]>([]);
     const [chatHistory, setChatHistory] = useState<ChatHistory>([]);
     const [inputValue, setInputValue] = useState('');
@@ -461,7 +461,11 @@ const ChatView: React.FC = () => {
                             <div className="flex items-center justify-between gap-3 px-3 py-2 bg-white/5 rounded-lg">
                                 <div className="flex items-center gap-3 min-w-0">
                                     <div className="w-7 h-7 rounded-full bg-gradient-to-br from-purple-500 to-blue-500 shrink-0"></div>
-                                    <div className="text-sm text-zinc-200 truncate">{session.user.email}</div>
+                                    <div className="text-sm text-zinc-200 truncate">
+                                        {profile?.first_name && profile?.last_name 
+                                            ? `${profile.first_name} ${profile.last_name}` 
+                                            : session.user.email}
+                                    </div>
                                 </div>
                                 <button onClick={() => supabase.auth.signOut()} className="text-zinc-300 hover:text-white p-1.5 hover:bg-white/10 rounded-md" title="Log Out"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg></button>
                             </div>
