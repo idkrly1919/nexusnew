@@ -6,7 +6,7 @@
     <title>Nexus</title>
     <link rel="icon" type="image/png" href="/nexus-logo.png" />
     <link rel="manifest" href="/manifest.json" />
-    <meta name="theme-color" content="#18181b" />
+    <meta name="theme-color" content="#111014" />
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
@@ -14,7 +14,7 @@
     <style>
         body {
             font-family: 'Inter', sans-serif;
-            background-color: #18181b;
+            background-color: #111014;
             overflow-x: hidden;
             color: white;
         }
@@ -26,122 +26,92 @@
             font-family: 'Space Grotesk', sans-serif;
         }
         
-        .glass-panel {
-            background: rgba(255, 255, 255, 0.02);
-            backdrop-filter: blur(12px);
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            box-shadow: 0 0 0 1px rgba(0,0,0,0.5), 0 4px 20px rgba(0,0,0,0.5);
+        /* NEW: Liquid Glass Base Style */
+        .liquid-glass {
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.02));
+            backdrop-filter: blur(24px) saturate(150%);
+            -webkit-backdrop-filter: blur(24px) saturate(150%);
+            border-radius: 24px; /* More rounded */
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 
+                inset 0 1px 1px 0 rgba(255, 255, 255, 0.1), /* Inner highlight */
+                0 8px 32px 0 rgba(0, 0, 0, 0.3); /* Softer, darker shadow */
         }
 
-        .gradient-text {
-            background: linear-gradient(to right, #fff, #a1a1aa);
+        /* NEW: Interactive Element Animation */
+        .interactive-lift {
+            transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+        }
+        .interactive-lift:hover {
+            transform: translateY(-5px) scale(1.03);
+            box-shadow: 
+                inset 0 1px 1px 0 rgba(255, 255, 255, 0.15),
+                0 12px 40px 0 rgba(0, 0, 0, 0.4);
+        }
+
+        /* NEW: Liquid Gradient Text */
+        .liquid-gradient-text {
+            background: linear-gradient(45deg, #e879f9, #a78bfa, #818cf8, #60a5fa);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
+            animation: liquid-gradient-flow 8s ease infinite;
+            background-size: 200% 200%;
         }
 
-        .glow-bg {
+        @keyframes liquid-gradient-flow {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        /* NEW: Background Styles */
+        .liquid-bg {
+            position: fixed;
+            inset: 0;
+            background-color: #111014;
+            overflow: hidden;
+            z-index: -1;
+        }
+        .liquid-bg::before {
+            content: '';
             position: absolute;
-            width: 600px;
-            height: 600px;
-            background: radial-gradient(circle, rgba(255, 255, 255, 0.03) 0%, rgba(0, 0, 0, 0) 70%);
-            border-radius: 50%;
+            inset: 0;
+            background-image: url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIzMDAiIGhlaWdodD0iMzAwIj48ZmlsdGVyIGlkPSJub2lzZSI+PGZlVHVyYnVsZW5jZSB0eXBlPSJmcmFjdGFsTm9pc2UiIGJhc2VGcmVxdWVuY3k9IjAuOCIgbnVtT2N0YXZlcz0iNCIgc3RpdGNoVGlsZXM9InN0aXRjaCIvPjwvZmlsdGVyPjxyZWN0IHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiIGZpbHRlcj0idXJsKCNub2lzZSkiLz48L3N2Zz4=');
+            opacity: 0.03;
             pointer-events: none;
-            z-index: 0;
+        }
+        .blob {
+            position: absolute;
+            border-radius: 9999px;
+            filter: blur(120px);
+            will-change: transform;
+            opacity: 0.3;
+        }
+        @keyframes move-blob-1 { 0%,100% { transform: translate(0,0) scale(1); } 50% { transform: translate(10vw, -15vh) scale(1.2); } }
+        @keyframes move-blob-2 { 0%,100% { transform: translate(0,0) scale(1); } 50% { transform: translate(-15vw, 10vh) scale(0.8); } }
+        @keyframes move-blob-3 { 0%,100% { transform: translate(0,0) scale(1); } 50% { transform: translate(5vw, 10vh) scale(1.1); } }
+        .animate-move-blob-1 { animation: move-blob-1 20s ease-in-out infinite alternate; }
+        .animate-move-blob-2 { animation: move-blob-2 25s ease-in-out infinite alternate; }
+        .animate-move-blob-3 { animation: move-blob-3 18s ease-in-out infinite alternate; }
+
+        /* NEW: Chat Message Pop-in Animation */
+        @keyframes pop-in {
+            0% { opacity: 0; transform: translateY(10px) scale(0.95); }
+            100% { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        .animate-pop-in {
+            animation: pop-in 0.4s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
         }
 
-        .grid-bg {
-            background-size: 40px 40px;
-            background-image: linear-gradient(to right, rgba(255, 255, 255, 0.02) 1px, transparent 1px),
-                              linear-gradient(to bottom, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
-            mask-image: linear-gradient(to bottom, black 20%, transparent 100%);
-        }
+        .scrollbar-hide::-webkit-scrollbar { display: none; }
+        .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
 
-        .scrollbar-hide::-webkit-scrollbar {
-            display: none;
-        }
-        .scrollbar-hide {
-            -ms-overflow-style: none;
-            scrollbar-width: none;
-        }
-
-        @keyframes float {
-            0% { transform: translateY(0px); }
-            50% { transform: translateY(-10px); }
-            100% { transform: translateY(0px); }
-        }
-
-        .animate-float {
-            animation: float 6s ease-in-out infinite;
-        }
-
-        /* Orbit Animations */
-        @keyframes orbit-cw {
-            from { transform: rotate(0deg) translateX(60px) rotate(0deg); }
-            to { transform: rotate(360deg) translateX(60px) rotate(-360deg); }
-        }
-        @keyframes orbit-ccw {
-            from { transform: rotate(360deg) translateX(80px) rotate(-360deg); }
-            to { transform: rotate(0deg) translateX(80px) rotate(0deg); }
-        }
-
-        .animate-orbit-cw { animation: orbit-cw 2s linear infinite; }
-        .animate-orbit-ccw { animation: orbit-ccw 3s linear infinite; }
-
-        /* Floating Orbs Animations */
-        @keyframes float-1 { 0%,100% { transform: translate(0,0); opacity: 0.3; } 50% { transform: translate(50px, -30px); opacity: 0.6; } }
-        @keyframes float-2 { 0%,100% { transform: translate(0,0); opacity: 0.4; } 50% { transform: translate(-40px, 60px); opacity: 0.2; } }
-        @keyframes float-3 { 0%,100% { transform: translate(0,0); opacity: 0.3; } 50% { transform: translate(30px, 30px); opacity: 0.5; } }
-        @keyframes float-4 { 0%,100% { transform: translate(0,0); opacity: 0.5; } 50% { transform: translate(-60px, -20px); opacity: 0.2; } }
-        @keyframes float-5 { 0%,100% { transform: translate(0,0); opacity: 0.2; } 50% { transform: translate(20px, -50px); opacity: 0.6; } }
-
-        .animate-float-1 { animation: float-1 12s ease-in-out infinite; }
-        .animate-float-2 { animation: float-2 15s ease-in-out infinite; }
-        .animate-float-3 { animation: float-3 10s ease-in-out infinite; }
-        .animate-float-4 { animation: float-4 18s ease-in-out infinite; }
-        .animate-float-5 { animation: float-5 14s ease-in-out infinite; }
-
-        /* Image Gen UI */
-        @keyframes draw-wireframe {
-            0% { stroke-dasharray: 80; stroke-dashoffset: 80; }
-            100% { stroke-dasharray: 80; stroke-dashoffset: 0; }
-        }
-        @keyframes scan-line {
-            0% { transform: translateY(-8px); opacity: 0; }
-            50% { opacity: 1; }
-            100% { transform: translateY(8px); opacity: 0; }
-        }
-        .animate-draw-wireframe { animation: draw-wireframe 2s ease-in-out infinite alternate; }
-        .animate-scan-line { animation: scan-line 2s linear infinite; }
-
-        /* Slow Spin Animation */
         @keyframes spin-slow {
             from { transform: rotate(0deg); }
             to { transform: rotate(360deg); }
         }
         .animate-spin-slow {
             animation: spin-slow 20s linear infinite;
-        }
-
-        /* Mobile Responsive Styles */
-        @media (max-width: 640px) {
-            .chat-messages-container {
-                padding-left: 0.75rem;
-                padding-right: 0.75rem;
-                padding-top: 1rem;
-                padding-bottom: 1rem;
-            }
-            .chat-input-container {
-                bottom: 1rem;
-                padding-left: 0.5rem;
-                padding-right: 0.5rem;
-            }
-            .chat-input-form textarea {
-                padding-left: 1rem;
-                padding-right: 6rem; /* Make space for buttons */
-            }
-            .chat-input-buttons {
-                right: 0.25rem;
-            }
         }
     </style>
 <script type="importmap">
@@ -157,7 +127,7 @@
 }
 </script>
 </head>
-<body class="text-white min-h-screen relative selection:bg-blue-500 selection:text-white bg-[#18181b]">
+<body class="text-white min-h-screen relative selection:bg-purple-500 selection:text-white bg-[#111014]">
     <div id="root"></div>
     <script type="module" src="/index.tsx"></script>
 </body>
