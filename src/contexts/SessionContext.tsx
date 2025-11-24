@@ -49,19 +49,38 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
             setUser(session?.user ?? null);
 
             if (session?.user) {
-                const { data: profileData } = await supabase
-                    .from('profiles')
-                    .select('*')
-                    .eq('id', session.user.id)
-                    .single();
-                setProfile(profileData);
+                try {
+                    const { data: profileData, error } = await supabase
+                        .from('profiles')
+                        .select('*')
+                        .eq('id', session.user.id)
+                        .single();
+
+                    if (error) throw error;
+                    
+                    setProfile(profileData);
+                } catch (error) {
+                    console.error("Error fetching profile:", error);
+                    setProfile(null);
+                } finally {
+                    setIsLoading(false);
+                }
             } else {
                 setProfile(null);
+                setIsLoading(false);
             }
-            setIsLoading(false);
         });
 
-        return () => subscription.unsubscribe();
+        // Failsafe to ensure loading is false if the user is not logged in initially.
+        supabase.auth.getSession().then(({ data: { session } }) => {
+            if (!session) {
+                setIsLoading(false);
+            }
+        });
+
+        return () => {
+            subscription.unsubscribe();
+        };
     }, []);
 
     return (
