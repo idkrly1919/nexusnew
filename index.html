@@ -281,6 +281,21 @@
             50% { box-shadow: 0 0 35px 10px rgba(255, 255, 255, 0.3), inset 0 0 15px 4px rgba(255, 255, 255, 0.15); }
         }
 
+        /* New Star Fall Animation */
+        @keyframes star-fall {
+            from {
+                transform: translateY(0vh);
+            }
+            to {
+                transform: translateY(100vh);
+            }
+        }
+        .star-fall-animation {
+            animation-name: star-fall;
+            animation-timing-function: linear;
+            animation-iteration-count: infinite;
+        }
+
     </style>
 <script type="importmap">
 {
