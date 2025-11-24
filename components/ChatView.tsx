@@ -25,7 +25,7 @@ const OrbLogo = () => (
 );
 
 const ChatView: React.FC = () => {
-    const { session, profile } = useSession();
+    const { session, profile, refreshProfile } = useSession();
     const [messages, setMessages] = useState<Message[]>([]);
     const [chatHistory, setChatHistory] = useState<ChatHistory>([]);
     const [inputValue, setInputValue] = useState('');
@@ -54,6 +54,7 @@ const ChatView: React.FC = () => {
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const textareaRef = useRef<HTMLTextAreaElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const avatarFileRef = useRef<HTMLInputElement>(null);
     const silenceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
     const recognition = useRef<any>(null);
     const abortControllerRef = useRef<AbortController | null>(null);
@@ -468,6 +469,55 @@ const ChatView: React.FC = () => {
         }
     };
 
+    const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (!session) return;
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        try {
+            const fileExt = file.name.split('.').pop();
+            const filePath = `${session.user.id}/${Date.now()}.${fileExt}`;
+
+            const { error: uploadError } = await supabase.storage
+                .from('avatars')
+                .upload(filePath, file);
+            if (uploadError) throw uploadError;
+
+            const { data } = supabase.storage
+                .from('avatars')
+                .getPublicUrl(filePath);
+            if (!data.publicUrl) throw new Error("Could not get public URL for avatar.");
+
+            const { error: updateError } = await supabase
+                .from('profiles')
+                .update({ avatar_url: data.publicUrl })
+                .eq('id', session.user.id);
+            if (updateError) throw updateError;
+
+            await refreshProfile();
+
+        } catch (error: any) {
+            console.error("Error uploading avatar:", error);
+            alert(`Error: ${error.message}`);
+        }
+    };
+
+    const handleDeleteAllConversations = async () => {
+        if (!session) return;
+        const isConfirmed = window.confirm("Are you sure you want to delete all conversations? This action cannot be undone.");
+        if (isConfirmed) {
+            try {
+                const { error } = await supabase.rpc('delete_all_user_data');
+                if (error) throw error;
+                setConversations([]);
+                setCurrentConversationId(null);
+            } catch (error: any) {
+                console.error("Error deleting all conversations:", error);
+                alert(`Error: ${error.message}`);
+            }
+        }
+    };
+
     return (
         <div id="chat-view" className="fixed inset-0 z-50 flex flex-col bg-transparent text-zinc-100 font-sans overflow-hidden">
             <DynamicBackground status={backgroundStatus} />
@@ -546,7 +596,16 @@ const ChatView: React.FC = () => {
                         {session && (
                             <div className="flex items-center justify-between gap-3 px-3 py-2 bg-white/5 rounded-lg">
                                 <div className="flex items-center gap-3 min-w-0">
-                                    <div className="w-7 h-7 rounded-full bg-gradient-to-br from-purple-500 to-blue-500 shrink-0"></div>
+                                    <input type="file" ref={avatarFileRef} onChange={handleAvatarUpload} className="hidden" accept="image/png, image/jpeg" />
+                                    <button onClick={() => avatarFileRef.current?.click()} className="shrink-0 group relative" title="Change profile picture">
+                                        {profile?.avatar_url ? (
+                                            <img src={profile.avatar_url} alt="User Avatar" className="w-8 h-8 rounded-full object-cover group-hover:opacity-80 transition-opacity" />
+                                        ) : (
+                                            <div className="w-8 h-8 rounded-full liquid-glass flex items-center justify-center border border-white/10 group-hover:border-white/20 transition-colors">
+                                                <svg className="w-5 h-5 text-zinc-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                                            </div>
+                                        )}
+                                    </button>
                                     <div className="text-sm text-zinc-200 truncate">
                                         {profile?.first_name && profile?.last_name 
                                             ? `${profile.first_name} ${profile.last_name}` 
@@ -555,6 +614,12 @@ const ChatView: React.FC = () => {
                                 </div>
                                 <button onClick={() => supabase.auth.signOut()} className="text-zinc-300 hover:text-white p-1.5 hover:bg-white/10 rounded-md" title="Log Out"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg></button>
                             </div>
+                        )}
+                        {session && (
+                            <button onClick={handleDeleteAllConversations} className="w-full flex items-center gap-3 px-3 py-2 text-sm text-zinc-400 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
+                                Clear all chats
+                            </button>
                         )}
                     </div>
                 </div>

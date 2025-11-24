@@ -27,7 +27,7 @@ const EmbeddedView: React.FC<EmbeddedViewProps> = ({ url, onClose }) => {
                         src={url}
                         className="w-full h-full border-0"
                         title="Embedded Tool"
-                        sandbox="allow-scripts allow-same-origin"
+                        sandbox="allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox"
                     ></iframe>
                 </div>
             </div>

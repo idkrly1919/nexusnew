@@ -7,6 +7,7 @@ interface Profile {
     image_model_preference?: string;
     first_name?: string;
     last_name?: string;
+    avatar_url?: string;
 }
 
 interface SessionContextType {
