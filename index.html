@@ -229,16 +229,26 @@
         }
 
         /* Cosmos View Styles */
-        .star {
+        .stars-bg {
             position: absolute;
-            background: white;
-            border-radius: 50%;
-            animation: twinkle 5s infinite ease-in-out;
-            will-change: opacity;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            width: 100%;
+            height: 100%;
+            display: block;
+            background: transparent url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900"><circle fill="%23fff" cx="200" cy="200" r="1.5"/><circle fill="%23fff" cx="800" cy="200" r="1"/><circle fill="%23fff" cx="1200" cy="100" r="1"/><circle fill="%23fff" cx="1400" cy="300" r="1.2"/><circle fill="%23fff" cx="1000" cy="400" r="0.8"/><circle fill="%23fff" cx="400" cy="500" r="1.5"/><circle fill="%23fff" cx="1100" cy="600" r="1"/><circle fill="%23fff" cx="1500" cy="700" r="0.9"/><circle fill="%23fff" cx="600" cy="800" r="1.2"/><circle fill="%23fff" cx="900" cy="50" r="0.8"/></svg>') repeat;
+            background-size: 1600px 900px;
+            animation: twinkle-pan linear infinite;
         }
-        @keyframes twinkle {
-            0%, 100% { opacity: var(--start-opacity, 0.5); }
-            50% { opacity: 1; }
+        .stars-1 { opacity: 0.4; animation-duration: 150s; }
+        .stars-2 { opacity: 0.6; animation-duration: 100s; animation-direction: reverse; }
+        .stars-3 { opacity: 0.8; animation-duration: 75s; }
+
+        @keyframes twinkle-pan {
+            0% { transform: translateY(0); }
+            100% { transform: translateY(-900px); }
         }
 
         .planet-container {
@@ -248,33 +258,24 @@
         .planet-container:hover {
             filter: grayscale(20%) contrast(1);
         }
-        .planet-orbit {
-            will-change: transform;
+        
+        .orbit {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform-style: preserve-3d;
+            animation: orbit linear infinite;
         }
-        .drift-1 { animation: orbital-drift-1 25s infinite ease-in-out; }
-        .drift-2 { animation: orbital-drift-2 30s infinite ease-in-out; }
-        .drift-3 { animation: orbital-drift-3 20s infinite ease-in-out; }
+        .orbit-planet {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
 
-        @keyframes orbital-drift-1 {
-            0% { transform: translate(0, 0); }
-            25% { transform: translate(8px, 12px); }
-            50% { transform: translate(-4px, 0px); }
-            75% { transform: translate(0px, -12px); }
-            100% { transform: translate(0, 0); }
-        }
-        @keyframes orbital-drift-2 {
-            0% { transform: translate(0, 0); }
-            25% { transform: translate(-10px, -5px); }
-            50% { transform: translate(5px, 5px); }
-            75% { transform: translate(0px, 10px); }
-            100% { transform: translate(0, 0); }
-        }
-        @keyframes orbital-drift-3 {
-            0% { transform: translate(0, 0); }
-            25% { transform: translate(5px, -10px); }
-            50% { transform: translate(-8px, 2px); }
-            75% { transform: translate(4px, 8px); }
-            100% { transform: translate(0, 0); }
+        @keyframes orbit {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
         }
 
         @keyframes pulse-glow {
