@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, FormEvent } from 'react';
+import OpenAI from 'openai';
 import { Message, ChatHistory, PersonalityMode, Conversation, Role } from '../types';
 import { streamGemini } from '../services/geminiService';
 import { ThinkingProcess } from './ThinkingProcess';
@@ -264,6 +265,57 @@ const ChatView: React.FC = () => {
         }
         setIsLoading(false);
     };
+
+    const generateTitleOnClient = async (userMessage: string, conversationId: string) => {
+        // @ts-ignore
+        const apiKey = process.env.API_KEY;
+        if (!apiKey) {
+            console.error("API Key for title generation is missing.");
+            return;
+        }
+        const textClient = new OpenAI({
+            baseURL: "https://openrouter.ai/api/v1",
+            apiKey: apiKey,
+            dangerouslyAllowBrowser: true
+        });
+    
+        const systemPrompt = "You are a title generation expert. Based on the user's first message, create a concise and relevant title for the conversation. The title must be 4 words or less. Respond ONLY with the generated title, nothing else.";
+    
+        try {
+            const response = await textClient.chat.completions.create({
+                model: 'mistralai/mistral-7b-instruct-v0.2',
+                messages: [
+                    { role: 'system', content: systemPrompt },
+                    { role: 'user', content: userMessage }
+                ],
+                max_tokens: 20,
+                temperature: 0.5,
+            });
+    
+            const title = response.choices[0].message.content?.trim().replace(/["']/g, "") || "New Chat";
+            
+            await supabase
+                .from('conversations')
+                .update({ title: title })
+                .eq('id', conversationId);
+            
+            setConversations(prev =>
+                prev.map(c => (c.id === conversationId ? { ...c, title: title } : c))
+            );
+    
+        } catch (error) {
+            console.error("Failed to generate title on client:", error);
+            // Revert to a default title on failure
+            await supabase
+                .from('conversations')
+                .update({ title: "New Chat" })
+                .eq('id', conversationId);
+            setConversations(prev =>
+                prev.map(c => (c.id === conversationId ? { ...c, title: "New Chat" } : c))
+            );
+        }
+    };
+
     const processSubmission = async (userText: string) => {
         if (isLoading || (!userText.trim() && !attachedFile)) return;
 
@@ -291,10 +343,13 @@ const ChatView: React.FC = () => {
         setMessages(prev => [...prev, userMessage]);
         
         let conversationId = currentConversationId;
+        let isNewConversation = false;
+
         if (session && !conversationId) {
+            isNewConversation = true;
             const { data: newConversation, error: createError } = await supabase
                 .from('conversations')
-                .insert({ user_id: session.user.id, title: "New Chat" })
+                .insert({ user_id: session.user.id, title: "Generating title..." })
                 .select()
                 .single();
 
@@ -307,31 +362,6 @@ const ChatView: React.FC = () => {
             conversationId = newConversation.id;
             setCurrentConversationId(conversationId);
             setConversations(prev => [newConversation as Conversation, ...prev]);
-
-            // Generate title in the background
-            (async () => {
-                try {
-                    const { data: titleData, error: titleError } = await supabase.functions.invoke('generate-title', {
-                        body: { message: userText }
-                    });
-
-                    if (titleError) throw titleError;
-
-                    if (titleData.title) {
-                        const newTitle = titleData.title;
-                        await supabase
-                            .from('conversations')
-                            .update({ title: newTitle })
-                            .eq('id', conversationId!);
-                        
-                        setConversations(prev =>
-                            prev.map(c => (c.id === conversationId ? { ...c, title: newTitle } : c))
-                        );
-                    }
-                } catch (error) {
-                    console.error('Failed to generate and set conversation title:', error);
-                }
-            })();
         }
 
         const userContentForDb = attachedFile ? `[User attached file: ${attachedFile.name}]\n${userText}` : userText;
@@ -363,6 +393,10 @@ const ChatView: React.FC = () => {
                         await supabase.from('messages').insert({ conversation_id: conversationId, user_id: session.user.id, role: 'assistant', content: accumulatedText });
                     }
                     if (update.newHistoryEntry) { setChatHistory(prev => [...prev, { role: 'user', content: userContentForDb }, update.newHistoryEntry!]); }
+                    
+                    if (isNewConversation && conversationId) {
+                        generateTitleOnClient(userText, conversationId);
+                    }
                 }
             }
         } catch (err: any) {
