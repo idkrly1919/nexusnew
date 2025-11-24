@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale-1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Nexus</title>
     <link rel="icon" type="image/png" href="/nexus-logo.png" />
     <link rel="manifest" href="/manifest.json" />
@@ -44,13 +44,13 @@
         }
 
         .interactive-lift {
-            transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+            transition: transform 0.4s cubic-bezier(0.165, 0.84, 0.44, 1), box-shadow 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
         }
         .interactive-lift:hover {
-            transform: translateY(-5px) scale(1.03);
+            transform: translateY(-6px) scale(1.02);
             box-shadow: 
-                inset 0 1px 1px 0 rgba(255, 255, 255, 0.15),
-                0 12px 40px 0 rgba(0, 0, 0, 0.4);
+                inset 0 1px 1px 0 rgba(255, 255, 255, 0.1),
+                0 15px 50px 0 rgba(0, 0, 0, 0.5);
         }
 
         .liquid-gradient-text {
@@ -144,6 +144,25 @@
         .loading-text .orb-4, .loading-image .orb-4 { background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.22), rgba(255, 255, 255, 0.0) 80%); width: 25vw; height: 25vw; top: 70%; left: 75%; animation-delay: -0.9s; }
         .loading-text .orb-5, .loading-image .orb-5 { background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.28), rgba(255, 255, 255, 0.0) 80%); width: 20vw; height: 20vw; top: 80%; left: 10%; animation-delay: -1.2s; }
         .loading-text .orb-6, .loading-image .orb-6 { background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.32), rgba(255, 255, 255, 0.0) 80%); width: 30vw; height: 30vw; top: -10%; left: 40%; animation-delay: -1.5s; }
+
+        .bw-to-color-hover {
+            filter: grayscale(90%);
+            transition: filter 0.5s cubic-bezier(0.2, 0.8, 0.2, 1);
+        }
+        .bw-to-color-hover:hover {
+            filter: grayscale(0%);
+        }
+
+        .trusted-logo {
+            filter: grayscale(100%) brightness(0.7);
+            opacity: 0.5;
+            transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
+        }
+        .trusted-logo:hover {
+            filter: grayscale(0%) brightness(1);
+            opacity: 1;
+            transform: scale(1.05);
+        }
 
         /* New Globe Animation */
         .globe-container {

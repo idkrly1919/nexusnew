@@ -82,7 +82,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onGetAccess }) => {
 
                     <div className="max-w-6xl mx-auto px-6 mt-32">
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                            <div data-liquid-glass className="liquid-glass p-8 interactive-lift group">
+                            <div data-liquid-glass className="liquid-glass p-8 interactive-lift group bw-to-color-hover rounded-3xl">
                                 <div className="w-12 h-12 bg-zinc-900 rounded-xl flex items-center justify-center mb-6 border border-zinc-800 group-hover:border-indigo-500/50 transition-colors duration-300">
                                     <svg className="text-indigo-400" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
                                 </div>
@@ -91,7 +91,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onGetAccess }) => {
                                     Advanced pattern matching and symbolic computation capabilities that go beyond standard LLM arithmetic.
                                 </p>
                             </div>
-                            <div data-liquid-glass className="liquid-glass p-8 interactive-lift group">
+                            <div data-liquid-glass className="liquid-glass p-8 interactive-lift group bw-to-color-hover rounded-3xl">
                                 <div className="w-12 h-12 bg-zinc-900 rounded-xl flex items-center justify-center mb-6 border border-zinc-800 group-hover:border-purple-500/50 transition-colors duration-300">
                                     <svg className="text-purple-400" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
                                 </div>
@@ -100,7 +100,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onGetAccess }) => {
                                     Low-latency inference engine optimized for mathematical queries and complex data structuring tasks.
                                 </p>
                             </div>
-                            <div data-liquid-glass className="liquid-glass p-8 interactive-lift group">
+                            <div data-liquid-glass className="liquid-glass p-8 interactive-lift group bw-to-color-hover rounded-3xl">
                                 <div className="w-12 h-12 bg-zinc-900 rounded-xl flex items-center justify-center mb-6 border border-zinc-800 group-hover:border-cyan-500/50 transition-colors duration-300">
                                     <svg className="text-cyan-400" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line></svg>
                                 </div>
@@ -112,19 +112,21 @@ const LandingPage: React.FC<LandingPageProps> = ({ onGetAccess }) => {
                         </div>
                     </div>
 
-                    <div className="max-w-5xl mx-auto px-6 mt-32 text-center">
-                        <h2 className="text-3xl md:text-4xl font-bold text-white">Explore AI Video Generation</h2>
-                        <p className="text-lg text-zinc-400 max-w-2xl mx-auto mt-4 leading-relaxed">
-                            Check out this free AI video generator from one of our partners. Generate stunning videos from text prompts directly in your browser.
-                        </p>
-                        <div className="mt-8">
-                            <button 
-                                onClick={() => setShowEmbeddedView(true)}
-                                className="bg-indigo-600 hover:bg-indigo-500 text-white px-8 py-4 rounded-full font-medium transition-all duration-300 shadow-[0_0_20px_rgba(129,140,248,0.4)] hover:shadow-[0_0_30px_rgba(129,140,248,0.6)] interactive-lift flex items-center gap-3 mx-auto"
-                            >
-                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18"></rect><line x1="7" y1="2" x2="7" y2="22"></line><line x1="17" y1="2" x2="17" y2="22"></line><line x1="2" y1="12" x2="22" y2="12"></line><line x1="2" y1="7" x2="7" y2="7"></line><line x1="2" y1="17" x2="7" y2="17"></line><line x1="17" y1="17" x2="22" y2="17"></line><line x1="17" y1="7" x2="22" y2="7"></line></svg>
-                                Launch Video Generator
-                            </button>
+                    <div className="max-w-5xl mx-auto px-6 mt-32">
+                         <div data-liquid-glass className="liquid-glass rounded-3xl p-12 text-center bw-to-color-hover">
+                            <h2 className="text-3xl md:text-4xl font-bold text-white">Explore AI Video Generation</h2>
+                            <p className="text-lg text-zinc-400 max-w-2xl mx-auto mt-4 leading-relaxed">
+                                Check out this free AI video generator from one of our partners. Generate stunning videos from text prompts directly in your browser.
+                            </p>
+                            <div className="mt-8">
+                                <button 
+                                    onClick={() => setShowEmbeddedView(true)}
+                                    className="bg-indigo-600 hover:bg-indigo-500 text-white px-8 py-4 rounded-full font-medium transition-all duration-300 shadow-[0_0_20px_rgba(129,140,248,0.4)] hover:shadow-[0_0_30px_rgba(129,140,248,0.6)] interactive-lift flex items-center gap-3 mx-auto"
+                                >
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18"></rect><line x1="7" y1="2" x2="7" y2="22"></line><line x1="17" y1="2" x2="17" y2="22"></line><line x1="2" y1="12" x2="22" y2="12"></line><line x1="2" y1="7" x2="7" y2="7"></line><line x1="2" y1="17" x2="7" y2="17"></line><line x1="17" y1="17" x2="22" y2="17"></line><line x1="17" y1="7" x2="22" y2="7"></line></svg>
+                                    Launch Video Generator
+                                </button>
+                            </div>
                         </div>
                     </div>
 
@@ -151,7 +153,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onGetAccess }) => {
                                 </ul>
                             </div>
                             <div className="flex-1 w-full">
-                                <div data-liquid-glass className="liquid-glass rounded-xl overflow-hidden">
+                                <div data-liquid-glass className="liquid-glass rounded-2xl overflow-hidden interactive-lift">
                                     <div className="flex items-center gap-2 px-4 py-3 bg-black/20 border-b border-white/10">
                                         <div className="w-3 h-3 rounded-full bg-red-500"></div>
                                         <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
@@ -168,11 +170,11 @@ const LandingPage: React.FC<LandingPageProps> = ({ onGetAccess }) => {
                     
                     <div className="mt-32 border-t border-white/10 pt-20 pb-10 text-center">
                         <p className="text-zinc-500 text-sm uppercase tracking-widest mb-8 font-semibold">Trusted by teams at</p>
-                        <div className="flex flex-wrap justify-center items-center gap-12 opacity-50 grayscale hover:grayscale-0 transition-all duration-500">
-                            <div className="text-xl font-bold text-white flex items-center gap-2"><div className="w-6 h-6 bg-white rounded-full"></div> ACME Corp</div>
-                            <div className="text-xl font-bold text-white flex items-center gap-2"><div className="w-6 h-6 border-2 border-white rounded-sm"></div> Globex</div>
-                            <div className="text-xl font-bold text-white flex items-center gap-2"><div className="w-6 h-6 bg-white transform rotate-45"></div> Umbrellla</div>
-                            <div className="text-xl font-bold text-white flex items-center gap-2"><div className="w-6 h-6 rounded-full border-2 border-white border-dashed"></div> Massive</div>
+                        <div className="flex flex-wrap justify-center items-center gap-x-12 gap-y-8">
+                            <div className="trusted-logo text-xl font-bold text-white flex items-center gap-2"><div className="w-6 h-6 bg-white rounded-full"></div> ACME Corp</div>
+                            <div className="trusted-logo text-xl font-bold text-white flex items-center gap-2"><div className="w-6 h-6 border-2 border-white rounded-sm"></div> Globex</div>
+                            <div className="trusted-logo text-xl font-bold text-white flex items-center gap-2"><div className="w-6 h-6 bg-white transform rotate-45"></div> Umbrellla</div>
+                            <div className="trusted-logo text-xl font-bold text-white flex items-center gap-2"><div className="w-6 h-6 rounded-full border-2 border-white border-dashed"></div> Massive</div>
                         </div>
                         <div className="mt-20 text-zinc-600 text-sm">
                             © 2024 Nexus Intelligence Inc. All rights reserved.
