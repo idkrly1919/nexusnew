@@ -102,7 +102,7 @@ const Onboarding: React.FC = () => {
                         </div>
                         <h2 className="text-3xl font-bold text-white">Welcome to Nexus!</h2>
                         <p className="text-zinc-400 text-lg max-w-md mx-auto">
-                            One last step: please check your inbox for a verification email to secure your account.
+                            You're all set up. Let's start exploring the frontiers of AI.
                         </p>
                          <p className="text-zinc-500 text-sm">You can now close this window if you like.</p>
                     </div>

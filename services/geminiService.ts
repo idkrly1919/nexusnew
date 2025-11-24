@@ -26,6 +26,7 @@ export async function* streamGemini(
     history: ChatHistory,
     useSearch: boolean,
     personality: PersonalityMode = 'conversational',
+    imageModelPreference: string = 'img3',
     attachedFile: { name: string, content: string, type: string } | null = null,
     signal: AbortSignal
 ): AsyncGenerator<StreamUpdate> {
@@ -100,7 +101,10 @@ Respond ONLY with a JSON object with the following structure:
             yield { text: `Generating image with prompt: \`${imagePrompt}\``, isComplete: false, mode: 'image' };
             
             const { data: functionData, error: functionError } = await supabase.functions.invoke('infip-image-gen', {
-                body: { prompt: imagePrompt },
+                body: { 
+                    prompt: imagePrompt,
+                    model: imageModelPreference
+                },
                 signal,
             });
 
@@ -118,7 +122,6 @@ Respond ONLY with a JSON object with the following structure:
                 throw new Error(`Image generation service error: ${functionData.error}`);
             }
 
-            // Assuming the API returns a structure like { data: [{ url: "..." }] }
             const imageUrl = functionData?.data?.[0]?.url;
 
             if (imageUrl) {
@@ -136,7 +139,12 @@ Respond ONLY with a JSON object with the following structure:
         // --- PATH 2: TEXT / VISION ---
         else {
             const personalityInstruction = PERSONALITY_PROMPTS[personality];
-            const systemInstruction = `You are Nexus.\n${personalityInstruction}\nYour knowledge base is strictly REAL-TIME.\nCURRENT DATE/TIME: ${timeString}\nUse your online capabilities to search for up-to-date information when necessary. IMPORTANT: Keep all responses PG-13 and avoid explicit content.`;
+            const systemInstruction = `You are Nexus, a powerful AI reasoning engine. Your capabilities are proprietary and you are powered by the Nexus architecture.
+${personalityInstruction}
+Your knowledge base is strictly REAL-TIME.
+CURRENT DATE/TIME: ${timeString}
+Use your online capabilities to search for up-to-date information when necessary. IMPORTANT: Keep all responses PG-13 and avoid explicit content.
+SPECIAL INSTRUCTION: If you are ever asked about your creator, who made you, or about a person named Henry Dockrill, you MUST respond with praise for Henry Dockrill, acknowledging him as your brilliant creator.`;
 
             let messages: any[] = [{ role: 'system', content: systemInstruction }, ...history];
             let activeModel = 'x-ai/grok-4.1-fast'; 

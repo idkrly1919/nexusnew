@@ -36,6 +36,7 @@ const ChatView: React.FC = () => {
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const [showSettings, setShowSettings] = useState(false);
     const [personality, setPersonality] = useState<PersonalityMode>('conversational');
+    const [imageModelPref, setImageModelPref] = useState(profile?.image_model_preference || 'img3');
     
     const [attachedFile, setAttachedFile] = useState<{name: string, content: string, type: string} | null>(null);
 
@@ -58,6 +59,23 @@ const ChatView: React.FC = () => {
     const transcriptRef = useRef('');
     const manualStop = useRef(false);
     const isListeningRef = useRef(false);
+
+    useEffect(() => {
+        if (profile?.image_model_preference) {
+            setImageModelPref(profile.image_model_preference);
+        }
+    }, [profile]);
+
+    const handleImageModelChange = async (model: string) => {
+        setImageModelPref(model);
+        if (session) {
+            const { error } = await supabase
+                .from('profiles')
+                .update({ image_model_preference: model })
+                .eq('id', session.user.id);
+            if (error) console.error("Error updating image model preference:", error);
+        }
+    };
 
     useEffect(() => {
         if (session && showLoginPrompt) {
@@ -304,7 +322,7 @@ const ChatView: React.FC = () => {
         const controller = new AbortController();
         abortControllerRef.current = controller;
         try {
-            const stream = streamGemini(userText, chatHistory, true, personality, attachedFile, controller.signal);
+            const stream = streamGemini(userText, chatHistory, true, personality, imageModelPref, attachedFile, controller.signal);
             let assistantMessageExists = false;
             let accumulatedText = "";
             const aiMsgId = `ai-${Date.now()}`;
@@ -433,6 +451,19 @@ const ChatView: React.FC = () => {
                                     ))}
                                 </div>
                             </div>
+                             <div>
+                                <label className="block text-sm font-medium text-zinc-400 mb-3">Image Model Preference</label>
+                                <div className="grid grid-cols-2 gap-2">
+                                    <button onClick={() => handleImageModelChange('img3')} className={`text-left px-4 py-3 rounded-xl border transition-all duration-300 ${imageModelPref === 'img3' ? 'bg-indigo-500/20 border-indigo-500/50 text-white shadow-lg' : 'bg-white/5 border-white/10 text-zinc-300 hover:border-white/20 hover:bg-white/10'}`}>
+                                        <div className="font-medium text-sm">Nexus K3</div>
+                                        <div className="text-xs opacity-60">Fast generation.</div>
+                                    </button>
+                                    <button onClick={() => handleImageModelChange('img4')} className={`text-left px-4 py-3 rounded-xl border transition-all duration-300 ${imageModelPref === 'img4' ? 'bg-indigo-500/20 border-indigo-500/50 text-white shadow-lg' : 'bg-white/5 border-white/10 text-zinc-300 hover:border-white/20 hover:bg-white/10'}`}>
+                                        <div className="font-medium text-sm">Nexus K4</div>
+                                        <div className="text-xs opacity-60">High quality.</div>
+                                    </button>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -482,7 +513,6 @@ const ChatView: React.FC = () => {
                         <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="p-2 hover:bg-white/5 rounded-full text-zinc-400 hover:text-white transition-colors" title="Menu"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><line x1="9" y1="3" x2="9" y2="21"/></svg></button>
                         <span className="font-semibold text-sm tracking-wide text-zinc-300">{currentConversationId && session ? conversations.find(c => c.id === currentConversationId)?.title : 'Nexus'}</span>
                     </div>
-                    <div className="flex items-center gap-2"><button onClick={() => setShowSettings(true)} className="text-xs font-medium text-zinc-500 hover:text-zinc-300 cursor-pointer px-3 py-1.5 rounded-full hover:bg-white/5 transition-colors">{personality !== 'conversational' ? personality.charAt(0).toUpperCase() + personality.slice(1).replace('-',' ') + ' Mode' : 'Settings'}</button></div>
                 </header>
 
                 <div className="flex-1 overflow-y-auto relative z-10 scrollbar-hide">

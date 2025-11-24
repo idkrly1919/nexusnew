@@ -2,7 +2,7 @@ import React, { useState, FormEvent } from 'react';
 import { supabase } from '../integrations/supabase/client';
 
 const LoginPage: React.FC = () => {
-    const [step, setStep] = useState<'email' | 'login' | 'signup'>('email');
+    const [step, setStep] = useState<'email' | 'login' | 'signup' | 'verify'>('email');
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
@@ -57,8 +57,11 @@ const LoginPage: React.FC = () => {
                 }
             }
         });
-        if (error) setError(error.message);
-        // On success, the onAuthStateChange listener will trigger the onboarding flow.
+        if (error) {
+            setError(error.message);
+        } else {
+            setStep('verify');
+        }
         setIsLoading(false);
     };
 
@@ -110,6 +113,18 @@ const LoginPage: React.FC = () => {
                         <button onClick={() => setStep('email')} className="w-full text-center text-sm text-zinc-400 hover:text-white">Use a different email</button>
                     </form>
                 );
+            case 'verify':
+                return (
+                    <div className="text-center space-y-6 animate-pop-in">
+                        <div className="w-16 h-16 bg-green-500/20 text-green-400 rounded-full flex items-center justify-center mx-auto">
+                            <svg className="w-8 h-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                        </div>
+                        <h2 className="text-2xl font-bold text-white">Account Created!</h2>
+                        <p className="text-zinc-400">
+                            We've sent a verification link to <strong>{email}</strong>. Please check your inbox to complete the process.
+                        </p>
+                    </div>
+                );
         }
     };
 
@@ -122,10 +137,10 @@ const LoginPage: React.FC = () => {
                         <span className="text-3xl font-bold tracking-tight brand-font">Nexus</span>
                     </div>
                     <h1 className="text-2xl font-bold text-white">
-                        {step === 'login' ? 'Welcome Back' : step === 'signup' ? 'Create your Account' : 'Welcome to Nexus'}
+                        {step === 'login' ? 'Welcome Back' : step === 'signup' ? 'Create your Account' : step === 'verify' ? 'One Last Step' : 'Welcome to Nexus'}
                     </h1>
                     <p className="text-zinc-400">
-                        {step === 'login' ? 'Sign in to continue' : step === 'signup' ? 'Just a few details to get started' : 'Sign in or create an account'}
+                        {step === 'login' ? 'Sign in to continue' : step === 'signup' ? 'Just a few details to get started' : step === 'verify' ? 'Verify your email to continue' : 'Sign in or create an account'}
                     </p>
                 </div>
                 <div data-liquid-glass className="liquid-glass p-8 rounded-2xl animate-pop-in" style={{ animationDelay: '100ms' }}>

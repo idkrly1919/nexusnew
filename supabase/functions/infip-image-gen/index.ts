@@ -13,7 +13,7 @@ serve(async (req: Request) => {
   }
 
   try {
-    const { prompt } = await req.json();
+    const { prompt, model } = await req.json();
     if (!prompt) {
       return new Response(JSON.stringify({ error: "Prompt is required" }), {
         status: 400,
@@ -32,12 +32,11 @@ serve(async (req: Request) => {
       )
     }
 
-    // Corrected API endpoint
     const infipUrl = "https://api.infip.pro/v1/images/generations";
     
     const payload = {
         prompt: prompt,
-        model: 'img3', // Using the requested 'img3' model
+        model: model || 'img3', // Use the provided model, or default to img3
         n: 1,
         size: '1024x1024'
     };
