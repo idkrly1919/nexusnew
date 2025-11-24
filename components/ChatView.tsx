@@ -348,7 +348,12 @@ const ChatView: React.FC = () => {
                 temperature: 0.5,
             });
     
-            const title = response.choices[0].message.content?.trim().replace(/["']/g, "") || "New Chat";
+            let title = response.choices[0].message.content?.trim() || "New Chat";
+            // Clean up potential model prefixes like "Title:" or "Title Suggestion:"
+            title = title.replace(/^(title suggestion:|title:)\s*/i, '').replace(/["']/g, "");
+            if (!title) {
+                title = "New Chat"; // Fallback if cleaning results in an empty string
+            }
             
             await supabase
                 .from('conversations')
