@@ -116,21 +116,21 @@
         }
 
         .idle .orb {
-            opacity: 0.2;
-            filter: blur(100px);
+            opacity: 0.4; /* Increased opacity */
+            filter: blur(80px); /* Slightly reduced blur */
             animation-name: idle-wave;
             animation-timing-function: ease-in-out;
             animation-iteration-count: infinite;
             animation-direction: alternate;
         }
 
-        /* NEW: Glassy Orb Backgrounds */
-        .idle .orb-1 { background: radial-gradient(circle at 30% 30%, rgba(167, 139, 250, 0.3), #581c87 80%); width: 40vw; height: 40vw; top: 10%; left: 5%; animation-duration: 20s; }
-        .idle .orb-2 { background: radial-gradient(circle at 30% 30%, rgba(129, 140, 248, 0.3), #4338ca 80%); width: 30vw; height: 30vw; top: 50%; left: 20%; animation-duration: 22s; animation-delay: -4s; }
-        .idle .orb-3 { background: radial-gradient(circle at 30% 30%, rgba(236, 72, 153, 0.3), #be185d 80%); width: 35vw; height: 35vw; top: 20%; left: 60%; animation-duration: 25s; animation-delay: -2s; }
-        .idle .orb-4 { background: radial-gradient(circle at 30% 30%, rgba(16, 185, 129, 0.3), #047857 80%); width: 25vw; height: 25vw; top: 70%; left: 75%; animation-duration: 18s; animation-delay: -5s; }
-        .idle .orb-5 { background: radial-gradient(circle at 30% 30%, rgba(129, 140, 248, 0.3), #4338ca 80%); width: 20vw; height: 20vw; top: 80%; left: 10%; animation-duration: 23s; animation-delay: -8s; }
-        .idle .orb-6 { background: radial-gradient(circle at 30% 30%, rgba(244, 63, 94, 0.3), #be123c 80%); width: 30vw; height: 30vw; top: -10%; left: 40%; animation-duration: 21s; animation-delay: -3s; }
+        /* UPDATED: Colorless Light & Dark Glass Orbs */
+        .idle .orb-1 { background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.15), rgba(255, 255, 255, 0.0) 80%); width: 40vw; height: 40vw; top: 10%; left: 5%; animation-duration: 20s; }
+        .idle .orb-2 { background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.0) 80%); width: 30vw; height: 30vw; top: 50%; left: 20%; animation-duration: 22s; animation-delay: -4s; }
+        .idle .orb-3 { background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0.0) 80%); width: 35vw; height: 35vw; top: 20%; left: 60%; animation-duration: 25s; animation-delay: -2s; }
+        .idle .orb-4 { background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.0) 80%); width: 25vw; height: 25vw; top: 70%; left: 75%; animation-duration: 18s; animation-delay: -5s; }
+        .idle .orb-5 { background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.0) 80%); width: 20vw; height: 20vw; top: 80%; left: 10%; animation-duration: 23s; animation-delay: -8s; }
+        .idle .orb-6 { background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.18), rgba(255, 255, 255, 0.0) 80%); width: 30vw; height: 30vw; top: -10%; left: 40%; animation-duration: 21s; animation-delay: -3s; }
 
         @keyframes idle-wave {
             0% { transform: translate(0, 0) scale(1); }
@@ -172,12 +172,13 @@
             animation-fill-mode: forwards;
             animation-duration: 2s;
         }
-        .loading-image .orb-1 { background: #a855f7; width: 20vw; height: 20vw; animation-name: merge-in-1; }
-        .loading-image .orb-2 { background: #8b5cf6; width: 25vw; height: 25vw; animation-name: merge-in-2; }
-        .loading-image .orb-3 { background: #ec4899; width: 18vw; height: 18vw; animation-name: merge-in-3; }
-        .loading-image .orb-4 { background: #10b981; width: 22vw; height: 22vw; animation-name: merge-in-4; }
-        .loading-image .orb-5 { background: #6366f1; width: 28vw; height: 28vw; animation-name: merge-in-5; }
-        .loading-image .orb-6 { background: #f43f5e; width: 20vw; height: 20vw; animation-name: merge-in-6; }
+        /* UPDATED: Colorless merging orbs */
+        .loading-image .orb-1 { background: rgba(255,255,255,0.5); width: 20vw; height: 20vw; animation-name: merge-in-1; }
+        .loading-image .orb-2 { background: rgba(255,255,255,0.5); width: 25vw; height: 25vw; animation-name: merge-in-2; }
+        .loading-image .orb-3 { background: rgba(255,255,255,0.5); width: 18vw; height: 18vw; animation-name: merge-in-3; }
+        .loading-image .orb-4 { background: rgba(255,255,255,0.5); width: 22vw; height: 22vw; animation-name: merge-in-4; }
+        .loading-image .orb-5 { background: rgba(255,255,255,0.5); width: 28vw; height: 28vw; animation-name: merge-in-5; }
+        .loading-image .orb-6 { background: rgba(255,255,255,0.5); width: 20vw; height: 20vw; animation-name: merge-in-6; }
 
         @keyframes merge-in-1 { from { transform: translate(-100vw, -50vh) scale(0.5); } to { transform: translate(-10vw, -10vh) scale(0); opacity: 0; } }
         @keyframes merge-in-2 { from { transform: translate(100vw, -40vh) scale(0.5); } to { transform: translate(5vw, -15vh) scale(0); opacity: 0; } }
@@ -193,7 +194,7 @@
             width: 10px;
             height: 10px;
             border-radius: 9999px;
-            background: radial-gradient(circle, rgba(255,255,255,0.8) 0%, rgba(168,85,247,0.5) 50%, rgba(168,85,247,0) 70%);
+            background: radial-gradient(circle, rgba(255,255,255,0.8) 0%, rgba(255,255,255,0.3) 50%, rgba(255,255,255,0) 70%);
             filter: blur(10px);
             transform: translate(-50%, -50%) scale(0);
             animation: grow-and-pulse 15s cubic-bezier(0.6, 0, 0.4, 1) infinite;
