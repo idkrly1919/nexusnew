@@ -52,7 +52,6 @@ export async function* streamGemini(
         // --- STEP 1: AI-Powered Intent Detection & Prompt Refinement ---
         let isImageRequest = false;
         let imagePrompt = prompt;
-        let imageSize = "1024x1024";
 
         const lastAssistantMessage = history.filter(m => m.role === 'assistant').pop();
         const wasLastResponseAnImage = lastAssistantMessage?.content.includes('![');
@@ -62,16 +61,13 @@ export async function* streamGemini(
 
         if (!attachedFile && (mightBeImageRequest || wasLastResponseAnImage)) {
             let intentSystemPrompt = `You are an expert request analyzer. Your task is to determine if the user's prompt is a request to generate or modify an image.
-If it is an image request, you must:
-1. Refine their request into a detailed, high-quality prompt for an image generation model. The prompt should explicitly mention that the subject fills the entire frame, avoiding any letterboxing or empty bars.
-2. Determine the desired aspect ratio from keywords like "landscape", "portrait", "wide", "tall", "16:9", "9:16".
-3. If no aspect ratio is specified, default to "square".
+If it is an image request, you must refine their request into a detailed, high-quality prompt for an image generation model.
 
 Respond ONLY with a JSON object with the following structure:
-{ "is_image_request": boolean, "refined_prompt": string | null, "aspect_ratio": "square" | "landscape" | "portrait" }`;
+{ "is_image_request": boolean, "refined_prompt": string | null }`;
 
             if (wasLastResponseAnImage) {
-                intentSystemPrompt += `\n\nCONTEXT: The user was just shown an image. Analyze their latest prompt in this context. They might be asking to refine the previous image, change its aspect ratio, or generate a new one. If it's just a comment (e.g., "cool", "thanks"), set "is_image_request" to false.`;
+                intentSystemPrompt += `\n\nCONTEXT: The user was just shown an image. Analyze their latest prompt in this context. They might be asking to refine the previous image or generate a new one. If it's just a comment (e.g., "cool", "thanks"), set "is_image_request" to false.`;
             }
 
             try {
@@ -89,11 +85,6 @@ Respond ONLY with a JSON object with the following structure:
                 if (result.is_image_request && result.refined_prompt) {
                     isImageRequest = true;
                     imagePrompt = result.refined_prompt;
-                    if (result.aspect_ratio === 'landscape') {
-                        imageSize = "1792x1024";
-                    } else if (result.aspect_ratio === 'portrait') {
-                        imageSize = "1024x1792";
-                    }
                 }
             } catch (e: any) {
                 if (e.name === 'AbortError') throw e;
@@ -107,51 +98,27 @@ Respond ONLY with a JSON object with the following structure:
         if (isImageRequest) {
             yield { text: `Generating image with prompt: \`${imagePrompt}\``, isComplete: false, mode: 'image' };
             
-            const { data: functionData, error: functionError } = await supabase.functions.invoke('image-proxy', {
-                body: { prompt: imagePrompt, size: imageSize },
+            const { data: functionData, error: functionError } = await supabase.functions.invoke('infip-image-gen', {
+                body: { prompt: imagePrompt },
                 signal,
             });
 
             if (functionError) {
                 if (functionError.name === 'AbortError') throw functionError;
-                
-                // Attempt to parse the detailed error from the function's response
-                let detailedError = "An unknown error occurred in the image generation service.";
-                // @ts-ignore
-                if (functionError.context && typeof functionError.context.json === 'function') {
-                    try {
-                        // @ts-ignore
-                        const errorJson = await functionError.context.json();
-                        detailedError = errorJson.error || JSON.stringify(errorJson);
-                    } catch (e) {
-                        detailedError = `Failed to parse error response: ${functionError.message}`;
-                    }
-                } else {
-                    detailedError = functionError.message;
-                }
-
+                let detailedError = functionError.message;
+                try { // @ts-ignore
+                    const errorJson = await functionError.context.json();
+                    detailedError = errorJson.error || JSON.stringify(errorJson);
+                } catch (e) { /* ignore parsing error */ }
                 throw new Error(`Image generation service error: ${detailedError}`);
             }
             
             if (functionData.error) {
-                let detailedError = functionData.error;
-                try {
-                    const parsedError = JSON.parse(detailedError.substring(detailedError.indexOf('{')));
-                    detailedError = parsedError.error?.message || detailedError;
-                } catch (e) { /* ignore parsing error */ }
-                throw new Error(`Image generation service error: ${detailedError}`);
+                throw new Error(`Image generation service error: ${functionData.error}`);
             }
 
-            const data = functionData;
-            let imageUrl: string | undefined;
-
-            if (data.images && Array.isArray(data.images) && data.images.length > 0) {
-                imageUrl = data.images[0];
-            } else if (data.data && Array.isArray(data.data) && data.data.length > 0) {
-                imageUrl = data.data[0].url;
-            } else if (typeof data.url === 'string') {
-                imageUrl = data.url;
-            }
+            // Assuming the API returns a structure like { data: [{ url: "..." }] }
+            const imageUrl = functionData?.data?.[0]?.url;
 
             if (imageUrl) {
                 const markdownImage = `![${imagePrompt.replace(/[\[\]\(\)]/g, '')}](${imageUrl})`;
@@ -162,7 +129,7 @@ Respond ONLY with a JSON object with the following structure:
                     mode: 'image'
                 };
             } else {
-                throw new Error(`No image URL returned. Response: ${JSON.stringify(data)}`);
+                throw new Error(`No image URL returned. Response: ${JSON.stringify(functionData)}`);
             }
         } 
         // --- PATH 2: TEXT / VISION ---
