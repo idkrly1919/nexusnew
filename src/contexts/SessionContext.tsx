@@ -42,42 +42,32 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
     };
 
     useEffect(() => {
-        // First, get the initial session. This runs once on page load.
-        supabase.auth.getSession().then(async ({ data: { session } }) => {
-            setSession(session);
-            setUser(session?.user ?? null);
-            if (session?.user) {
-                const { data: profileData } = await supabase
-                    .from('profiles')
-                    .select('*')
-                    .eq('id', session.user.id)
-                    .single();
-                setProfile(profileData);
-            }
-            setIsLoading(false);
-        });
-
-        // Then, set up a listener for any future auth state changes.
+        // Rely solely on onAuthStateChange. It fires immediately with the cached session.
         const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
             setSession(session);
             setUser(session?.user ?? null);
+            
             if (session?.user) {
+                // Fetch profile, but don't let it block the UI from loading.
                 const { data: profileData, error } = await supabase
                     .from('profiles')
                     .select('*')
                     .eq('id', session.user.id)
                     .single();
                 
-                if (error && error.code !== 'PGRST116') {
+                if (error && error.code !== 'PGRST116') { // PGRST116 means no row was found
                     console.error("Error fetching profile on auth state change:", error);
                     setProfile(null);
                 } else {
                     setProfile(profileData);
                 }
             } else {
+                // If there's no session, clear the profile.
                 setProfile(null);
             }
-            // No need to set loading here, as this handles subsequent changes, not the initial load.
+            
+            // We now know the auth state, so we can stop loading.
+            setIsLoading(false);
         });
 
         return () => {
