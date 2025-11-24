@@ -6,6 +6,8 @@ import { useSession } from '../src/contexts/SessionContext';
 import { supabase } from '../src/integrations/supabase/client';
 import SpeechVisualizer from './SpeechVisualizer';
 import DynamicBackground from './DynamicBackground';
+import CosmosView from './CosmosView';
+import EmbeddedView from './EmbeddedView';
 
 const NexusIconSmall = () => (
     <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center border border-white/10 shadow-lg">
@@ -39,6 +41,9 @@ const ChatView: React.FC = () => {
     const [conversations, setConversations] = useState<Conversation[]>([]);
     const [currentConversationId, setCurrentConversationId] = useState<string | null>(null);
     const [backgroundStatus, setBackgroundStatus] = useState<'idle' | 'loading-text' | 'loading-image'>('idle');
+
+    const [cosmosViewActive, setCosmosViewActive] = useState(false);
+    const [embeddedUrl, setEmbeddedUrl] = useState<string | null>(null);
 
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -335,9 +340,21 @@ const ChatView: React.FC = () => {
         return parsed;
     };
 
+    const handleSelectPlanet = (url: string | 'chat') => {
+        if (url === 'chat') {
+            setCosmosViewActive(false);
+        } else {
+            setEmbeddedUrl(url);
+        }
+    };
+
     return (
         <div id="chat-view" className="fixed inset-0 z-50 flex flex-col bg-transparent text-zinc-100 font-sans overflow-hidden">
             <DynamicBackground status={backgroundStatus} />
+            
+            <CosmosView isActive={cosmosViewActive} onSelectPlanet={handleSelectPlanet} />
+            {embeddedUrl && <EmbeddedView url={embeddedUrl} onClose={() => setEmbeddedUrl(null)} />}
+
             {isListening && (
                 <SpeechVisualizer 
                     transcript={transcript}
@@ -408,7 +425,17 @@ const ChatView: React.FC = () => {
 
                 <div className="flex-1 overflow-y-auto relative z-10 scrollbar-hide">
                     {messages.length === 0 && !isLoading ? (
-                        <div className="h-full flex flex-col items-center justify-center pb-32 animate-pop-in"><OrbLogo /><h1 className="text-2xl font-medium text-white mb-2 tracking-tight">How can I help you?</h1></div>
+                        <div className={`h-full flex flex-col items-center justify-center pb-32 transition-all duration-700 ${cosmosViewActive ? 'opacity-0 scale-90 pointer-events-none' : 'opacity-100 scale-100'}`}>
+                            <OrbLogo />
+                            <h1 className="text-2xl font-medium text-white mb-2 tracking-tight">How can I help you?</h1>
+                            <button 
+                                onClick={() => setCosmosViewActive(true)}
+                                data-liquid-glass
+                                className="liquid-glass mt-8 px-8 py-3 rounded-full font-semibold text-white border border-white/10 interactive-lift"
+                            >
+                                Enter the Cosmos
+                            </button>
+                        </div>
                     ) : (
                         <div className="max-w-3xl mx-auto px-4 py-8 space-y-8">
                             {messages.map((msg) => (
