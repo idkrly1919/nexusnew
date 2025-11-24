@@ -42,38 +42,53 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
     };
 
     useEffect(() => {
+        // Safety Net: Add a timeout to prevent infinite loading
+        const loadingTimeout = setTimeout(() => {
+            if (isLoading) {
+                console.error("Authentication timed out after 4 seconds. Forcing logout.");
+                // Force logout and stop loading
+                supabase.auth.signOut(); 
+                setIsLoading(false);
+            }
+        }, 4000);
+
         const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
-            try {
-                setSession(session);
-                setUser(session?.user ?? null);
-                
-                if (session?.user) {
+            // We have a response from Supabase, so clear the safety net timeout
+            clearTimeout(loadingTimeout);
+
+            setSession(session);
+            setUser(session?.user ?? null);
+            
+            // IMPORTANT: Stop loading the main UI as soon as we know the auth state.
+            // The profile can load in the background.
+            setIsLoading(false);
+
+            if (session?.user) {
+                try {
                     const { data: profileData, error } = await supabase
                         .from('profiles')
                         .select('*')
                         .eq('id', session.user.id)
                         .single();
                     
-                    if (error && error.code !== 'PGRST116') { // PGRST116 means no row was found
-                        console.error("Error fetching profile on auth state change:", error);
+                    if (error && error.code !== 'PGRST116') {
+                        console.error("Error fetching profile:", error);
                         setProfile(null);
                     } else {
                         setProfile(profileData);
                     }
-                } else {
-                    // If there's no session, clear the profile.
+                } catch (e) {
+                    console.error("A critical error occurred while fetching the profile:", e);
                     setProfile(null);
                 }
-            } catch (e) {
-                console.error("A critical error occurred in the authentication handler:", e);
-            } finally {
-                // This GUARANTEES the loading screen is removed, even if errors occur.
-                setIsLoading(false);
+            } else {
+                setProfile(null);
             }
         });
 
         return () => {
             subscription.unsubscribe();
+            clearTimeout(loadingTimeout); // Clean up timeout on component unmount
         };
     }, []);
 
