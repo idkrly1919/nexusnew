@@ -32,8 +32,8 @@ serve(async (req: Request) => {
       )
     }
 
-    // NOTE: Assuming the API endpoint based on standard conventions.
-    const infipUrl = "https://api.infip.ai/v1/images/generations";
+    // Corrected API endpoint
+    const infipUrl = "https://api.infip.pro/v1/images/generations";
     
     const payload = {
         prompt: prompt,
