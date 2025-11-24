@@ -63,7 +63,9 @@ export async function* streamGemini(
         if (!attachedFile && (mightBeImageRequest || wasLastResponseAnImage)) {
             let intentSystemPrompt = `You are an expert request analyzer. Your task is to determine if the user's prompt is a request to generate or modify an image.
 If it is an image request, you must refine their request into a detailed, high-quality prompt for an image generation model.
-When refining the prompt, focus on realism, accuracy, and ensuring the output is not a duplicate of common images. Unless the user specifies a time of day, assume it is daytime.
+When refining the prompt, focus on realism, accuracy, and ensuring the output is not a duplicate of common images.
+Crucially, if the prompt mentions real-world locations or objects, ensure their placement and relationship to each other are geographically and physically accurate. For example, in a picture of Sydney, the Opera House should be correctly positioned relative to the Harbour Bridge and the city skyline.
+Unless the user specifies a time of day, assume it is daytime.
 
 Respond ONLY with a JSON object with the following structure:
 { "is_image_request": boolean, "refined_prompt": string | null }`;

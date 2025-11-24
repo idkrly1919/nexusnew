@@ -42,22 +42,8 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
     };
 
     useEffect(() => {
-        // First, try to get the session immediately.
-        supabase.auth.getSession().then(async ({ data: { session } }) => {
-            setSession(session);
-            setUser(session?.user ?? null);
-            if (session?.user) {
-                const { data: profileData } = await supabase
-                    .from('profiles')
-                    .select('*')
-                    .eq('id', session.user.id)
-                    .single();
-                setProfile(profileData);
-            }
-            setIsLoading(false);
-        });
+        setIsLoading(true);
 
-        // Then, set up a listener for future auth state changes.
         const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
             setSession(session);
             setUser(session?.user ?? null);
@@ -71,6 +57,7 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
             } else {
                 setProfile(null);
             }
+            setIsLoading(false); // This will now reliably be called after the initial session is determined.
         });
 
         return () => subscription.unsubscribe();
