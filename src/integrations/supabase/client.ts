@@ -7,9 +7,4 @@ const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiO
 // Import the supabase client like this:
 // import { supabase } from "@/integrations/supabase/client";
 
-export const supabase = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
-  global: {
-    // Explicitly pass the global fetch to fix network issues in some environments
-    fetch: fetch.bind(globalThis)
-  }
-});
+export const supabase = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
