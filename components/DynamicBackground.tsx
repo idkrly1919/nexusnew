@@ -13,7 +13,6 @@ const DynamicBackground: React.FC<DynamicBackgroundProps> = ({ status }) => {
             {orbs.map((_, i) => (
                 <div key={i} className={`orb orb-${i + 1}`} />
             ))}
-            {status === 'loading-image' && <div className="center-orb" />}
         </div>
     );
 };
