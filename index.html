@@ -102,25 +102,40 @@
         }
 
         .idle .orb {
-            opacity: 0.5;
-            filter: blur(80px);
-            animation-name: fluid-drift;
+            opacity: 0.4;
+            filter: blur(100px);
             animation-timing-function: ease-in-out;
             animation-iteration-count: infinite;
         }
 
-        .idle .orb-1 { background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.15), rgba(255, 255, 255, 0.0) 80%); width: 40vw; height: 40vw; top: 10%; left: 5%; animation-duration: 25s; }
-        .idle .orb-2 { background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.0) 80%); width: 30vw; height: 30vw; top: 50%; left: 20%; animation-duration: 30s; animation-delay: -5s; }
-        .idle .orb-3 { background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.18), rgba(255, 255, 255, 0.0) 80%); width: 35vw; height: 35vw; top: 20%; left: 60%; animation-duration: 28s; animation-delay: -2s; }
-        .idle .orb-4 { background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.0) 80%); width: 25vw; height: 25vw; top: 70%; left: 75%; animation-duration: 35s; animation-delay: -10s; }
-        .idle .orb-5 { background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.14), rgba(255, 255, 255, 0.0) 80%); width: 20vw; height: 20vw; top: 80%; left: 10%; animation-duration: 22s; animation-delay: -8s; }
-        .idle .orb-6 { background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0.0) 80%); width: 30vw; height: 30vw; top: -10%; left: 40%; animation-duration: 32s; animation-delay: -3s; }
+        .idle .orb-1 { background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.15), rgba(255, 255, 255, 0.0) 80%); width: 40vw; height: 40vw; top: 10%; left: 5%; animation-name: fluid-drift-1; animation-duration: 25s; }
+        .idle .orb-2 { background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.0) 80%); width: 30vw; height: 30vw; top: 50%; left: 20%; animation-name: fluid-drift-2; animation-duration: 30s; animation-delay: -5s; }
+        .idle .orb-3 { background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.18), rgba(255, 255, 255, 0.0) 80%); width: 35vw; height: 35vw; top: 20%; left: 60%; animation-name: fluid-drift-3; animation-duration: 28s; animation-delay: -2s; }
+        .idle .orb-4 { background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.0) 80%); width: 25vw; height: 25vw; top: 70%; left: 75%; animation-name: fluid-drift-1; animation-duration: 35s; animation-delay: -10s; }
+        .idle .orb-5 { background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.14), rgba(255, 255, 255, 0.0) 80%); width: 20vw; height: 20vw; top: 80%; left: 10%; animation-name: fluid-drift-2; animation-duration: 22s; animation-delay: -8s; }
+        .idle .orb-6 { background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0.0) 80%); width: 30vw; height: 30vw; top: -10%; left: 40%; animation-name: fluid-drift-3; animation-duration: 32s; animation-delay: -3s; }
 
-        @keyframes fluid-drift {
+        @keyframes fluid-drift-1 {
             0% { transform: translate(0, 0) scale(1); }
-            25% { transform: translate(5vw, 10vh) scale(0.9); }
-            50% { transform: translate(-5vw, 15vh) scale(1.1); }
-            75% { transform: translate(10vw, -5vh) scale(1.2); }
+            20% { transform: translate(8vw, -12vh) scale(1.1); }
+            45% { transform: translate(-10vw, 10vh) scale(0.9); }
+            70% { transform: translate(5vw, 15vh) scale(1.2); }
+            100% { transform: translate(0, 0) scale(1); }
+        }
+
+        @keyframes fluid-drift-2 {
+            0% { transform: translate(0, 0) scale(1); }
+            25% { transform: translate(-8vw, 15vh) scale(1.2); }
+            50% { transform: translate(10vw, -5vh) scale(0.8); }
+            75% { transform: translate(-5vw, -10vh) scale(1.1); }
+            100% { transform: translate(0, 0) scale(1); }
+        }
+
+        @keyframes fluid-drift-3 {
+            0% { transform: translate(0, 0) scale(1); }
+            30% { transform: translate(12vw, 8vh) scale(0.95); }
+            60% { transform: translate(-8vw, -12vh) scale(1.15); }
+            80% { transform: translate(5vw, 5vh) scale(1); }
             100% { transform: translate(0, 0) scale(1); }
         }
 
