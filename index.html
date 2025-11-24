@@ -140,76 +140,111 @@
         }
 
         @keyframes loading-pulse {
-            0%, 100% { opacity: 0.5; transform: scale(1); }
+            0% { opacity: 0.5; transform: scale(1); }
             50% { opacity: 0.9; transform: scale(1.03); }
+            100% { opacity: 0.5; transform: scale(1); }
         }
 
         .loading-text .orb,
         .loading-image .orb {
             filter: blur(60px);
-            animation: loading-pulse 1.8s ease-in-out infinite;
+            animation-name: loading-pulse;
+            animation-timing-function: ease-in-out;
+            animation-iteration-count: infinite;
+            animation-duration: 1.8s;
         }
 
-        .loading-text .orb-1, .loading-image .orb-1 { background: radial-gradient(circle, rgba(255, 255, 255, 0.3), transparent 80%); width: 40vw; height: 40vw; top: 10%; left: 5%; animation-delay: 0s; }
-        .loading-text .orb-2, .loading-image .orb-2 { background: radial-gradient(circle, rgba(255, 255, 255, 0.25), transparent 80%); width: 30vw; height: 30vw; top: 50%; left: 20%; animation-delay: -0.3s; }
-        .loading-text .orb-3, .loading-image .orb-3 { background: radial-gradient(circle, rgba(255, 255, 255, 0.35), transparent 80%); width: 35vw; height: 35vw; top: 20%; left: 60%; animation-delay: -0.6s; }
-        .loading-text .orb-4, .loading-image .orb-4 { background: radial-gradient(circle, rgba(255, 255, 255, 0.22), transparent 80%); width: 25vw; height: 25vw; top: 70%; left: 75%; animation-delay: -0.9s; }
-        .loading-text .orb-5, .loading-image .orb-5 { background: radial-gradient(circle, rgba(255, 255, 255, 0.28), transparent 80%); width: 20vw; height: 20vw; top: 80%; left: 10%; animation-delay: -1.2s; }
-        .loading-text .orb-6, .loading-image .orb-6 { background: radial-gradient(circle, rgba(255, 255, 255, 0.32), transparent 80%); width: 30vw; height: 30vw; top: -10%; left: 40%; animation-delay: -1.5s; }
+        .loading-text .orb-1, .loading-image .orb-1 { background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.3), rgba(255, 255, 255, 0.0) 80%); width: 40vw; height: 40vw; top: 10%; left: 5%; animation-delay: 0s; }
+        .loading-text .orb-2, .loading-image .orb-2 { background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.25), rgba(255, 255, 255, 0.0) 80%); width: 30vw; height: 30vw; top: 50%; left: 20%; animation-delay: -0.3s; }
+        .loading-text .orb-3, .loading-image .orb-3 { background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.35), rgba(255, 255, 255, 0.0) 80%); width: 35vw; height: 35vw; top: 20%; left: 60%; animation-delay: -0.6s; }
+        .loading-text .orb-4, .loading-image .orb-4 { background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.22), rgba(255, 255, 255, 0.0) 80%); width: 25vw; height: 25vw; top: 70%; left: 75%; animation-delay: -0.9s; }
+        .loading-text .orb-5, .loading-image .orb-5 { background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.28), rgba(255, 255, 255, 0.0) 80%); width: 20vw; height: 20vw; top: 80%; left: 10%; animation-delay: -1.2s; }
+        .loading-text .orb-6, .loading-image .orb-6 { background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.32), rgba(255, 255, 255, 0.0) 80%); width: 30vw; height: 30vw; top: -10%; left: 40%; animation-delay: -1.5s; }
 
-        .bw-to-color-hover { filter: grayscale(90%); transition: filter 0.5s cubic-bezier(0.2, 0.8, 0.2, 1); }
-        .bw-to-color-hover:hover { filter: grayscale(0%); }
+        .bw-to-color-hover {
+            filter: grayscale(90%);
+            transition: filter 0.5s cubic-bezier(0.2, 0.8, 0.2, 1);
+        }
+        .bw-to-color-hover:hover {
+            filter: grayscale(0%);
+        }
 
-        .trusted-logo { filter: grayscale(100%) brightness(0.7); opacity: 0.5; transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1); }
-        .trusted-logo:hover { filter: grayscale(0%) brightness(1); opacity: 1; transform: scale(1.05); }
+        .trusted-logo {
+            filter: grayscale(100%) brightness(0.7);
+            opacity: 0.5;
+            transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
+        }
+        .trusted-logo:hover {
+            filter: grayscale(0%) brightness(1);
+            opacity: 1;
+            transform: scale(1.05);
+        }
 
-        .globe-container { width: 16px; height: 16px; perspective: 600px; }
-        .globe { width: 100%; height: 100%; position: relative; transform-style: preserve-3d; animation: globe-spin 5s linear infinite; border-radius: 50%; }
-        .globe::before, .globe::after { content: ''; position: absolute; top: 0; left: 0; right: 0; bottom: 0; margin: auto; width: 100%; height: 100%; border-radius: 50%; border: 1px solid rgba(255,255,255,0.4); }
+        /* New Globe Animation */
+        .globe-container {
+            width: 16px;
+            height: 16px;
+            perspective: 600px;
+        }
+        .globe {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            transform-style: preserve-3d;
+            animation: globe-spin 5s linear infinite;
+            border-radius: 50%;
+        }
+        .globe::before, .globe::after {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            margin: auto;
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            border: 1px solid rgba(255,255,255,0.4);
+        }
         .globe::before { transform: rotateY(60deg); }
         .globe::after { transform: rotateY(-60deg); }
-        @keyframes globe-spin { from { transform: rotateY(0deg) rotateX(10deg); } to { transform: rotateY(360deg) rotateX(10deg); } }
+        @keyframes globe-spin {
+            from { transform: rotateY(0deg) rotateX(10deg); }
+            to { transform: rotateY(360deg) rotateX(10deg); }
+        }
 
-        .thinking-dots span { display: inline-block; width: 5px; height: 5px; border-radius: 50%; background-color: rgba(255, 255, 255, 0.6); margin: 0 2px; animation: thinking-pulse 1.4s infinite ease-in-out both; }
+        /* New Thinking Dots Animation */
+        .thinking-dots span {
+            display: inline-block;
+            width: 5px;
+            height: 5px;
+            border-radius: 50%;
+            background-color: rgba(255, 255, 255, 0.6);
+            margin: 0 2px;
+            animation: thinking-pulse 1.4s infinite ease-in-out both;
+        }
         .thinking-dots span:nth-child(1) { animation-delay: -0.32s; }
         .thinking-dots span:nth-child(2) { animation-delay: -0.16s; }
-        @keyframes thinking-pulse { 0%, 80%, 100% { transform: scale(0); } 40% { transform: scale(1.0); } }
+        @keyframes thinking-pulse {
+            0%, 80%, 100% { transform: scale(0); }
+            40% { transform: scale(1.0); }
+        }
 
-        /* Cosmos View Styles */
-        .cosmos-intro, .cosmos-main { transition: opacity 0.8s ease, transform 0.8s cubic-bezier(0.2, 0.8, 0.2, 1); }
-        .cosmos-intro { display: flex; flex-direction: column; align-items: center; }
-        .cosmos-intro-hidden { opacity: 0; transform: scale(0.8); pointer-events: none; }
-        .cosmos-main-hidden { opacity: 0; transform: scale(1.2); pointer-events: none; position: absolute; }
-        .cosmos-enter-button { padding: 1rem 2rem; border-radius: 9999px; font-weight: 600; color: white; border: 1px solid rgba(255,255,255,0.2); transition: all 0.3s ease; }
-        .cosmos-enter-button:hover { transform: scale(1.05); box-shadow: 0 0 20px rgba(129, 140, 248, 0.5); }
-
-        .planet-wrapper { cursor: pointer; display: flex; flex-direction: column; align-items: center; }
-        .planet { position: relative; border-radius: 50%; display: flex; align-items: center; justify-content: center; transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1); }
-        .planet-wrapper:hover .planet { transform: scale(1.1); }
-        .planet-wrapper:hover .planet-label { opacity: 1; transform: translateY(0); }
-        .planet-surface { position: absolute; inset: 0; border-radius: 50%; background: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.1), transparent 70%); border: 1px solid rgba(255,255,255,0.1); }
-        .planet-atmosphere { position: absolute; inset: -10px; border-radius: 50%; transition: all 0.4s ease; }
-        .planet-wrapper:hover .planet-atmosphere { transform: scale(1.1); opacity: 1; }
-        .planet-icon { position: relative; z-index: 1; transition: transform 0.4s ease; }
-        .planet-wrapper:hover .planet-icon { transform: scale(1.1); }
-        .planet-label { margin-top: 1rem; font-weight: 500; font-size: 0.875rem; color: #a1a1aa; transition: all 0.3s ease; opacity: 0; transform: translateY(10px); }
-
-        .planet-chat { width: 140px; height: 140px; }
-        .planet-chat .planet-atmosphere { background: radial-gradient(circle, rgba(167, 139, 250, 0.2), transparent 70%); opacity: 0; }
-        .planet-chat .planet-icon { width: 60px; height: 60px; }
-
-        .planet-video { width: 100px; height: 100px; }
-        .planet-video .planet-atmosphere { background: radial-gradient(circle, rgba(236, 72, 153, 0.2), transparent 70%); opacity: 0; }
-        .planet-video .planet-icon { width: 40px; height: 40px; color: #f472b6; }
-
-        .planet-image { width: 110px; height: 110px; }
-        .planet-image .planet-atmosphere { background: radial-gradient(circle, rgba(52, 211, 153, 0.2), transparent 70%); opacity: 0; }
-        .planet-image .planet-icon { width: 44px; height: 44px; color: #34d399; }
     </style>
+<script type="importmap">
+{
+  "imports": {
+    "@vitejs/plugin-react": "https://aistudiocdn.com/@vitejs/plugin-react@^5.1.1",
+    "openai": "https://aistudiocdn.com/openai@^6.9.1",
+    "vite": "https://aistudiocdn.com/vite@^7.2.4",
+    "react/": "https://aistudiocdn.com/react@^19.2.0/",
+    "react": "https://aistudiocdn.com/react@^19.2.0",
+    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/"
+  }
+}
+</script>
 </head>
 <body class="text-white min-h-screen relative selection:bg-purple-500 selection:text-white">
     <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
+    <script type="module" src="/index.tsx"></script>
     <script src="/lib/liquid-glass.js"></script>
 </body>
 </html>

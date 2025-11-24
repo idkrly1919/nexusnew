@@ -6,8 +6,6 @@ import { useSession } from '../src/contexts/SessionContext';
 import { supabase } from '../src/integrations/supabase/client';
 import SpeechVisualizer from './SpeechVisualizer';
 import DynamicBackground from './DynamicBackground';
-import CosmosView from './CosmosView';
-import EmbeddedView from './EmbeddedView';
 
 const NexusIconSmall = () => (
     <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center border border-white/10 shadow-lg">
@@ -42,10 +40,6 @@ const ChatView: React.FC = () => {
     const [currentConversationId, setCurrentConversationId] = useState<string | null>(null);
     const [backgroundStatus, setBackgroundStatus] = useState<'idle' | 'loading-text' | 'loading-image'>('idle');
 
-    const [viewMode, setViewMode] = useState<'chat' | 'cosmos'>('chat');
-    const [isCosmosIntro, setIsCosmosIntro] = useState(true);
-    const [embeddedUrl, setEmbeddedUrl] = useState<string | null>(null);
-
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const textareaRef = useRef<HTMLTextAreaElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -63,29 +57,6 @@ const ChatView: React.FC = () => {
             setBackgroundStatus('idle');
         }
     }, [isLoading, thinkingMode]);
-
-    useEffect(() => {
-        if (messages.length === 0 && !currentConversationId) {
-            setViewMode('cosmos');
-            setIsCosmosIntro(true);
-        } else {
-            setViewMode('chat');
-        }
-    }, [messages.length, currentConversationId]);
-
-    const handleEnterCosmos = () => {
-        setIsCosmosIntro(false);
-    };
-
-    const handleSelectPlanet = (planet: 'chat' | 'video' | 'image') => {
-        if (planet === 'chat') {
-            setViewMode('chat');
-        } else if (planet === 'video') {
-            setEmbeddedUrl('https://veoaifree.com/veo-video-generator/');
-        } else if (planet === 'image') {
-            setEmbeddedUrl('https://nanobananafree.ai/');
-        }
-    };
 
     useEffect(() => {
         transcriptRef.current = transcript;
@@ -375,8 +346,6 @@ const ChatView: React.FC = () => {
                 />
             )}
 
-            {embeddedUrl && <EmbeddedView url={embeddedUrl} onClose={() => setEmbeddedUrl(null)} />}
-
             {showSettings && (
                 <div className="fixed inset-0 z-[60] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4" onClick={() => setShowSettings(false)}>
                     <div data-liquid-glass className="liquid-glass w-full max-w-md shadow-2xl animate-pop-in" onClick={(e) => e.stopPropagation()}>
@@ -438,73 +407,53 @@ const ChatView: React.FC = () => {
                 </header>
 
                 <div className="flex-1 overflow-y-auto relative z-10 scrollbar-hide">
-                    {viewMode === 'cosmos' ? (
-                        <div className="h-full flex flex-col items-center justify-center pb-20 relative overflow-hidden">
-                            <div className={`cosmos-intro ${!isCosmosIntro ? 'cosmos-intro-hidden' : ''}`}>
-                                <OrbLogo />
-                                <h1 className="text-2xl font-medium text-white mb-2 tracking-tight">How can I help you?</h1>
-                                <p className="text-zinc-400 mb-8">Select a tool or start a conversation.</p>
-                                <button onClick={handleEnterCosmos} data-liquid-glass className="cosmos-enter-button">
-                                    Enter The Cosmos
-                                </button>
-                            </div>
-                            <div className={`cosmos-main ${isCosmosIntro ? 'cosmos-main-hidden' : ''}`}>
-                                <CosmosView onSelectPlanet={handleSelectPlanet} />
-                            </div>
-                        </div>
+                    {messages.length === 0 && !isLoading ? (
+                        <div className="h-full flex flex-col items-center justify-center pb-32 animate-pop-in"><OrbLogo /><h1 className="text-2xl font-medium text-white mb-2 tracking-tight">How can I help you?</h1></div>
                     ) : (
-                        <>
-                            {messages.length === 0 && !isLoading ? (
-                                <div className="h-full flex flex-col items-center justify-center pb-32 animate-pop-in"><OrbLogo /><h1 className="text-2xl font-medium text-white mb-2 tracking-tight">How can I help you?</h1></div>
-                            ) : (
-                                <div className="max-w-3xl mx-auto px-4 py-8 space-y-8">
-                                    {messages.map((msg) => (
-                                        <div key={msg.id} className={`flex items-start gap-4 animate-pop-in ${msg.role === 'user' ? 'justify-end' : ''}`}>
-                                            {msg.role === 'assistant' && <div className="shrink-0 mt-1"><NexusIconSmall /></div>}
-                                            <div data-liquid-glass className={`max-w-[85%] leading-relaxed ${msg.role === 'user' ? 'light-liquid-glass text-white px-5 py-3 rounded-3xl rounded-br-lg' : 'dark-liquid-glass px-5 py-3 rounded-3xl rounded-bl-lg'}`}>
-                                                {msg.role === 'assistant' && <div className="font-medium text-sm text-zinc-400 mb-2">Nexus</div>}
-                                                <div className={`${msg.role === 'assistant' ? 'text-zinc-100 prose prose-invert prose-sm max-w-none' : ''}`} dangerouslySetInnerHTML={{ __html: parseMarkdown(msg.text) }} />
-                                                {msg.role === 'assistant' && !isLoading && (<div className="flex items-center gap-2 mt-3"><button onClick={() => handleTTS(msg.text)} className="p-1.5 text-zinc-500 hover:text-zinc-300 hover:bg-white/5 rounded-md transition-colors" title="Read Aloud"><svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path></svg></button></div>)}
-                                            </div>
-                                        </div>
-                                    ))}
-                                    {isLoading && (
-                                        <div className="animate-pop-in">
-                                            <ThinkingProcess thought="" isThinking={true} mode={thinkingMode} />
-                                        </div>
-                                    )}
-                                    <div ref={messagesEndRef} className="h-48"></div>
+                        <div className="max-w-3xl mx-auto px-4 py-8 space-y-8">
+                            {messages.map((msg) => (
+                                <div key={msg.id} className={`flex items-start gap-4 animate-pop-in ${msg.role === 'user' ? 'justify-end' : ''}`}>
+                                    {msg.role === 'assistant' && <div className="shrink-0 mt-1"><NexusIconSmall /></div>}
+                                    <div data-liquid-glass className={`max-w-[85%] leading-relaxed ${msg.role === 'user' ? 'light-liquid-glass text-white px-5 py-3 rounded-3xl rounded-br-lg' : 'dark-liquid-glass px-5 py-3 rounded-3xl rounded-bl-lg'}`}>
+                                        {msg.role === 'assistant' && <div className="font-medium text-sm text-zinc-400 mb-2">Nexus</div>}
+                                        <div className={`${msg.role === 'assistant' ? 'text-zinc-100 prose prose-invert prose-sm max-w-none' : ''}`} dangerouslySetInnerHTML={{ __html: parseMarkdown(msg.text) }} />
+                                        {msg.role === 'assistant' && !isLoading && (<div className="flex items-center gap-2 mt-3"><button onClick={() => handleTTS(msg.text)} className="p-1.5 text-zinc-500 hover:text-zinc-300 hover:bg-white/5 rounded-md transition-colors" title="Read Aloud"><svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path></svg></button></div>)}
+                                    </div>
+                                </div>
+                            ))}
+                            {isLoading && (
+                                <div className="animate-pop-in">
+                                    <ThinkingProcess thought="" isThinking={true} mode={thinkingMode} />
                                 </div>
                             )}
-                        </>
+                            <div ref={messagesEndRef} className="h-48"></div>
+                        </div>
                     )}
                 </div>
 
-                {viewMode === 'chat' && (
-                    <div className="w-full max-w-3xl mx-auto p-4 z-20">
-                        {isLoading ? (
-                            <div className="flex flex-col items-center gap-3">
-                                <button onClick={handleStop} className="bg-white/10 hover:bg-white/20 border border-white/20 text-white px-5 py-2.5 rounded-full font-medium transition-all shadow-lg flex items-center gap-2 text-sm interactive-lift">
-                                    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M6 6h12v12H6z"></path></svg>
-                                    Stop Generating
-                                </button>
-                            </div>
-                        ) : (
-                            <div className="relative">
-                                <form onSubmit={handleChatSubmit} className="relative">
-                                    <div data-liquid-glass className="liquid-glass rounded-full flex items-center p-2 transition-all duration-300 focus-within:shadow-2xl focus-within:shadow-indigo-500/20">
-                                        <button type="button" onClick={triggerFileSelect} className="p-2 rounded-full text-zinc-300 hover:text-white hover:bg-white/10 transition-colors ml-1" title="Attach File"><svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg></button>
-                                        <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" accept="image/*,application/pdf,text/plain,text/code,application/json" />
-                                        <textarea ref={textareaRef} value={inputValue} onChange={(e) => setInputValue(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleChatSubmit(e); } }} rows={1} placeholder="Message Nexus..." className="flex-1 bg-transparent border-none text-white placeholder-zinc-500 focus:ring-0 resize-none py-2 px-3 max-h-[120px] overflow-y-auto scrollbar-hide"></textarea>
-                                        <button type="button" onClick={startListening} className="p-2 rounded-full text-zinc-300 hover:text-white hover:bg-white/10 transition-colors"><svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/></svg></button>
-                                        <button type="submit" disabled={isLoading || (!inputValue.trim() && !attachedFile)} className={`w-9 h-9 flex items-center justify-center rounded-full transition-all duration-200 ml-1 ${(inputValue.trim() || attachedFile) && !isLoading ? 'bg-white text-black hover:bg-zinc-200 shadow-lg' : 'bg-white/10 text-zinc-500 cursor-not-allowed'}`}><svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg></button>
-                                    </div>
-                                    {attachedFile && (<div className="absolute bottom-full left-4 mb-2"><div className="inline-flex items-center gap-2 bg-black/50 backdrop-blur-md text-zinc-200 text-xs px-3 py-1.5 rounded-full border border-white/10 animate-pop-in"><div className="w-4 h-4 flex items-center justify-center">{attachedFile.type.startsWith('image/') ? <svg className="w-3 h-3" viewBox="0 0 24 24"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg> : <svg className="w-3 h-3" viewBox="0 0 24 24"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/></svg>}</div><span className="max-w-[150px] truncate font-medium">{attachedFile.name}</span><button type="button" onClick={removeFile} className="ml-1 hover:text-white p-0.5 rounded-full hover:bg-white/10 transition-colors"><svg className="w-3 h-3" viewBox="0 0 24 24"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></button></div></div>)}
-                                </form>
-                            </div>
-                        )}
-                    </div>
-                )}
+                <div className="w-full max-w-3xl mx-auto p-4 z-20">
+                    {isLoading ? (
+                        <div className="flex flex-col items-center gap-3">
+                            <button onClick={handleStop} className="bg-white/10 hover:bg-white/20 border border-white/20 text-white px-5 py-2.5 rounded-full font-medium transition-all shadow-lg flex items-center gap-2 text-sm interactive-lift">
+                                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M6 6h12v12H6z"></path></svg>
+                                Stop Generating
+                            </button>
+                        </div>
+                    ) : (
+                        <div className="relative">
+                            <form onSubmit={handleChatSubmit} className="relative">
+                                <div data-liquid-glass className="liquid-glass rounded-full flex items-center p-2 transition-all duration-300 focus-within:shadow-2xl focus-within:shadow-indigo-500/20">
+                                    <button type="button" onClick={triggerFileSelect} className="p-2 rounded-full text-zinc-300 hover:text-white hover:bg-white/10 transition-colors ml-1" title="Attach File"><svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg></button>
+                                    <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" accept="image/*,application/pdf,text/plain,text/code,application/json" />
+                                    <textarea ref={textareaRef} value={inputValue} onChange={(e) => setInputValue(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleChatSubmit(e); } }} rows={1} placeholder="Message Nexus..." className="flex-1 bg-transparent border-none text-white placeholder-zinc-500 focus:ring-0 resize-none py-2 px-3 max-h-[120px] overflow-y-auto scrollbar-hide"></textarea>
+                                    <button type="button" onClick={startListening} className="p-2 rounded-full text-zinc-300 hover:text-white hover:bg-white/10 transition-colors"><svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/></svg></button>
+                                    <button type="submit" disabled={isLoading || (!inputValue.trim() && !attachedFile)} className={`w-9 h-9 flex items-center justify-center rounded-full transition-all duration-200 ml-1 ${(inputValue.trim() || attachedFile) && !isLoading ? 'bg-white text-black hover:bg-zinc-200 shadow-lg' : 'bg-white/10 text-zinc-500 cursor-not-allowed'}`}><svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg></button>
+                                </div>
+                                {attachedFile && (<div className="absolute bottom-full left-4 mb-2"><div className="inline-flex items-center gap-2 bg-black/50 backdrop-blur-md text-zinc-200 text-xs px-3 py-1.5 rounded-full border border-white/10 animate-pop-in"><div className="w-4 h-4 flex items-center justify-center">{attachedFile.type.startsWith('image/') ? <svg className="w-3 h-3" viewBox="0 0 24 24"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg> : <svg className="w-3 h-3" viewBox="0 0 24 24"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/></svg>}</div><span className="max-w-[150px] truncate font-medium">{attachedFile.name}</span><button type="button" onClick={removeFile} className="ml-1 hover:text-white p-0.5 rounded-full hover:bg-white/10 transition-colors"><svg className="w-3 h-3" viewBox="0 0 24 24"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></button></div></div>)}
+                            </form>
+                        </div>
+                    )}
+                </div>
             </main>
         </div>
     );

@@ -113,6 +113,24 @@ const LandingPage: React.FC<LandingPageProps> = ({ onGetAccess }) => {
                     </div>
 
                     <div className="max-w-5xl mx-auto px-6 mt-32">
+                         <div data-liquid-glass className="liquid-glass rounded-3xl p-12 text-center bw-to-color-hover">
+                            <h2 className="text-3xl md:text-4xl font-bold text-white">Explore AI Video Generation</h2>
+                            <p className="text-lg text-zinc-400 max-w-2xl mx-auto mt-4 leading-relaxed">
+                                Check out this free AI video generator from one of our partners. Generate stunning videos from text prompts directly in your browser.
+                            </p>
+                            <div className="mt-8">
+                                <button 
+                                    onClick={() => setShowEmbeddedView(true)}
+                                    className="bg-indigo-600 hover:bg-indigo-500 text-white px-8 py-4 rounded-full font-medium transition-all duration-300 shadow-[0_0_20px_rgba(129,140,248,0.4)] hover:shadow-[0_0_30px_rgba(129,140,248,0.6)] interactive-lift flex items-center gap-3 mx-auto"
+                                >
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18"></rect><line x1="7" y1="2" x2="7" y2="22"></line><line x1="17" y1="2" x2="17" y2="22"></line><line x1="2" y1="12" x2="22" y2="12"></line><line x1="2" y1="7" x2="7" y2="7"></line><line x1="2" y1="17" x2="7" y2="17"></line><line x1="17" y1="17" x2="22" y2="17"></line><line x1="17" y1="7" x2="22" y2="7"></line></svg>
+                                    Launch Video Generator
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="max-w-5xl mx-auto px-6 mt-32">
                         <div className="flex flex-col md:flex-row gap-12 items-center">
                             <div className="flex-1 space-y-6">
                                 <h2 className="text-3xl md:text-4xl font-bold">Seamless Integration</h2>

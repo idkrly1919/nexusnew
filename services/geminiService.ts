@@ -101,6 +101,7 @@ Respond ONLY with a JSON object with the following structure:
             
             const { data: functionData, error: functionError } = await supabase.functions.invoke('infip-image-gen', {
                 body: { prompt: imagePrompt },
+                signal,
             });
 
             if (functionError) {
