@@ -43,6 +43,7 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
         fetchSessionAndProfile();
 
         const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+            setIsLoading(true);
             setSession(session);
             setUser(session?.user ?? null);
 
@@ -56,7 +57,7 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
             } else {
                 setProfile(null);
             }
-            // No need to set loading here, it's for subsequent changes
+            setIsLoading(false);
         });
 
         return () => subscription.unsubscribe();
