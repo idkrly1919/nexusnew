@@ -229,30 +229,32 @@
         }
 
         /* Cosmos View Styles */
+        .twinkle {
+            animation: twinkle-animation 4s ease-in-out infinite;
+        }
+        @keyframes twinkle-animation {
+            0%, 100% { opacity: inherit; }
+            50% { opacity: 1; }
+        }
+
         .shooting-star {
             position: absolute;
-            top: 50%;
-            left: 50%;
-            width: 4px;
-            height: 4px;
-            background: #fff;
-            border-radius: 50%;
-            box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.1), 0 0 0 8px rgba(255, 255, 255, 0.1), 0 0 20px rgba(255, 255, 255, 1);
-            animation: animate-shooting-star 3s linear infinite;
+            height: 2px;
+            background: linear-gradient(-45deg, white, rgba(255, 255, 255, 0));
+            border-radius: 999px;
+            filter: drop-shadow(0 0 6px white);
+            animation: shooting-star-fall linear;
+            opacity: 0;
         }
-        .shooting-star::before {
-            content: '';
-            position: absolute;
-            top: 50%;
-            transform: translateY(-50%);
-            width: 300px;
-            height: 1px;
-            background: linear-gradient(90deg, #fff, transparent);
-        }
-        @keyframes animate-shooting-star {
-            0% { transform: rotate(315deg) translateX(0); opacity: 1; }
-            70% { opacity: 1; }
-            100% { transform: rotate(315deg) translateX(-1000px); opacity: 0; }
+        @keyframes shooting-star-fall {
+            0% {
+                transform: translateX(0) translateY(0);
+                opacity: 1;
+            }
+            100% {
+                transform: translateX(-150vw) translateY(150vh);
+                opacity: 0;
+            }
         }
 
         .liquid-planet {
