@@ -68,7 +68,7 @@ const CosmosView: React.FC<CosmosViewProps> = ({ onSelectPlanet, isActive }) => 
                 {shootingStars.map((star, i) => <ShootingStar key={i} style={star} />)}
             </div>
 
-            <div className="relative w-full max-w-6xl h-full flex justify-center items-center">
+            <div className="relative w-full max-w-7xl h-full flex justify-center items-center">
                 {/* Center Planet: Main Chat */}
                 <div className="absolute text-center cursor-pointer group" onClick={() => onSelectPlanet('chat')}>
                     <div className="planet-interactive w-64 h-64 liquid-planet rounded-full relative flex items-center justify-center" style={{ animation: 'pulse-glow 4s ease-in-out infinite' }}>
@@ -78,8 +78,8 @@ const CosmosView: React.FC<CosmosViewProps> = ({ onSelectPlanet, isActive }) => 
                     <p className="text-md text-zinc-300">Advanced Reasoning Engine</p>
                 </div>
 
-                {/* Left Planet: Video Generator */}
-                <div className="absolute left-[15%] top-[30%] text-center cursor-pointer group" onClick={() => onSelectPlanet('https://veoaifree.com/veo-video-generator/')}>
+                {/* Top-Left Planet: Video Generator */}
+                <div className="absolute left-[15%] top-[25%] text-center cursor-pointer group" onClick={() => onSelectPlanet('https://veoaifree.com/veo-video-generator/')}>
                     <div className="planet-interactive w-48 h-48 liquid-planet rounded-full relative flex items-center justify-center">
                         <svg className="w-16 h-16 text-white opacity-80 relative z-10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18"></rect><line x1="7" y1="2" x2="7" y2="22"></line><line x1="17" y1="2" x2="17" y2="22"></line><line x1="2" y1="12" x2="22" y2="12"></line><line x1="2" y1="7" x2="7" y2="7"></line><line x1="2" y1="17" x2="7" y2="17"></line><line x1="17" y1="17" x2="22" y2="17"></line><line x1="17" y1="7" x2="22" y2="7"></line></svg>
                     </div>
@@ -87,8 +87,8 @@ const CosmosView: React.FC<CosmosViewProps> = ({ onSelectPlanet, isActive }) => 
                     <p className="text-sm text-zinc-400">Create with VEO AI</p>
                 </div>
 
-                {/* Right Planet: Image Generator */}
-                <div className="absolute right-[15%] top-[60%] text-center cursor-pointer group" onClick={() => onSelectPlanet('https://nanobananafree.ai/')}>
+                {/* Bottom-Right Planet: Image Generator */}
+                <div className="absolute right-[15%] bottom-[25%] text-center cursor-pointer group" onClick={() => onSelectPlanet('https://nanobananafree.ai/')}>
                     <div className="planet-interactive w-48 h-48 liquid-planet rounded-full relative flex items-center justify-center">
                         <svg className="w-16 h-16 text-white opacity-80 relative z-10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>
                     </div>
