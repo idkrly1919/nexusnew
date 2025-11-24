@@ -21,13 +21,6 @@ const AppContent: React.FC = () => {
 
     return (
         <>
-            {/* New Liquid Background */}
-            <div className="liquid-bg">
-                <div className="blob bg-purple-600 top-[-20%] left-[-10%] w-[50vw] h-[50vw] animate-move-blob-1"></div>
-                <div className="blob bg-indigo-600 bottom-[-20%] right-[-10%] w-[45vw] h-[45vw] animate-move-blob-2"></div>
-                <div className="blob bg-pink-600 bottom-[15%] left-[10%] w-[35vw] h-[35vw] animate-move-blob-3"></div>
-            </div>
-
             {session ? (
                 <ChatView />
             ) : showLogin ? (

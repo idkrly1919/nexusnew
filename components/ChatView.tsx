@@ -5,6 +5,7 @@ import { ThinkingProcess } from './ThinkingProcess';
 import { useSession } from '../src/contexts/SessionContext';
 import { supabase } from '../src/integrations/supabase/client';
 import SpeechVisualizer from './SpeechVisualizer';
+import DynamicBackground from './DynamicBackground';
 
 const NexusIconSmall = () => (
     <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center border border-white/10 shadow-lg">
@@ -37,6 +38,7 @@ const ChatView: React.FC = () => {
 
     const [conversations, setConversations] = useState<Conversation[]>([]);
     const [currentConversationId, setCurrentConversationId] = useState<string | null>(null);
+    const [backgroundStatus, setBackgroundStatus] = useState<'idle' | 'loading-text' | 'loading-image'>('idle');
 
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -47,6 +49,14 @@ const ChatView: React.FC = () => {
     const transcriptRef = useRef('');
     const manualStop = useRef(false);
     const isListeningRef = useRef(false);
+
+    useEffect(() => {
+        if (isLoading) {
+            setBackgroundStatus(thinkingMode === 'image' ? 'loading-image' : 'loading-text');
+        } else {
+            setBackgroundStatus('idle');
+        }
+    }, [isLoading, thinkingMode]);
 
     useEffect(() => {
         transcriptRef.current = transcript;
@@ -62,9 +72,6 @@ const ChatView: React.FC = () => {
 
     useEffect(scrollToBottom, [messages, isLoading]);
 
-    // ... (All the logic from the original file remains the same) ...
-    // Fetch conversations, messages, handle file changes, speech recognition, TTS, etc.
-    // The following is a copy of the logic from the original file, with no changes.
     useEffect(() => {
         const handleImageDownload = async (e: MouseEvent) => {
             const target = e.target as HTMLElement;
@@ -226,11 +233,13 @@ const ChatView: React.FC = () => {
     };
     const processSubmission = async (userText: string) => {
         if (isLoading || (!userText.trim() && !attachedFile) || !session) return;
-        setIsLoading(true);
-        setInputValue('');
+        
         const imageKeywords = ['draw', 'paint', 'generate image', 'create an image', 'visualize', 'edit image', 'modify image', 'make an image'];
         const isImage = imageKeywords.some(k => userText.toLowerCase().includes(k));
         setThinkingMode(isImage ? 'image' : 'reasoning');
+        setIsLoading(true);
+        setInputValue('');
+
         if (textareaRef.current) textareaRef.current.style.height = '52px';
         let userDisplay = userText;
         if (attachedFile) {
@@ -328,6 +337,7 @@ const ChatView: React.FC = () => {
 
     return (
         <div id="chat-view" className="fixed inset-0 z-50 flex flex-col bg-transparent text-zinc-100 font-sans overflow-hidden">
+            <DynamicBackground status={backgroundStatus} />
             {isListening && (
                 <SpeechVisualizer 
                     transcript={transcript}
