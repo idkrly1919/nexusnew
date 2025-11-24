@@ -292,21 +292,46 @@ const ChatView: React.FC = () => {
         
         let conversationId = currentConversationId;
         if (session && !conversationId) {
-            const { data, error } = await supabase.from('conversations').insert({ user_id: session.user.id, title: "New Chat" }).select().single();
-            if (error) { console.error("Error creating conversation", error); setIsLoading(false); return; }
-            conversationId = data.id;
-            setCurrentConversationId(data.id);
-            setConversations(prev => [data as Conversation, ...prev]);
+            const { data: newConversation, error: createError } = await supabase
+                .from('conversations')
+                .insert({ user_id: session.user.id, title: "New Chat" })
+                .select()
+                .single();
 
-            supabase.functions.invoke('generate-title', { body: { message: userText } })
-                .then(({ data: titleData, error: titleError }) => {
-                    if (!titleError && titleData.title) {
-                        supabase.from('conversations').update({ title: titleData.title }).eq('id', conversationId!).then();
-                        setConversations(prev => prev.map(c => c.id === conversationId ? { ...c, title: titleData.title } : c));
-                    } else if (titleError) {
-                        console.error('Error generating title:', titleError);
+            if (createError) {
+                console.error("Error creating conversation", createError);
+                setIsLoading(false);
+                return;
+            }
+            
+            conversationId = newConversation.id;
+            setCurrentConversationId(conversationId);
+            setConversations(prev => [newConversation as Conversation, ...prev]);
+
+            // Generate title in the background
+            (async () => {
+                try {
+                    const { data: titleData, error: titleError } = await supabase.functions.invoke('generate-title', {
+                        body: { message: userText }
+                    });
+
+                    if (titleError) throw titleError;
+
+                    if (titleData.title) {
+                        const newTitle = titleData.title;
+                        await supabase
+                            .from('conversations')
+                            .update({ title: newTitle })
+                            .eq('id', conversationId!);
+                        
+                        setConversations(prev =>
+                            prev.map(c => (c.id === conversationId ? { ...c, title: newTitle } : c))
+                        );
                     }
-                });
+                } catch (error) {
+                    console.error('Failed to generate and set conversation title:', error);
+                }
+            })();
         }
 
         const userContentForDb = attachedFile ? `[User attached file: ${attachedFile.name}]\n${userText}` : userText;

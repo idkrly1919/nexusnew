@@ -43,28 +43,26 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
     useEffect(() => {
         const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
-            try {
-                setSession(session);
-                setUser(session?.user ?? null);
-                if (session?.user) {
-                    const { data: profileData, error } = await supabase
-                        .from('profiles')
-                        .select('*')
-                        .eq('id', session.user.id)
-                        .single();
-                    
-                    if (error && error.code !== 'PGRST116') { // 'PGRST116' is "exact one row not found"
-                        console.error("Error fetching profile:", error);
-                    }
-                    setProfile(profileData);
-                } else {
+            setSession(session);
+            setUser(session?.user ?? null);
+            setIsLoading(false); // Set loading to false as soon as auth state is known
+
+            if (session?.user) {
+                // Fetch profile in the background without holding up the UI
+                const { data: profileData, error } = await supabase
+                    .from('profiles')
+                    .select('*')
+                    .eq('id', session.user.id)
+                    .single();
+                
+                if (error && error.code !== 'PGRST116') { // 'PGRST116' is "exact one row not found"
+                    console.error("Error fetching profile:", error);
                     setProfile(null);
+                } else {
+                    setProfile(profileData);
                 }
-            } catch (error) {
-                console.error("Error in onAuthStateChange handler:", error);
+            } else {
                 setProfile(null);
-            } finally {
-                setIsLoading(false);
             }
         });
 
