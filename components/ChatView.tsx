@@ -36,7 +36,7 @@ const ChatView: React.FC = () => {
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const [showSettings, setShowSettings] = useState(false);
     const [personality, setPersonality] = useState<PersonalityMode>('conversational');
-    const [imageModelPref, setImageModelPref] = useState(profile?.image_model_preference || 'img3');
+    const [imageModelPref, setImageModelPref] = useState(profile?.image_model_preference || 'img4');
     
     const [attachedFile, setAttachedFile] = useState<{name: string, content: string, type: string} | null>(null);
 
@@ -292,7 +292,7 @@ const ChatView: React.FC = () => {
         
         let conversationId = currentConversationId;
         if (session && !conversationId) {
-            const { data, error } = await supabase.from('conversations').insert({ user_id: session.user.id, title: userText.substring(0, 50) }).select().single();
+            const { data, error } = await supabase.from('conversations').insert({ user_id: session.user.id, title: "New Chat" }).select().single();
             if (error) { console.error("Error creating conversation", error); setIsLoading(false); return; }
             conversationId = data.id;
             setCurrentConversationId(data.id);
@@ -451,11 +451,12 @@ const ChatView: React.FC = () => {
                                 <div className="grid grid-cols-2 gap-2">
                                     <button onClick={() => handleImageModelChange('img3')} className={`text-left px-4 py-3 rounded-xl border transition-all duration-300 ${imageModelPref === 'img3' ? 'bg-indigo-500/20 border-indigo-500/50 text-white shadow-lg' : 'bg-white/5 border-white/10 text-zinc-300 hover:border-white/20 hover:bg-white/10'}`}>
                                         <div className="font-medium text-sm">Nexus K3</div>
-                                        <div className="text-xs opacity-60">Fast generation.</div>
+                                        <div className="text-xs opacity-60">Fast generation (~5s).</div>
                                     </button>
-                                    <button onClick={() => handleImageModelChange('img4')} className={`text-left px-4 py-3 rounded-xl border transition-all duration-300 ${imageModelPref === 'img4' ? 'bg-indigo-500/20 border-indigo-500/50 text-white shadow-lg' : 'bg-white/5 border-white/10 text-zinc-300 hover:border-white/20 hover:bg-white/10'}`}>
+                                    <button onClick={() => handleImageModelChange('img4')} className={`text-left px-4 py-3 rounded-xl border transition-all duration-300 relative overflow-hidden ${imageModelPref === 'img4' ? 'bg-indigo-500/20 border-indigo-500/50 text-white shadow-lg' : 'bg-white/5 border-white/10 text-zinc-300 hover:border-white/20 hover:bg-white/10'}`}>
+                                        <span className="absolute top-2 right-2 bg-indigo-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">Recommended</span>
                                         <div className="font-medium text-sm">Nexus K4</div>
-                                        <div className="text-xs opacity-60">High quality.</div>
+                                        <div className="text-xs opacity-60">Highest quality (~10s).</div>
                                     </button>
                                 </div>
                             </div>
