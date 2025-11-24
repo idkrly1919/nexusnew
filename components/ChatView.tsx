@@ -40,6 +40,7 @@ const ChatView: React.FC = () => {
     const [imageModelPref, setImageModelPref] = useState(profile?.image_model_preference || 'img4');
     
     const [attachedFile, setAttachedFile] = useState<{name: string, content: string, type: string} | null>(null);
+    const [isDragging, setIsDragging] = useState(false);
 
     const [conversations, setConversations] = useState<Conversation[]>([]);
     const [currentConversationId, setCurrentConversationId] = useState<string | null>(null);
@@ -181,8 +182,8 @@ const ChatView: React.FC = () => {
         };
         fetchMessages();
     }, [currentConversationId, session]);
-    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
+
+    const processFile = (file: File) => {
         if (!file) return;
         const setFile = (content: string) => setAttachedFile({ name: file.name, content, type: file.type });
         const reader = new FileReader();
@@ -194,6 +195,60 @@ const ChatView: React.FC = () => {
             reader.readAsText(file);
         }
     };
+
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            processFile(file);
+        }
+    };
+
+    useEffect(() => {
+        const chatViewElement = document.getElementById('chat-view');
+        if (!chatViewElement) return;
+    
+        const handleDragOver = (e: DragEvent) => {
+            e.preventDefault();
+            e.stopPropagation();
+            setIsDragging(true);
+        };
+    
+        const handleDragLeave = (e: DragEvent) => {
+            e.preventDefault();
+            e.stopPropagation();
+            setIsDragging(false);
+        };
+    
+        const handleDrop = (e: DragEvent) => {
+            e.preventDefault();
+            e.stopPropagation();
+            setIsDragging(false);
+            if (e.dataTransfer?.files && e.dataTransfer.files.length > 0) {
+                processFile(e.dataTransfer.files[0]);
+                e.dataTransfer.clearData();
+            }
+        };
+    
+        const handlePaste = (e: ClipboardEvent) => {
+            if (e.clipboardData?.files && e.clipboardData.files.length > 0) {
+                e.preventDefault();
+                processFile(e.clipboardData.files[0]);
+            }
+        };
+    
+        chatViewElement.addEventListener('dragover', handleDragOver);
+        chatViewElement.addEventListener('dragleave', handleDragLeave);
+        chatViewElement.addEventListener('drop', handleDrop);
+        document.addEventListener('paste', handlePaste);
+    
+        return () => {
+            chatViewElement.removeEventListener('dragover', handleDragOver);
+            chatViewElement.removeEventListener('dragleave', handleDragLeave);
+            chatViewElement.removeEventListener('drop', handleDrop);
+            document.removeEventListener('paste', handlePaste);
+        };
+    }, []);
+
     const triggerFileSelect = () => fileInputRef.current?.click();
     const removeFile = () => {
         setAttachedFile(null);
@@ -522,6 +577,16 @@ const ChatView: React.FC = () => {
         <div id="chat-view" className="fixed inset-0 z-50 flex flex-col bg-transparent text-zinc-100 font-sans overflow-hidden">
             <DynamicBackground status={backgroundStatus} />
             
+            {isDragging && (
+                <div className="absolute inset-0 z-[101] bg-black/70 backdrop-blur-md flex items-center justify-center border-4 border-dashed border-indigo-500 rounded-3xl m-4 pointer-events-none">
+                    <div className="text-center">
+                        <svg className="w-16 h-16 text-indigo-400 mx-auto mb-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                        <h2 className="text-2xl font-bold text-white">Drop file to attach</h2>
+                        <p className="text-zinc-400">You can attach images, text files, and more.</p>
+                    </div>
+                </div>
+            )}
+
             <CosmosView isActive={cosmosViewActive} onSelectPlanet={handleSelectPlanet} />
             {embeddedUrl && <EmbeddedView url={embeddedUrl} onClose={() => setEmbeddedUrl(null)} />}
             {showLoginPrompt && (
