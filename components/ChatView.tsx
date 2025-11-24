@@ -8,7 +8,6 @@ import { supabase } from '../src/integrations/supabase/client';
 import SpeechVisualizer from './SpeechVisualizer';
 import DynamicBackground from './DynamicBackground';
 import CosmosView from './CosmosView';
-import EmbeddedView from './EmbeddedView';
 import AuthPage from '../src/pages/AuthPage';
 
 const NexusIconSmall = () => (
@@ -47,7 +46,6 @@ const ChatView: React.FC = () => {
     const [backgroundStatus, setBackgroundStatus] = useState<'idle' | 'loading-text' | 'loading-image'>('idle');
 
     const [cosmosViewActive, setCosmosViewActive] = useState(false);
-    const [embeddedUrl, setEmbeddedUrl] = useState<string | null>(null);
 
     const [guestMessageCount, setGuestMessageCount] = useState(0);
     const [showLoginPrompt, setShowLoginPrompt] = useState(false);
@@ -525,7 +523,7 @@ const ChatView: React.FC = () => {
         if (url === 'chat') {
             setCosmosViewActive(false);
         } else {
-            setEmbeddedUrl(url);
+            window.open(url, '_blank', 'noopener,noreferrer');
         }
     };
 
@@ -593,7 +591,6 @@ const ChatView: React.FC = () => {
             )}
 
             <CosmosView isActive={cosmosViewActive} onSelectPlanet={handleSelectPlanet} />
-            {embeddedUrl && <EmbeddedView url={embeddedUrl} onClose={() => setEmbeddedUrl(null)} />}
             {showLoginPrompt && (
                 <AuthPage onExit={() => setShowLoginPrompt(false)} />
             )}

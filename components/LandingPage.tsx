@@ -1,5 +1,4 @@
-import React, { FormEvent, useState } from 'react';
-import EmbeddedView from './EmbeddedView';
+import React, { FormEvent } from 'react';
 import DynamicBackground from './DynamicBackground';
 
 interface LandingPageProps {
@@ -7,9 +6,6 @@ interface LandingPageProps {
 }
 
 const LandingPage: React.FC<LandingPageProps> = ({ onGetAccess }) => {
-    const [showEmbeddedView, setShowEmbeddedView] = useState(false);
-    const embeddedUrl = "https://veoaifree.com/veo-video-generator/";
-
     const handleSignup = (e: FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         onGetAccess();
@@ -18,9 +14,6 @@ const LandingPage: React.FC<LandingPageProps> = ({ onGetAccess }) => {
     return (
         <>
             <DynamicBackground status="loading-text" />
-            {showEmbeddedView && (
-                <EmbeddedView url={embeddedUrl} onClose={() => setShowEmbeddedView(false)} />
-            )}
             <div id="landing-view" className="relative z-10">
                 <nav className="fixed w-full z-50 top-0">
                     <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
