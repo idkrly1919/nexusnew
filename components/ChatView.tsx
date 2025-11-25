@@ -34,7 +34,7 @@ const ChatView: React.FC = () => {
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const [showSettings, setShowSettings] = useState(false);
     const [personality, setPersonality] = useState<PersonalityMode>('conversational');
-    const [imageModelPref, setImageModelPref] = useState(profile?.image_model_preference || 'img4');
+    const [imageModelPref, setImageModelPref] = useState(profile?.image_model_preference || 'img3');
     
     const [attachedFile, setAttachedFile] = useState<{name: string, content: string, type: string} | null>(null);
     const [isDragging, setIsDragging] = useState(false);
@@ -48,7 +48,7 @@ const ChatView: React.FC = () => {
     const [embeddedUrl, setEmbeddedUrl] = useState<string | null>(null);
     
     const [personalizationEntries, setPersonalizationEntries] = useState<{id: string, entry: string}[]>([]);
-    const [personalizationSuggestion, setPersonalizationSuggestion] = useState<string | null>(null);
+    const [showMemoryToast, setShowMemoryToast] = useState(false);
 
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -353,6 +353,22 @@ const ChatView: React.FC = () => {
         }
     };
 
+    const handleAutoSavePersonalization = async (fact: string) => {
+        if (!session) return;
+        const { data, error } = await supabase
+            .from('user_personalization')
+            .insert({ user_id: session.user.id, entry: fact })
+            .select()
+            .single();
+        if (error) {
+            console.error("Error auto-saving personalization", error);
+        } else if (data) {
+            setPersonalizationEntries(prev => [...prev, { id: data.id, entry: data.entry }]);
+            setShowMemoryToast(true);
+            setTimeout(() => setShowMemoryToast(false), 5000);
+        }
+    };
+
     const processSubmission = async (userText: string) => {
         if (isLoading || (!userText.trim() && !attachedFile)) return;
         
@@ -429,7 +445,8 @@ const ChatView: React.FC = () => {
                     let cleanedText = accumulatedText;
 
                     if (match && match[1]) {
-                        setPersonalizationSuggestion(match[1].trim());
+                        const factToSave = match[1].trim();
+                        handleAutoSavePersonalization(factToSave);
                         cleanedText = accumulatedText.replace(saveRegex, '').trim();
                         setMessages(prev => prev.map(msg => msg.id === aiMsgId ? { ...msg, text: cleanedText } : msg));
                     }
@@ -502,9 +519,11 @@ const ChatView: React.FC = () => {
                         </a>
                     </div>
                 </div>
-                <button data-prompt="${promptForClipboard}" class="better-image-btn w-full mt-3 bg-indigo-600/50 hover:bg-indigo-600/80 text-white px-4 py-2.5 rounded-full text-sm font-semibold transition-all duration-300 interactive-lift">
-                    Want better images? Click here
-                </button>
+                <div class="mt-3 text-left">
+                    <button data-prompt="${promptForClipboard}" data-liquid-glass class="better-image-btn liquid-glass inline-block bg-indigo-600/50 hover:bg-indigo-600/80 text-white px-4 py-2.5 rounded-full text-sm font-semibold transition-all duration-300 interactive-lift">
+                        Want higher quality images? Click here
+                    </button>
+                </div>
             </div>`;
         });
         parsed = parsed.replace(/\*\*(.*?)\*\*/g, '<strong class="text-white font-semibold">$1</strong>').replace(/`([^`]+)`/g, '<code class="bg-black/20 px-1.5 py-0.5 rounded text-sm font-mono text-cyan-300 border border-white/10">$1</code>').replace(/\n/g, '<br />');
@@ -596,25 +615,19 @@ const ChatView: React.FC = () => {
         }
     };
 
-    const handleSaveSuggestion = async () => {
-        if (!personalizationSuggestion || !session) return;
-        const { data, error } = await supabase
-            .from('user_personalization')
-            .insert({ user_id: session.user.id, entry: personalizationSuggestion })
-            .select()
-            .single();
-        if (error) {
-            console.error("Error saving personalization suggestion", error);
-        } else if (data) {
-            setPersonalizationEntries(prev => [...prev, { id: data.id, entry: data.entry }]);
-        }
-        setPersonalizationSuggestion(null);
-    };
-
     return (
         <div id="chat-view" className="fixed inset-0 z-50 flex flex-col bg-transparent text-zinc-100 font-sans overflow-hidden">
             <DynamicBackground status={backgroundStatus} />
             
+            {showMemoryToast && (
+                <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-50">
+                    <div data-liquid-glass className="liquid-glass flex items-center gap-3 py-2 px-5 rounded-full animate-pop-in">
+                        <svg className="w-5 h-5 text-indigo-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 20h9"/><path d="M4 20h2"/><path d="M4 12h16"/><path d="M4 4h10"/><path d="M18 8h2"/><path d="M16 4v16"/></svg>
+                        <span className="text-sm font-medium text-white">Memory Updated</span>
+                    </div>
+                </div>
+            )}
+
             {isDragging && (
                 <div className="absolute inset-0 z-[101] bg-black/70 backdrop-blur-md flex items-center justify-center border-4 border-dashed border-indigo-500 rounded-3xl m-4 pointer-events-none">
                     <div className="text-center">
@@ -650,14 +663,14 @@ const ChatView: React.FC = () => {
                              <div>
                                 <label className="block text-sm font-medium text-zinc-400 mb-3">Image Model Preference</label>
                                 <div className="grid grid-cols-2 gap-2">
-                                    <button onClick={() => handleImageModelChange('img3')} className={`text-left px-4 py-3 rounded-xl border transition-all duration-300 ${imageModelPref === 'img3' ? 'bg-indigo-500/20 border-indigo-500/50 text-white shadow-lg' : 'bg-white/5 border-white/10 text-zinc-300 hover:border-white/20 hover:bg-white/10'}`}>
-                                        <div className="font-medium text-sm">Nexus K3</div>
-                                        <div className="text-xs opacity-60">Fast generation (~5s).</div>
-                                    </button>
-                                    <button onClick={() => handleImageModelChange('img4')} className={`text-left px-4 py-3 rounded-xl border transition-all duration-300 relative overflow-hidden ${imageModelPref === 'img4' ? 'bg-indigo-500/20 border-indigo-500/50 text-white shadow-lg' : 'bg-white/5 border-white/10 text-zinc-300 hover:border-white/20 hover:bg-white/10'}`}>
+                                    <button onClick={() => handleImageModelChange('img3')} className={`text-left px-4 py-3 rounded-xl border transition-all duration-300 relative overflow-hidden ${imageModelPref === 'img3' ? 'bg-indigo-500/20 border-indigo-500/50 text-white shadow-lg' : 'bg-white/5 border-white/10 text-zinc-300 hover:border-white/20 hover:bg-white/10'}`}>
                                         <span className="absolute top-2 right-2 bg-indigo-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">Recommended</span>
+                                        <div className="font-medium text-sm">Nexus K3</div>
+                                        <div className="text-xs opacity-60">Fast generation (~15s).</div>
+                                    </button>
+                                    <button onClick={() => handleImageModelChange('img4')} className={`text-left px-4 py-3 rounded-xl border transition-all duration-300 ${imageModelPref === 'img4' ? 'bg-indigo-500/20 border-indigo-500/50 text-white shadow-lg' : 'bg-white/5 border-white/10 text-zinc-300 hover:border-white/20 hover:bg-white/10'}`}>
                                         <div className="font-medium text-sm">Nexus K4</div>
-                                        <div className="text-xs opacity-60">Highest quality (~10s).</div>
+                                        <div className="text-xs opacity-60">Highest quality (~45s).</div>
                                     </button>
                                 </div>
                             </div>
@@ -782,20 +795,6 @@ const ChatView: React.FC = () => {
                 </div>
 
                 <div className="w-full max-w-3xl mx-auto p-4 z-20">
-                    {personalizationSuggestion && session && (
-                        <div className="bg-indigo-600/30 border border-indigo-500/50 p-3 rounded-xl mb-3 flex items-center justify-between animate-pop-in">
-                            <div>
-                                <p className="font-semibold text-sm text-white">Save for next time?</p>
-                                <p className="text-sm text-indigo-200">"{personalizationSuggestion}"</p>
-                            </div>
-                            <div className="flex gap-2 shrink-0">
-                                <button onClick={handleSaveSuggestion} className="px-3 py-1 bg-white text-black rounded-full text-sm font-semibold hover:bg-zinc-200 transition-colors">Save</button>
-                                <button onClick={() => setPersonalizationSuggestion(null)} className="p-1.5 text-indigo-200 hover:text-white rounded-full hover:bg-white/10 transition-colors">
-                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-                                </button>
-                            </div>
-                        </div>
-                    )}
                     {isLoading ? (
                         <div className="flex flex-col items-center gap-3">
                             <button onClick={handleStop} className="bg-white/10 hover:bg-white/20 border border-white/20 text-white px-5 py-2.5 rounded-full font-medium transition-all shadow-lg flex items-center gap-2 text-sm interactive-lift">

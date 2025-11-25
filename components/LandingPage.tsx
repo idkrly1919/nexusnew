@@ -1,4 +1,4 @@
-import React, { FormEvent } from 'react';
+import React, { FormEvent, useState } from 'react';
 import DynamicBackground from './DynamicBackground';
 
 interface LandingPageProps {
@@ -6,14 +6,39 @@ interface LandingPageProps {
 }
 
 const LandingPage: React.FC<LandingPageProps> = ({ onGetAccess }) => {
+    const [isFindingSpace, setIsFindingSpace] = useState(false);
+    const [spaceStatus, setSpaceStatus] = useState('');
+
     const handleSignup = (e: FormEvent<HTMLFormElement>) => {
         e.preventDefault();
-        onGetAccess();
+        setSpaceStatus('Finding you a space...');
+        setIsFindingSpace(true);
+
+        setTimeout(() => {
+            setSpaceStatus('Space found!');
+        }, 2000);
+
+        setTimeout(() => {
+            setIsFindingSpace(false);
+            onGetAccess();
+        }, 3000);
     };
 
     return (
         <>
             <DynamicBackground status="loading-text" />
+            {isFindingSpace && (
+                <div className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-lg flex items-center justify-center">
+                    <div className="text-center space-y-4 animate-pop-in">
+                        <div className="relative w-16 h-16 mx-auto">
+                            <div className="absolute inset-0 rounded-full bg-indigo-500 animate-pulse"></div>
+                            <div className="absolute inset-2 rounded-full bg-black"></div>
+                            <img src="/nexus-logo.png" alt="Nexus Logo" className="w-16 h-16 animate-spin-slow relative" />
+                        </div>
+                        <p className="text-lg font-medium text-zinc-300">{spaceStatus}</p>
+                    </div>
+                </div>
+            )}
             <div id="landing-view" className="relative z-10">
                 <nav className="fixed w-full z-50 top-0">
                     <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
