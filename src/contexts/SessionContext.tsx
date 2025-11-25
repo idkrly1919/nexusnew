@@ -43,14 +43,12 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
     };
 
     useEffect(() => {
-        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
             try {
                 if (session?.user) {
                     setSession(session);
                     setUser(session.user);
 
-                    // Fetch profile with a timeout to prevent infinite loading.
-                    // This is the critical safety net.
                     const profilePromise = supabase
                         .from('profiles')
                         .select('*')
@@ -65,29 +63,24 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
                     const { data: profileData, error } = await Promise.race([profilePromise, timeoutPromise]);
 
                     if (error) {
-                        // Don't throw the error, as it would crash the app.
-                        // Log it and continue loading the app without profile data.
-                        // The chat will still be functional.
                         console.error("Error fetching profile:", error.message);
                         setProfile(null);
                     } else {
                         setProfile(profileData);
                     }
-                } else {
-                    // User is logged out, clear all session data.
+                } else if (event === 'SIGNED_OUT') {
+                    // Only clear the session on an explicit sign-out event.
+                    // This prevents accidental logouts on tab focus or network hiccups.
                     setSession(null);
                     setUser(null);
                     setProfile(null);
                 }
             } catch (e: any) {
                 console.error("A critical error occurred during the authentication process:", e.message);
-                // Clear everything on a critical failure to prevent a broken state.
                 setSession(null);
                 setUser(null);
                 setProfile(null);
             } finally {
-                // This is the key: Only set isLoading to false after the session AND profile check is complete.
-                // This guarantees that the rest of the app has the correct, fully-authenticated data before it renders.
                 setIsLoading(false);
             }
         });
