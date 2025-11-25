@@ -1,11 +1,9 @@
 import React, { FormEvent, useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import DynamicBackground from './DynamicBackground';
 
-interface LandingPageProps {
-    onGetAccess: () => void;
-}
-
-const LandingPage: React.FC<LandingPageProps> = ({ onGetAccess }) => {
+const LandingPage: React.FC = () => {
+    const navigate = useNavigate();
     const [isFindingSpace, setIsFindingSpace] = useState(false);
     const [spaceStatus, setSpaceStatus] = useState('');
 
@@ -20,7 +18,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onGetAccess }) => {
 
         setTimeout(() => {
             setIsFindingSpace(false);
-            onGetAccess();
+            navigate('/auth');
         }, 3000);
     };
 
@@ -55,10 +53,10 @@ const LandingPage: React.FC<LandingPageProps> = ({ onGetAccess }) => {
                         </div>
 
                         <div className="flex items-center gap-4">
-                            <a href="#" onClick={(e) => { e.preventDefault(); onGetAccess(); }} className="text-sm font-medium text-zinc-300 hover:text-white hidden sm:block transition-colors duration-300">Log in</a>
-                            <button onClick={onGetAccess} className="bg-white/10 backdrop-blur-md border border-white/20 text-white px-5 py-2.5 rounded-full text-sm font-semibold hover:bg-white/20 transition-all duration-300 interactive-lift">
+                            <Link to="/auth" className="text-sm font-medium text-zinc-300 hover:text-white hidden sm:block transition-colors duration-300">Log in</Link>
+                            <Link to="/auth" className="bg-white/10 backdrop-blur-md border border-white/20 text-white px-5 py-2.5 rounded-full text-sm font-semibold hover:bg-white/20 transition-all duration-300 interactive-lift">
                                 Get Access
-                            </button>
+                            </Link>
                         </div>
                     </div>
                 </nav>

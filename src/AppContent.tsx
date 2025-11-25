@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
+import { Routes, Route, Navigate } from 'react-router-dom';
 import { useSession } from './contexts/SessionContext';
 import ChatView from './components/ChatView';
 import LandingPage from './components/LandingPage';
@@ -7,15 +8,6 @@ import AuthPage from './pages/AuthPage';
 
 const AppContent: React.FC = () => {
     const { session, profile, isLoading } = useSession();
-    const [isAuthPageVisible, setIsAuthPageVisible] = useState(false);
-    const [isGuest, setIsGuest] = useState(false);
-
-    useEffect(() => {
-        if (session) {
-            setIsAuthPageVisible(false);
-            setIsGuest(false);
-        }
-    }, [session]);
 
     if (isLoading) {
         return (
@@ -29,21 +21,37 @@ const AppContent: React.FC = () => {
     }
 
     if (session && profile && !profile.onboarding_completed) {
-        return <Onboarding />;
+        // If the user is logged in but hasn't finished onboarding,
+        // force them to the onboarding page regardless of the URL.
+        return (
+            <Routes>
+                <Route path="*" element={<Onboarding />} />
+            </Routes>
+        );
     }
 
-    if (session || isGuest) {
-        return <ChatView />;
-    }
-
-    if (isAuthPageVisible) {
-        return <AuthPage onExit={() => {
-            setIsAuthPageVisible(false);
-            setIsGuest(true);
-        }} />;
-    }
-
-    return <LandingPage onGetAccess={() => setIsAuthPageVisible(true)} />;
+    return (
+        <Routes>
+            <Route 
+                path="/" 
+                element={session ? <Navigate to="/chat" replace /> : <LandingPage />} 
+            />
+            <Route 
+                path="/auth" 
+                element={session ? <Navigate to="/chat" replace /> : <AuthPage />} 
+            />
+            <Route 
+                path="/chat" 
+                element={session ? <ChatView /> : <Navigate to="/auth" replace />} 
+            />
+            <Route 
+                path="/chat/:conversationId" 
+                element={session ? <ChatView /> : <Navigate to="/auth" replace />} 
+            />
+            {/* Fallback route to redirect any unknown URL to the correct starting point */}
+            <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+    );
 };
 
 export default AppContent;
