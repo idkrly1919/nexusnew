@@ -78,12 +78,12 @@ const CosmosView: React.FC<CosmosViewProps> = ({ onSelectPlanet, isActive }) => 
                 </div>
 
                 {/* Right Planet: Image Generator */}
-                <div className="absolute right-[20%] top-1/2 -translate-y-1/2 text-center cursor-pointer group z-10" onClick={() => onSelectPlanet('https://nanobananafree.ai/')}>
+                <div className="absolute right-[20%] top-1/2 -translate-y-1/2 text-center cursor-pointer group z-10" onClick={() => onSelectPlanet('https://lmarena.ai/?mode=direct&chat-modality=image')}>
                     <div className="planet-interactive w-48 h-48 liquid-planet rounded-full relative flex items-center justify-center">
                         <svg className="w-16 h-16 text-white opacity-80 relative z-10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>
                     </div>
-                    <h3 className="mt-8 text-lg font-bold text-white tracking-wider group-hover:text-zinc-100 transition-colors">4K Image Generator</h3>
-                    <p className="text-sm text-zinc-400">Powered by NanoBanana</p>
+                    <h3 className="mt-8 text-lg font-bold text-white tracking-wider group-hover:text-zinc-100 transition-colors">Advanced Image Arena</h3>
+                    <p className="text-sm text-zinc-400">Compare top models</p>
                 </div>
             </div>
         </div>

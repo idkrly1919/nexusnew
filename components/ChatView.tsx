@@ -109,9 +109,10 @@ const ChatView: React.FC = () => {
     useEffect(scrollToBottom, [messages, isLoading]);
 
     useEffect(() => {
-        const handleImageDownload = async (e: MouseEvent) => {
+        const handleChatViewClick = async (e: MouseEvent) => {
             const target = e.target as HTMLElement;
             const downloadButton = target.closest('.download-image-btn');
+            const betterImageButton = target.closest('.better-image-btn');
 
             if (downloadButton) {
                 e.preventDefault();
@@ -147,13 +148,43 @@ const ChatView: React.FC = () => {
                     }
                 }
             }
+
+            if (betterImageButton) {
+                e.preventDefault();
+                const prompt = betterImageButton.getAttribute('data-prompt');
+                if (prompt) {
+                    navigator.clipboard.writeText(prompt);
+
+                    const originalText = betterImageButton.innerHTML;
+                    betterImageButton.innerHTML = "We've copied the prompt to your clipboard!";
+                    (betterImageButton as HTMLButtonElement).disabled = true;
+
+                    setTimeout(() => {
+                        betterImageButton.innerHTML = "Redirecting in 3...";
+                    }, 1500);
+                    setTimeout(() => {
+                        betterImageButton.innerHTML = "Redirecting in 2...";
+                    }, 2500);
+                    setTimeout(() => {
+                        betterImageButton.innerHTML = "Redirecting in 1...";
+                    }, 3500);
+
+                    setTimeout(() => {
+                        window.open('https://lmarena.ai/?mode=direct&chat-modality=image', '_blank');
+                        betterImageButton.innerHTML = originalText;
+                        (betterImageButton as HTMLButtonElement).disabled = false;
+                    }, 4500);
+                }
+            }
         };
+
         const chatView = document.getElementById('chat-view');
-        chatView?.addEventListener('click', handleImageDownload);
+        chatView?.addEventListener('click', handleChatViewClick);
         return () => {
-            chatView?.removeEventListener('click', handleImageDownload);
+            chatView?.removeEventListener('click', handleChatViewClick);
         };
     }, []);
+
     useEffect(() => {
         if (!session) return;
         const fetchConversations = async () => {
@@ -505,16 +536,22 @@ const ChatView: React.FC = () => {
         let parsed = text.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, (_, alt, url) => {
             const downloadIcon = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>`;
             const fullscreenIcon = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg>`;
-            return `<div class="relative group mt-3 mb-3 block w-full">
-                <img src="${url}" alt="${alt}" class="rounded-xl shadow-lg border border-white/10 w-full h-auto object-cover" />
-                <div class="absolute top-3 right-3 flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-all duration-300">
-                    <a href="${url}" target="_blank" title="View Fullscreen" class="bg-black/60 hover:bg-black/80 backdrop-blur-md text-white w-10 h-10 flex items-center justify-center rounded-full shadow-xl border border-white/10 interactive-lift">
-                        ${fullscreenIcon}
-                    </a>
-                    <a href="${url}" title="Download Image" class="download-image-btn bg-black/60 hover:bg-black/80 backdrop-blur-md text-white w-10 h-10 flex items-center justify-center rounded-full shadow-xl border border-white/10 interactive-lift">
-                        ${downloadIcon}
-                    </a>
+            const promptForClipboard = alt.replace(/"/g, '&quot;'); // Escape quotes for the data attribute
+            return `<div class="mt-3 mb-3 block w-full">
+                <div class="relative group">
+                    <img src="${url}" alt="${alt}" class="rounded-xl shadow-lg border border-white/10 w-full h-auto object-cover" />
+                    <div class="absolute top-3 right-3 flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-all duration-300">
+                        <a href="${url}" target="_blank" title="View Fullscreen" class="bg-black/60 hover:bg-black/80 backdrop-blur-md text-white w-10 h-10 flex items-center justify-center rounded-full shadow-xl border border-white/10 interactive-lift">
+                            ${fullscreenIcon}
+                        </a>
+                        <a href="${url}" title="Download Image" class="download-image-btn bg-black/60 hover:bg-black/80 backdrop-blur-md text-white w-10 h-10 flex items-center justify-center rounded-full shadow-xl border border-white/10 interactive-lift">
+                            ${downloadIcon}
+                        </a>
+                    </div>
                 </div>
+                <button data-prompt="${promptForClipboard}" class="better-image-btn w-full mt-3 bg-indigo-600/50 hover:bg-indigo-600/80 text-white px-4 py-2.5 rounded-full text-sm font-semibold transition-all duration-300 interactive-lift">
+                    Want better images? Click here
+                </button>
             </div>`;
         });
         parsed = parsed.replace(/\*\*(.*?)\*\*/g, '<strong class="text-white font-semibold">$1</strong>').replace(/`([^`]+)`/g, '<code class="bg-black/20 px-1.5 py-0.5 rounded text-sm font-mono text-cyan-300 border border-white/10">$1</code>').replace(/\n/g, '<br />');
