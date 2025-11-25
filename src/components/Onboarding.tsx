@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { supabase } from '../integrations/supabase/client';
 import { useSession } from '../contexts/SessionContext';
-import DynamicBackground from '../../components/DynamicBackground';
+import DynamicBackground from './DynamicBackground';
 
 const Onboarding: React.FC = () => {
     const { user, refreshProfile } = useSession();

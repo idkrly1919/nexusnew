@@ -1,6 +1,6 @@
 import OpenAI from 'openai';
 import { ChatHistory, OpenAIMessage, PersonalityMode } from '../types';
-import { supabase } from '../src/integrations/supabase/client';
+import { supabase } from '../integrations/supabase/client';
 
 // Define the yield type for the stream
 interface StreamUpdate {

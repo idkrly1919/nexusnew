@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { SessionProvider, useSession } from './src/contexts/SessionContext';
+import { SessionProvider, useSession } from './contexts/SessionContext';
 import ChatView from './components/ChatView';
 import LandingPage from './components/LandingPage';
-import Onboarding from './src/components/Onboarding';
-import AuthPage from './src/pages/AuthPage';
+import Onboarding from './components/Onboarding';
+import AuthPage from './pages/AuthPage';
 
 const AppContent: React.FC = () => {
     const { session, profile, isLoading } = useSession();

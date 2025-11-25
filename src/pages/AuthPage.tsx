@@ -1,6 +1,6 @@
 import React, { useState, FormEvent } from 'react';
 import { supabase } from '../integrations/supabase/client';
-import DynamicBackground from '../../components/DynamicBackground';
+import DynamicBackground from '../components/DynamicBackground';
 
 const AuthPage: React.FC<{ onExit: () => void }> = ({ onExit }) => {
     const [step, setStep] = useState<'email' | 'login' | 'signup' | 'verify'>('email');
