@@ -86,12 +86,12 @@ const AuthPage: React.FC = () => {
                 return (
                     <form onSubmit={handleEmailSubmit} className="space-y-6">
                         <div>
-                            <label htmlFor="email" className="block text-sm font-medium text-zinc-300">Email address</label>
+                            <label htmlFor="email" className="block text-sm font-medium text-zinc-600 dark:text-zinc-300">Email address</label>
                             <div className="mt-1">
-                                <input id="email" name="email" type="email" value={email} onChange={e => setEmail(e.target.value)} required className="w-full bg-white/5 border border-white/10 rounded-full px-4 py-3 text-white placeholder-zinc-500 focus:outline-none focus:border-indigo-500/50 focus:ring-2 focus:ring-indigo-500/30 transition-all duration-300" />
+                                <input id="email" name="email" type="email" value={email} onChange={e => setEmail(e.target.value)} required className="w-full bg-white/50 dark:bg-white/5 border border-zinc-300 dark:border-white/10 rounded-full px-4 py-3 text-zinc-900 dark:text-white placeholder-zinc-500 focus:outline-none focus:border-indigo-500/50 focus:ring-2 focus:ring-indigo-500/30 transition-all duration-300" />
                             </div>
                         </div>
-                        <button type="submit" disabled={isLoading} className="w-full flex justify-center py-3 px-4 border border-transparent rounded-full shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:bg-zinc-700">
+                        <button type="submit" disabled={isLoading} className="w-full flex justify-center py-3 px-4 border border-transparent rounded-full shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:bg-zinc-400 dark:disabled:bg-zinc-700">
                             {isLoading ? 'Checking...' : 'Continue with Email'}
                         </button>
                     </form>
@@ -99,33 +99,33 @@ const AuthPage: React.FC = () => {
             case 'login':
                 return (
                     <form onSubmit={handleLogin} className="space-y-6 animate-pop-in">
-                        <input type="email" value={email} readOnly className="w-full bg-black/20 border border-white/10 rounded-full px-4 py-3 text-zinc-400 cursor-not-allowed" />
+                        <input type="email" value={email} readOnly className="w-full bg-zinc-200 dark:bg-black/20 border border-zinc-300 dark:border-white/10 rounded-full px-4 py-3 text-zinc-500 dark:text-zinc-400 cursor-not-allowed" />
                         <div>
-                            <label htmlFor="password"className="block text-sm font-medium text-zinc-300">Password</label>
+                            <label htmlFor="password"className="block text-sm font-medium text-zinc-600 dark:text-zinc-300">Password</label>
                             <div className="mt-1">
-                                <input id="password" name="password" type="password" value={password} onChange={e => setPassword(e.target.value)} required className="w-full bg-white/5 border border-white/10 rounded-full px-4 py-3 text-white placeholder-zinc-500 focus:outline-none focus:border-indigo-500/50 focus:ring-2 focus:ring-indigo-500/30 transition-all duration-300" />
+                                <input id="password" name="password" type="password" value={password} onChange={e => setPassword(e.target.value)} required className="w-full bg-white/50 dark:bg-white/5 border border-zinc-300 dark:border-white/10 rounded-full px-4 py-3 text-zinc-900 dark:text-white placeholder-zinc-500 focus:outline-none focus:border-indigo-500/50 focus:ring-2 focus:ring-indigo-500/30 transition-all duration-300" />
                             </div>
                         </div>
-                        <button type="submit" disabled={isLoading} className="w-full flex justify-center py-3 px-4 border border-transparent rounded-full shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:bg-zinc-700">
+                        <button type="submit" disabled={isLoading} className="w-full flex justify-center py-3 px-4 border border-transparent rounded-full shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:bg-zinc-400 dark:disabled:bg-zinc-700">
                             {isLoading ? 'Signing In...' : 'Sign In'}
                         </button>
-                        <button onClick={() => setStep('email')} className="w-full text-center text-sm text-zinc-400 hover:text-white">Use a different email</button>
+                        <button onClick={() => setStep('email')} className="w-full text-center text-sm text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white">Use a different email</button>
                     </form>
                 );
             case 'signup':
                 return (
                     <form onSubmit={handleSignup} className="space-y-4 animate-pop-in">
-                        <input type="email" value={email} readOnly className="w-full bg-black/20 border border-white/10 rounded-full px-4 py-3 text-zinc-400 cursor-not-allowed" />
+                        <input type="email" value={email} readOnly className="w-full bg-zinc-200 dark:bg-black/20 border border-zinc-300 dark:border-white/10 rounded-full px-4 py-3 text-zinc-500 dark:text-zinc-400 cursor-not-allowed" />
                         <div className="grid grid-cols-2 gap-4">
-                            <input type="text" placeholder="First Name" value={firstName} onChange={e => setFirstName(e.target.value)} required className="w-full bg-white/5 border border-white/10 rounded-full px-4 py-3 text-white placeholder-zinc-500 focus:outline-none focus:border-indigo-500/50 focus:ring-2 focus:ring-indigo-500/30 transition-all duration-300" />
-                            <input type="text" placeholder="Last Name" value={lastName} onChange={e => setLastName(e.target.value)} required className="w-full bg-white/5 border border-white/10 rounded-full px-4 py-3 text-white placeholder-zinc-500 focus:outline-none focus:border-indigo-500/50 focus:ring-2 focus:ring-indigo-500/30 transition-all duration-300" />
+                            <input type="text" placeholder="First Name" value={firstName} onChange={e => setFirstName(e.target.value)} required className="w-full bg-white/50 dark:bg-white/5 border border-zinc-300 dark:border-white/10 rounded-full px-4 py-3 text-zinc-900 dark:text-white placeholder-zinc-500 focus:outline-none focus:border-indigo-500/50 focus:ring-2 focus:ring-indigo-500/30 transition-all duration-300" />
+                            <input type="text" placeholder="Last Name" value={lastName} onChange={e => setLastName(e.target.value)} required className="w-full bg-white/50 dark:bg-white/5 border border-zinc-300 dark:border-white/10 rounded-full px-4 py-3 text-zinc-900 dark:text-white placeholder-zinc-500 focus:outline-none focus:border-indigo-500/50 focus:ring-2 focus:ring-indigo-500/30 transition-all duration-300" />
                         </div>
-                        <input type="password" placeholder="Password" value={password} onChange={e => setPassword(e.target.value)} required className="w-full bg-white/5 border border-white/10 rounded-full px-4 py-3 text-white placeholder-zinc-500 focus:outline-none focus:border-indigo-500/50 focus:ring-2 focus:ring-indigo-500/30 transition-all duration-300" />
-                        <input type="password" placeholder="Confirm Password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} required className="w-full bg-white/5 border border-white/10 rounded-full px-4 py-3 text-white placeholder-zinc-500 focus:outline-none focus:border-indigo-500/50 focus:ring-2 focus:ring-indigo-500/30 transition-all duration-300" />
-                        <button type="submit" disabled={isLoading} className="w-full flex justify-center py-3 px-4 border border-transparent rounded-full shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:bg-zinc-700">
+                        <input type="password" placeholder="Password" value={password} onChange={e => setPassword(e.target.value)} required className="w-full bg-white/50 dark:bg-white/5 border border-zinc-300 dark:border-white/10 rounded-full px-4 py-3 text-zinc-900 dark:text-white placeholder-zinc-500 focus:outline-none focus:border-indigo-500/50 focus:ring-2 focus:ring-indigo-500/30 transition-all duration-300" />
+                        <input type="password" placeholder="Confirm Password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} required className="w-full bg-white/50 dark:bg-white/5 border border-zinc-300 dark:border-white/10 rounded-full px-4 py-3 text-zinc-900 dark:text-white placeholder-zinc-500 focus:outline-none focus:border-indigo-500/50 focus:ring-2 focus:ring-indigo-500/30 transition-all duration-300" />
+                        <button type="submit" disabled={isLoading} className="w-full flex justify-center py-3 px-4 border border-transparent rounded-full shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:bg-zinc-400 dark:disabled:bg-zinc-700">
                             {isLoading ? 'Creating Account...' : 'Create Account'}
                         </button>
-                        <button onClick={() => setStep('email')} className="w-full text-center text-sm text-zinc-400 hover:text-white">Use a different email</button>
+                        <button onClick={() => setStep('email')} className="w-full text-center text-sm text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white">Use a different email</button>
                     </form>
                 );
             case 'verify':
@@ -134,8 +134,8 @@ const AuthPage: React.FC = () => {
                         <div className="w-16 h-16 bg-green-500/20 text-green-400 rounded-full flex items-center justify-center mx-auto">
                             <svg className="w-8 h-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
                         </div>
-                        <h2 className="text-2xl font-bold text-white">Account Created!</h2>
-                        <p className="text-zinc-400">
+                        <h2 className="text-2xl font-bold text-zinc-900 dark:text-white">Account Created!</h2>
+                        <p className="text-zinc-600 dark:text-zinc-400">
                             We've sent a verification link to <strong>{email}</strong>. Please check your inbox to complete the process.
                         </p>
                     </div>
@@ -146,10 +146,10 @@ const AuthPage: React.FC = () => {
     return (
         <>
             <DynamicBackground status="idle" />
-            <div className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-lg flex flex-col items-center justify-center p-4 animate-pop-in">
+            <div className="fixed inset-0 z-[100] bg-white/80 dark:bg-black/80 backdrop-blur-lg flex flex-col items-center justify-center p-4 animate-pop-in">
                  {step !== 'verify' && (
                     <div className="absolute top-4 right-4 z-10">
-                        <Link to="/" className="p-2 rounded-full text-zinc-300 hover:text-white bg-black/20 hover:bg-black/40 backdrop-blur-md border border-white/10 transition-colors">
+                        <Link to="/" className="p-2 rounded-full text-zinc-600 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-white bg-black/5 dark:bg-black/20 hover:bg-black/10 dark:hover:bg-black/40 backdrop-blur-md border border-black/10 dark:border-white/10 transition-colors">
                             <svg width="24" height="24" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5" fill="none"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                         </Link>
                     </div>
@@ -160,16 +160,16 @@ const AuthPage: React.FC = () => {
                             <img src="/nexus-logo.png" alt="Nexus Logo" className="w-10 h-10 animate-spin-slow" />
                             <span className="text-3xl font-bold tracking-tight brand-font">Nexus</span>
                         </div>
-                        <h1 className="text-2xl font-bold text-white">
+                        <h1 className="text-2xl font-bold text-zinc-900 dark:text-white">
                             {step === 'login' ? 'Welcome Back' : step === 'signup' ? 'Create your Account' : step === 'verify' ? 'One Last Step' : 'Welcome to Nexus'}
                         </h1>
-                        <p className="text-zinc-400">
+                        <p className="text-zinc-600 dark:text-zinc-400">
                             {step === 'login' ? 'Sign in to continue' : step === 'signup' ? 'Just a few details to get started' : step === 'verify' ? 'Verify your email to continue' : 'Sign in or create an account'}
                         </p>
                     </div>
                     <div data-liquid-glass className="liquid-glass p-8 rounded-2xl animate-pop-in" style={{ animationDelay: '100ms' }}>
                         {renderForm()}
-                        {error && <p className="mt-4 text-center text-sm text-red-400">{error}</p>}
+                        {error && <p className="mt-4 text-center text-sm text-red-500 dark:text-red-400">{error}</p>}
                     </div>
                 </div>
             </div>

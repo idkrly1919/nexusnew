@@ -11,43 +11,65 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
-    <style>
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: #000000; /* Set base to black */
-            overflow-x: hidden;
-            color: white;
+    <script>
+        // Enable class-based dark mode in Tailwind
+        tailwind.config = {
+            darkMode: 'class'
         }
-        body.chat-active {
-            overflow: hidden;
+    </script>
+    <style>
+        :root {
+            /* Light Mode Orb Colors */
+            --orb-color-1: rgba(0, 0, 0, 0.05); --orb-color-2: rgba(0, 0, 0, 0.04);
+            --orb-color-3: rgba(0, 0, 0, 0.06); --orb-color-4: rgba(0, 0, 0, 0.03);
+            --orb-color-5: rgba(0, 0, 0, 0.04); --orb-color-6: rgba(0, 0, 0, 0.05);
+            --orb-color-7: rgba(0, 0, 0, 0.04); --orb-color-8: rgba(0, 0, 0, 0.05);
+            --orb-color-9: rgba(0, 0, 0, 0.03); --orb-color-10: rgba(0, 0, 0, 0.06);
+            --loading-orb-color-1: rgba(0, 0, 0, 0.08); --loading-orb-color-2: rgba(0, 0, 0, 0.07);
+            --loading-orb-color-3: rgba(0, 0, 0, 0.09); --loading-orb-color-4: rgba(0, 0, 0, 0.06);
+            --loading-orb-color-5: rgba(0, 0, 0, 0.07); --loading-orb-color-6: rgba(0, 0, 0, 0.08);
+            --loading-orb-color-7: rgba(0, 0, 0, 0.07); --loading-orb-color-8: rgba(0, 0, 0, 0.08);
+            --loading-orb-color-9: rgba(0, 0, 0, 0.05); --loading-orb-color-10: rgba(0, 0, 0, 0.09);
+        }
+        .dark {
+            /* Dark Mode Orb Colors */
+            --orb-color-1: rgba(255, 255, 255, 0.19); --orb-color-2: rgba(255, 255, 255, 0.16);
+            --orb-color-3: rgba(255, 255, 255, 0.22); --orb-color-4: rgba(255, 255, 255, 0.14);
+            --orb-color-5: rgba(255, 255, 255, 0.18); --orb-color-6: rgba(255, 255, 255, 0.21);
+            --orb-color-7: rgba(255, 255, 255, 0.16); --orb-color-8: rgba(255, 255, 255, 0.19);
+            --orb-color-9: rgba(255, 255, 255, 0.15); --orb-color-10: rgba(255, 255, 255, 0.20);
+            --loading-orb-color-1: rgba(255, 255, 255, 0.3); --loading-orb-color-2: rgba(255, 255, 255, 0.25);
+            --loading-orb-color-3: rgba(255, 255, 255, 0.35); --loading-orb-color-4: rgba(255, 255, 255, 0.22);
+            --loading-orb-color-5: rgba(255, 255, 255, 0.28); --loading-orb-color-6: rgba(255, 255, 255, 0.32);
+            --loading-orb-color-7: rgba(255, 255, 255, 0.26); --loading-orb-color-8: rgba(255, 255, 255, 0.3);
+            --loading-orb-color-9: rgba(255, 255, 255, 0.2); --loading-orb-color-10: rgba(255, 255, 255, 0.36);
         }
 
+        body {
+            font-family: 'Inter', sans-serif;
+            overflow-x: hidden;
+        }
+        
         h1, h2, h3, .brand-font, .font-brand {
             font-family: 'Space+Grotesk', sans-serif;
         }
         
         .liquid-glass {
-            background: linear-gradient(135deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.02));
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.8), rgba(255, 255, 255, 0.4));
             backdrop-filter: blur(24px) saturate(150%);
             -webkit-backdrop-filter: blur(24px) saturate(150%);
+            border: 1px solid rgba(0, 0, 0, 0.08);
+        }
+        .dark .liquid-glass {
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.02));
+            border: 1px solid rgba(255, 255, 255, 0.1);
         }
 
-        .light-liquid-glass {
-            background: linear-gradient(135deg, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0.08));
-            backdrop-filter: blur(20px) saturate(150%);
-            -webkit-backdrop-filter: blur(20px) saturate(150%);
-        }
-        .dark-liquid-glass {
-            background: linear-gradient(135deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.04));
-            backdrop-filter: blur(28px) saturate(150%);
-            -webkit-backdrop-filter: blur(28px) saturate(150%);
-        }
-
-        .interactive-lift {
-            transition: transform 0.4s cubic-bezier(0.165, 0.84, 0.44, 1), box-shadow 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
-        }
         .interactive-lift:hover {
             transform: translateY(-6px) scale(1.02);
+            box-shadow: 0 15px 50px 0 rgba(0, 0, 0, 0.1);
+        }
+        .dark .interactive-lift:hover {
             box-shadow: 
                 inset 0 1px 1px 0 rgba(255, 255, 255, 0.1),
                 0 15px 50px 0 rgba(0, 0, 0, 0.5);
@@ -87,212 +109,80 @@
         }
 
         .dynamic-background-container {
-            position: fixed;
-            inset: 0;
-            z-index: -1;
-            background-color: #000000;
+            position: fixed; inset: 0; z-index: -1;
+            background-color: #ffffff;
             overflow: hidden;
         }
+        .dark .dynamic-background-container { background-color: #000000; }
 
         .orb {
-            position: absolute;
-            border-radius: 9999px;
+            position: absolute; border-radius: 9999px;
             will-change: transform, opacity, top, left, width, height, filter;
             transition: all 1.5s cubic-bezier(0.2, 0.8, 0.2, 1);
         }
 
-        .idle .orb {
-            filter: blur(100px);
-            animation-timing-function: ease-in-out;
-            animation-iteration-count: infinite;
-        }
-
-        .idle .orb-1 { background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.19), rgba(255, 255, 255, 0.0) 80%); width: 40vw; height: 40vw; top: 10%; left: 5%; animation-name: fluid-drift-1; animation-duration: 50s; }
-        .idle .orb-2 { background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0.0) 80%); width: 30vw; height: 30vw; top: 50%; left: 20%; animation-name: fluid-drift-2; animation-duration: 60s; animation-delay: -5s; }
-        .idle .orb-3 { background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.22), rgba(255, 255, 255, 0.0) 80%); width: 35vw; height: 35vw; top: 20%; left: 60%; animation-name: fluid-drift-3; animation-duration: 56s; animation-delay: -2s; }
-        .idle .orb-4 { background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.14), rgba(255, 255, 255, 0.0) 80%); width: 25vw; height: 25vw; top: 70%; left: 75%; animation-name: fluid-drift-1; animation-duration: 70s; animation-delay: -10s; }
-        .idle .orb-5 { background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.18), rgba(255, 255, 255, 0.0) 80%); width: 20vw; height: 20vw; top: 80%; left: 10%; animation-name: fluid-drift-2; animation-duration: 44s; animation-delay: -8s; }
-        .idle .orb-6 { background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.21), rgba(255, 255, 255, 0.0) 80%); width: 30vw; height: 30vw; top: -10%; left: 40%; animation-name: fluid-drift-3; animation-duration: 64s; animation-delay: -3s; }
-        .idle .orb-7 { background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0.0) 80%); width: 30vw; height: 30vw; top: 60%; left: 45%; animation-name: fluid-drift-1; animation-duration: 52s; animation-delay: -4s; }
-        .idle .orb-8 { background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.19), rgba(255, 255, 255, 0.0) 80%); width: 25vw; height: 25vw; top: 5%; left: 80%; animation-name: fluid-drift-2; animation-duration: 58s; animation-delay: -7s; }
+        .idle .orb { filter: blur(100px); animation-timing-function: ease-in-out; animation-iteration-count: infinite; }
+        .idle .orb-1 { background: radial-gradient(circle, var(--orb-color-1), transparent 80%); width: 40vw; height: 40vw; top: 10%; left: 5%; animation-name: fluid-drift-1; animation-duration: 50s; }
+        .idle .orb-2 { background: radial-gradient(circle, var(--orb-color-2), transparent 80%); width: 30vw; height: 30vw; top: 50%; left: 20%; animation-name: fluid-drift-2; animation-duration: 60s; animation-delay: -5s; }
+        .idle .orb-3 { background: radial-gradient(circle, var(--orb-color-3), transparent 80%); width: 35vw; height: 35vw; top: 20%; left: 60%; animation-name: fluid-drift-3; animation-duration: 56s; animation-delay: -2s; }
+        .idle .orb-4 { background: radial-gradient(circle, var(--orb-color-4), transparent 80%); width: 25vw; height: 25vw; top: 70%; left: 75%; animation-name: fluid-drift-1; animation-duration: 70s; animation-delay: -10s; }
+        .idle .orb-5 { background: radial-gradient(circle, var(--orb-color-5), transparent 80%); width: 20vw; height: 20vw; top: 80%; left: 10%; animation-name: fluid-drift-2; animation-duration: 44s; animation-delay: -8s; }
+        .idle .orb-6 { background: radial-gradient(circle, var(--orb-color-6), transparent 80%); width: 30vw; height: 30vw; top: -10%; left: 40%; animation-name: fluid-drift-3; animation-duration: 64s; animation-delay: -3s; }
+        .idle .orb-7 { background: radial-gradient(circle, var(--orb-color-7), transparent 80%); width: 30vw; height: 30vw; top: 60%; left: 45%; animation-name: fluid-drift-1; animation-duration: 52s; animation-delay: -4s; }
+        .idle .orb-8 { background: radial-gradient(circle, var(--orb-color-8), transparent 80%); width: 25vw; height: 25vw; top: 5%; left: 80%; animation-name: fluid-drift-2; animation-duration: 58s; animation-delay: -7s; }
         .idle .orb-9, .idle .orb-10 { display: none; }
 
-        @keyframes fluid-drift-1 {
-            0% { transform: translate(0, 0) scale(1); }
-            20% { transform: translate(4vw, -6vh) scale(1.1); }
-            45% { transform: translate(-5vw, 5vh) scale(0.9); }
-            70% { transform: translate(2.5vw, 7.5vh) scale(1.2); }
-            100% { transform: translate(0, 0) scale(1); }
-        }
+        @keyframes fluid-drift-1 { 0% { transform: translate(0, 0) scale(1); } 20% { transform: translate(4vw, -6vh) scale(1.1); } 45% { transform: translate(-5vw, 5vh) scale(0.9); } 70% { transform: translate(2.5vw, 7.5vh) scale(1.2); } 100% { transform: translate(0, 0) scale(1); } }
+        @keyframes fluid-drift-2 { 0% { transform: translate(0, 0) scale(1); } 25% { transform: translate(-4vw, 7.5vh) scale(1.2); } 50% { transform: translate(5vw, -2.5vh) scale(0.8); } 75% { transform: translate(-2.5vw, -5vh) scale(1.1); } 100% { transform: translate(0, 0) scale(1); } }
+        @keyframes fluid-drift-3 { 0% { transform: translate(0, 0) scale(1); } 30% { transform: translate(6vw, 4vh) scale(0.95); } 60% { transform: translate(-4vw, -6vh) scale(1.15); } 80% { transform: translate(2.5vw, 2.5vh) scale(1); } 100% { transform: translate(0, 0) scale(1); } }
+        @keyframes loading-pulse { 0% { opacity: 0.5; transform: scale(1); } 50% { opacity: 0.9; transform: scale(1.03); } 100% { opacity: 0.5; transform: scale(1); } }
 
-        @keyframes fluid-drift-2 {
-            0% { transform: translate(0, 0) scale(1); }
-            25% { transform: translate(-4vw, 7.5vh) scale(1.2); }
-            50% { transform: translate(5vw, -2.5vh) scale(0.8); }
-            75% { transform: translate(-2.5vw, -5vh) scale(1.1); }
-            100% { transform: translate(0, 0) scale(1); }
-        }
+        .loading-text .orb, .loading-image .orb { filter: blur(60px); animation-name: loading-pulse; animation-timing-function: ease-in-out; animation-iteration-count: infinite; animation-duration: 1.8s; }
+        .loading-text .orb-1, .loading-image .orb-1 { background: radial-gradient(circle, var(--loading-orb-color-1), transparent 80%); width: 40vw; height: 40vw; top: 10%; left: 5%; animation-delay: 0s; }
+        .loading-text .orb-2, .loading-image .orb-2 { background: radial-gradient(circle, var(--loading-orb-color-2), transparent 80%); width: 30vw; height: 30vw; top: 50%; left: 20%; animation-delay: -0.3s; }
+        .loading-text .orb-3, .loading-image .orb-3 { background: radial-gradient(circle, var(--loading-orb-color-3), transparent 80%); width: 35vw; height: 35vw; top: 20%; left: 60%; animation-delay: -0.6s; }
+        .loading-text .orb-4, .loading-image .orb-4 { background: radial-gradient(circle, var(--loading-orb-color-4), transparent 80%); width: 25vw; height: 25vw; top: 70%; left: 75%; animation-delay: -0.9s; }
+        .loading-text .orb-5, .loading-image .orb-5 { background: radial-gradient(circle, var(--loading-orb-color-5), transparent 80%); width: 20vw; height: 20vw; top: 80%; left: 10%; animation-delay: -1.2s; }
+        .loading-text .orb-6, .loading-image .orb-6 { background: radial-gradient(circle, var(--loading-orb-color-6), transparent 80%); width: 30vw; height: 30vw; top: -10%; left: 40%; animation-delay: -1.5s; }
+        .loading-text .orb-7, .loading-image .orb-7 { background: radial-gradient(circle, var(--loading-orb-color-7), transparent 80%); width: 30vw; height: 30vw; top: 60%; left: 45%; animation-delay: -1.8s; }
+        .loading-text .orb-8, .loading-image .orb-8 { background: radial-gradient(circle, var(--loading-orb-color-8), transparent 80%); width: 25vw; height: 25vw; top: 5%; left: 80%; animation-delay: -2.1s; }
+        .loading-text .orb-9, .loading-image .orb-9 { background: radial-gradient(circle, var(--loading-orb-color-9), transparent 80%); width: 20vw; height: 20vw; top: 85%; left: 55%; animation-delay: -2.4s; }
+        .loading-text .orb-10, .loading-image .orb-10 { background: radial-gradient(circle, var(--loading-orb-color-10), transparent 80%); width: 35vw; height: 35vw; top: 35%; left: -5%; animation-delay: -2.7s; }
 
-        @keyframes fluid-drift-3 {
-            0% { transform: translate(0, 0) scale(1); }
-            30% { transform: translate(6vw, 4vh) scale(0.95); }
-            60% { transform: translate(-4vw, -6vh) scale(1.15); }
-            80% { transform: translate(2.5vw, 2.5vh) scale(1); }
-            100% { transform: translate(0, 0) scale(1); }
-        }
+        .bw-to-color-hover { filter: grayscale(90%); transition: filter 0.5s cubic-bezier(0.2, 0.8, 0.2, 1); }
+        .bw-to-color-hover:hover { filter: grayscale(0%); }
 
-        @keyframes loading-pulse {
-            0% { opacity: 0.5; transform: scale(1); }
-            50% { opacity: 0.9; transform: scale(1.03); }
-            100% { opacity: 0.5; transform: scale(1); }
-        }
+        .trusted-logo { filter: grayscale(100%) brightness(1.2); opacity: 0.7; transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1); }
+        .dark .trusted-logo { filter: grayscale(100%) brightness(0.7); opacity: 0.5; }
+        .trusted-logo:hover { filter: grayscale(0%) brightness(1); opacity: 1; transform: scale(1.05); }
 
-        .loading-text .orb,
-        .loading-image .orb {
-            filter: blur(60px);
-            animation-name: loading-pulse;
-            animation-timing-function: ease-in-out;
-            animation-iteration-count: infinite;
-            animation-duration: 1.8s;
-        }
-
-        .loading-text .orb-1, .loading-image .orb-1 { background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.3), rgba(255, 255, 255, 0.0) 80%); width: 40vw; height: 40vw; top: 10%; left: 5%; animation-delay: 0s; }
-        .loading-text .orb-2, .loading-image .orb-2 { background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.25), rgba(255, 255, 255, 0.0) 80%); width: 30vw; height: 30vw; top: 50%; left: 20%; animation-delay: -0.3s; }
-        .loading-text .orb-3, .loading-image .orb-3 { background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.35), rgba(255, 255, 255, 0.0) 80%); width: 35vw; height: 35vw; top: 20%; left: 60%; animation-delay: -0.6s; }
-        .loading-text .orb-4, .loading-image .orb-4 { background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.22), rgba(255, 255, 255, 0.0) 80%); width: 25vw; height: 25vw; top: 70%; left: 75%; animation-delay: -0.9s; }
-        .loading-text .orb-5, .loading-image .orb-5 { background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.28), rgba(255, 255, 255, 0.0) 80%); width: 20vw; height: 20vw; top: 80%; left: 10%; animation-delay: -1.2s; }
-        .loading-text .orb-6, .loading-image .orb-6 { background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.32), rgba(255, 255, 255, 0.0) 80%); width: 30vw; height: 30vw; top: -10%; left: 40%; animation-delay: -1.5s; }
-        .loading-text .orb-7, .loading-image .orb-7 { background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.26), rgba(255, 255, 255, 0.0) 80%); width: 30vw; height: 30vw; top: 60%; left: 45%; animation-delay: -1.8s; }
-        .loading-text .orb-8, .loading-image .orb-8 { background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.3), rgba(255, 255, 255, 0.0) 80%); width: 25vw; height: 25vw; top: 5%; left: 80%; animation-delay: -2.1s; }
-        .loading-text .orb-9, .loading-image .orb-9 { background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0.0) 80%); width: 20vw; height: 20vw; top: 85%; left: 55%; animation-delay: -2.4s; }
-        .loading-text .orb-10, .loading-image .orb-10 { background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.36), rgba(255, 255, 255, 0.0) 80%); width: 35vw; height: 35vw; top: 35%; left: -5%; animation-delay: -2.7s; }
-
-        .bw-to-color-hover {
-            filter: grayscale(90%);
-            transition: filter 0.5s cubic-bezier(0.2, 0.8, 0.2, 1);
-        }
-        .bw-to-color-hover:hover {
-            filter: grayscale(0%);
-        }
-
-        .trusted-logo {
-            filter: grayscale(100%) brightness(0.7);
-            opacity: 0.5;
-            transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
-        }
-        .trusted-logo:hover {
-            filter: grayscale(0%) brightness(1);
-            opacity: 1;
-            transform: scale(1.05);
-        }
-
-        /* New Globe Animation */
-        .globe-container {
-            width: 16px;
-            height: 16px;
-            perspective: 600px;
-        }
-        .globe {
-            width: 100%;
-            height: 100%;
-            position: relative;
-            transform-style: preserve-3d;
-            animation: globe-spin 5s linear infinite;
-            border-radius: 50%;
-        }
-        .globe::before, .globe::after {
-            content: '';
-            position: absolute;
-            top: 0; left: 0; right: 0; bottom: 0;
-            margin: auto;
-            width: 100%;
-            height: 100%;
-            border-radius: 50%;
-            border: 1px solid rgba(255,255,255,0.4);
-        }
+        .globe-container { width: 16px; height: 16px; perspective: 600px; }
+        .globe { width: 100%; height: 100%; position: relative; transform-style: preserve-3d; animation: globe-spin 5s linear infinite; border-radius: 50%; }
+        .globe::before, .globe::after { content: ''; position: absolute; top: 0; left: 0; right: 0; bottom: 0; margin: auto; width: 100%; height: 100%; border-radius: 50%; border: 1px solid rgba(0,0,0,0.6); }
+        .dark .globe::before, .dark .globe::after { border-color: rgba(255,255,255,0.4); }
         .globe::before { transform: rotateY(60deg); }
         .globe::after { transform: rotateY(-60deg); }
-        @keyframes globe-spin {
-            from { transform: rotateY(0deg) rotateX(10deg); }
-            to { transform: rotateY(360deg) rotateX(10deg); }
-        }
+        @keyframes globe-spin { from { transform: rotateY(0deg) rotateX(10deg); } to { transform: rotateY(360deg) rotateX(10deg); } }
 
-        /* New Thinking Dots Animation */
-        .thinking-dots span {
-            display: inline-block;
-            width: 5px;
-            height: 5px;
-            border-radius: 50%;
-            background-color: rgba(255, 255, 255, 0.6);
-            margin: 0 2px;
-            animation: thinking-pulse 1.4s infinite ease-in-out both;
-        }
+        .thinking-dots span { display: inline-block; width: 5px; height: 5px; border-radius: 50%; background-color: rgba(0, 0, 0, 0.6); margin: 0 2px; animation: thinking-pulse 1.4s infinite ease-in-out both; }
+        .dark .thinking-dots span { background-color: rgba(255, 255, 255, 0.6); }
         .thinking-dots span:nth-child(1) { animation-delay: -0.32s; }
         .thinking-dots span:nth-child(2) { animation-delay: -0.16s; }
-        @keyframes thinking-pulse {
-            0%, 80%, 100% { transform: scale(0); }
-            40% { transform: scale(1.0); }
-        }
+        @keyframes thinking-pulse { 0%, 80%, 100% { transform: scale(0); } 40% { transform: scale(1.0); } }
 
-        /* Cosmos View Styles */
-        .twinkle {
-            animation: twinkle-animation 4s ease-in-out infinite;
-        }
-        @keyframes twinkle-animation {
-            0%, 100% { opacity: inherit; }
-            50% { opacity: 1; }
-        }
+        .twinkle { animation: twinkle-animation 4s ease-in-out infinite; }
+        @keyframes twinkle-animation { 0%, 100% { opacity: inherit; } 50% { opacity: 1; } }
 
-        .shooting-star {
-            position: absolute;
-            height: 2px;
-            background: linear-gradient(-45deg, white, rgba(255, 255, 255, 0));
-            border-radius: 999px;
-            filter: drop-shadow(0 0 6px white);
-            animation: shooting-star-fall linear;
-            opacity: 0;
-        }
-        @keyframes shooting-star-fall {
-            0% {
-                transform: translateX(0) translateY(0);
-                opacity: 1;
-            }
-            100% {
-                transform: translateX(-150vw) translateY(150vh);
-                opacity: 0;
-            }
-        }
+        .shooting-star { position: absolute; height: 2px; background: linear-gradient(-45deg, white, rgba(255, 255, 255, 0)); border-radius: 999px; filter: drop-shadow(0 0 6px white); animation: shooting-star-fall linear; opacity: 0; }
+        @keyframes shooting-star-fall { 0% { transform: translateX(0) translateY(0); opacity: 1; } 100% { transform: translateX(-150vw) translateY(150vh); opacity: 0; } }
 
-        .liquid-planet {
-            background: linear-gradient(135deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.01));
-            backdrop-filter: blur(12px) saturate(120%);
-            -webkit-backdrop-filter: blur(12px) saturate(120%);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            transition: transform 0.3s ease-out, box-shadow 0.3s ease-out;
-        }
-        .liquid-planet:hover {
-            box-shadow: 0 0 30px 5px rgba(255, 255, 255, 0.1);
-        }
+        .liquid-planet { background: linear-gradient(135deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.01)); backdrop-filter: blur(12px) saturate(120%); -webkit-backdrop-filter: blur(12px) saturate(120%); border: 1px solid rgba(255, 255, 255, 0.1); transition: transform 0.3s ease-out, box-shadow 0.3s ease-out; }
+        .liquid-planet:hover { box-shadow: 0 0 30px 5px rgba(255, 255, 255, 0.1); }
 
-        @keyframes pulse-glow {
-            0%, 100% { box-shadow: 0 0 20px 5px rgba(255, 255, 255, 0.2), inset 0 0 10px 2px rgba(255, 255, 255, 0.1); }
-            50% { box-shadow: 0 0 35px 10px rgba(255, 255, 255, 0.3), inset 0 0 15px 4px rgba(255, 255, 255, 0.15); }
-        }
+        @keyframes pulse-glow { 0%, 100% { box-shadow: 0 0 20px 5px rgba(255, 255, 255, 0.2), inset 0 0 10px 2px rgba(255, 255, 255, 0.1); } 50% { box-shadow: 0 0 35px 10px rgba(255, 255, 255, 0.3), inset 0 0 15px 4px rgba(255, 255, 255, 0.15); } }
 
-        /* New Star Fall Animation */
-        @keyframes star-fall {
-            from {
-                transform: translateY(0vh);
-            }
-            to {
-                transform: translateY(100vh);
-            }
-        }
-        .star-fall-animation {
-            animation-name: star-fall;
-            animation-timing-function: linear;
-            animation-iteration-count: infinite;
-        }
+        @keyframes star-fall { from { transform: translateY(0vh); } to { transform: translateY(100vh); } }
+        .star-fall-animation { animation-name: star-fall; animation-timing-function: linear; animation-iteration-count: infinite; }
 
     </style>
 <script type="importmap">
@@ -308,7 +198,7 @@
 }
 </script>
 </head>
-<body class="text-white min-h-screen relative selection:bg-purple-500 selection:text-white">
+<body class="bg-white dark:bg-black text-zinc-900 dark:text-zinc-100 min-h-screen relative selection:bg-purple-500 selection:text-white">
     <div id="root"></div>
     <script type="module" src="/src/index.tsx"></script>
     <script src="/lib/liquid-glass.js"></script>

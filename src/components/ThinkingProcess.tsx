@@ -89,7 +89,7 @@ export const ThinkingProcess: React.FC<ThinkingProcessProps> = ({ isThinking = f
     return (
         <div data-liquid-glass className="liquid-glass inline-flex items-center gap-3 py-2 px-4 rounded-full">
             {renderAnimation()}
-            <div className="text-sm font-mono text-zinc-400">
+            <div className="text-sm font-mono text-zinc-600 dark:text-zinc-400">
                 {statusText}
             </div>
         </div>
