@@ -36,7 +36,7 @@ const ChatView: React.FC = () => {
     const [personality, setPersonality] = useState<PersonalityMode>('conversational');
     const [imageModelPref, setImageModelPref] = useState(profile?.image_model_preference || 'img3');
     
-    const [attachedFile, setAttachedFile] = useState<{name: string, content: string, type: string} | null>(null);
+    const [attachedFiles, setAttachedFiles] = useState<{id: string, name: string, content: string, type: string}[]>([]);
     const [isDragging, setIsDragging] = useState(false);
 
     const [conversations, setConversations] = useState<Conversation[]>([]);
@@ -193,23 +193,32 @@ const ChatView: React.FC = () => {
         fetchMessages();
     }, [currentConversationId, session]);
 
-    const processFile = (file: File) => {
-        if (!file) return;
-        const setFile = (content: string) => setAttachedFile({ name: file.name, content, type: file.type });
-        const reader = new FileReader();
-        if (file.type.startsWith('image/')) {
-            reader.onload = (event) => setFile(event.target?.result as string);
-            reader.readAsDataURL(file);
-        } else {
-            reader.onload = (event) => setFile(event.target?.result as string);
-            reader.readAsText(file);
-        }
+    const processFiles = (files: FileList) => {
+        if (!files) return;
+        const newFiles = Array.from(files).slice(0, 10 - attachedFiles.length);
+
+        newFiles.forEach((file, index) => {
+            const reader = new FileReader();
+            const fileId = `${Date.now()}-${index}`;
+
+            reader.onload = (event) => {
+                const content = event.target?.result as string;
+                if (content) {
+                    setAttachedFiles(prev => [...prev, { id: fileId, name: file.name, content, type: file.type }]);
+                }
+            };
+
+            if (file.type.startsWith('image/')) {
+                reader.readAsDataURL(file);
+            } else {
+                reader.readAsText(file);
+            }
+        });
     };
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (file) {
-            processFile(file);
+        if (e.target.files) {
+            processFiles(e.target.files);
         }
     };
 
@@ -233,16 +242,16 @@ const ChatView: React.FC = () => {
             e.preventDefault();
             e.stopPropagation();
             setIsDragging(false);
-            if (e.dataTransfer?.files && e.dataTransfer.files.length > 0) {
-                processFile(e.dataTransfer.files[0]);
+            if (e.dataTransfer?.files) {
+                processFiles(e.dataTransfer.files);
                 e.dataTransfer.clearData();
             }
         };
     
         const handlePaste = (e: ClipboardEvent) => {
-            if (e.clipboardData?.files && e.clipboardData.files.length > 0) {
+            if (e.clipboardData?.files) {
                 e.preventDefault();
-                processFile(e.clipboardData.files[0]);
+                processFiles(e.clipboardData.files);
             }
         };
     
@@ -257,12 +266,11 @@ const ChatView: React.FC = () => {
             chatViewElement.removeEventListener('drop', handleDrop);
             document.removeEventListener('paste', handlePaste);
         };
-    }, []);
+    }, [attachedFiles]);
 
     const triggerFileSelect = () => fileInputRef.current?.click();
-    const removeFile = () => {
-        setAttachedFile(null);
-        if (fileInputRef.current) fileInputRef.current.value = '';
+    const removeFile = (fileId: string) => {
+        setAttachedFiles(prev => prev.filter(f => f.id !== fileId));
     };
     
     const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
@@ -370,7 +378,7 @@ const ChatView: React.FC = () => {
     };
 
     const processSubmission = async (userText: string) => {
-        if (isLoading || (!userText.trim() && !attachedFile)) return;
+        if (isLoading || (!userText.trim() && attachedFiles.length === 0)) return;
         
         const imageKeywords = ['draw', 'paint', 'generate image', 'create an image', 'visualize', 'edit image', 'modify image', 'make an image'];
         const isImage = imageKeywords.some(k => userText.toLowerCase().includes(k));
@@ -379,12 +387,16 @@ const ChatView: React.FC = () => {
         setInputValue('');
 
         if (textareaRef.current) textareaRef.current.style.height = '52px';
+        
         let userDisplay = userText;
-        if (attachedFile) {
-            const isImg = attachedFile.type.startsWith('image/');
-            const fileIcon = isImg ? `<img src="${attachedFile.content}" class="w-8 h-8 rounded object-cover border border-white/20" />` : `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>`;
-            userDisplay = `${userText} <br/><div class="inline-flex items-center gap-2 mt-2 px-2 py-1 rounded-full bg-white/10 text-xs font-mono">${fileIcon}<span>${attachedFile.name}</span></div>`;
+        if (attachedFiles.length > 0) {
+            const filePreviews = attachedFiles.map(file => {
+                const isImg = file.type.startsWith('image/');
+                return isImg ? `<img src="${file.content}" class="w-8 h-8 rounded object-cover border border-white/20" />` : `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>`;
+            }).join('');
+            userDisplay = `${userText} <br/><div class="flex items-center gap-2 mt-2">${filePreviews}</div>`;
         }
+
         const userMessage: Message = { id: `user-${Date.now()}`, role: 'user', text: userDisplay };
         setMessages(prev => [...prev, userMessage]);
         
@@ -410,12 +422,13 @@ const ChatView: React.FC = () => {
             setConversations(prev => [newConversation as Conversation, ...prev]);
         }
 
-        const userContentForDb = attachedFile ? `[User attached file: ${attachedFile.name}]\n${userText}` : userText;
+        const userContentForDb = attachedFiles.length > 0 ? `[User attached ${attachedFiles.length} file(s): ${attachedFiles.map(f => f.name).join(', ')}]\n${userText}` : userText;
         if (session && conversationId) {
             await supabase.from('messages').insert({ conversation_id: conversationId, user_id: session.user.id, role: 'user', content: userContentForDb });
         }
         
-        setAttachedFile(null);
+        const filesToProcess = [...attachedFiles];
+        setAttachedFiles([]);
         const controller = new AbortController();
         abortControllerRef.current = controller;
         
@@ -428,7 +441,7 @@ const ChatView: React.FC = () => {
         }
 
         try {
-            const stream = streamGemini(userText, chatHistory, true, personality, imageModelPref, attachedFile, controller.signal, profile?.first_name, personalizationData);
+            const stream = streamGemini(userText, chatHistory, true, personality, imageModelPref, filesToProcess, controller.signal, profile?.first_name, personalizationData);
             let assistantMessageExists = false;
             let accumulatedText = "";
             const aiMsgId = `ai-${Date.now()}`;
@@ -815,12 +828,32 @@ const ChatView: React.FC = () => {
                             <form onSubmit={handleChatSubmit} className="relative">
                                 <div data-liquid-glass className="liquid-glass rounded-full flex items-center p-2 transition-all duration-300 focus-within:shadow-2xl focus-within:shadow-indigo-500/20">
                                     <button type="button" onClick={triggerFileSelect} className="p-2 rounded-full text-zinc-300 hover:text-white hover:bg-white/10 transition-colors ml-1" title="Attach File"><svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg></button>
-                                    <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" accept="image/*,application/pdf,text/plain,text/code,application/json" />
+                                    <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" accept="image/*,application/pdf,text/plain,text/code,application/json" multiple />
                                     <textarea ref={textareaRef} value={inputValue} onChange={(e) => setInputValue(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleChatSubmit(e); } }} rows={1} placeholder="Message Nexus..." className="flex-1 bg-transparent border-none text-white placeholder-zinc-500 focus:ring-0 focus:outline-none resize-none py-3 px-3 max-h-[120px] overflow-y-auto scrollbar-hide"></textarea>
                                     <button type="button" onClick={() => setIsVoiceMode(true)} className="p-2 rounded-full text-zinc-300 hover:text-white hover:bg-white/10 transition-colors"><svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/></svg></button>
-                                    <button type="submit" disabled={isLoading || (!inputValue.trim() && !attachedFile)} className={`w-9 h-9 flex items-center justify-center rounded-full transition-all duration-200 ml-1 ${(inputValue.trim() || attachedFile) && !isLoading ? 'bg-white text-black hover:bg-zinc-200 shadow-lg' : 'bg-white/10 text-zinc-500 cursor-not-allowed'}`}><svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg></button>
+                                    <button type="submit" disabled={isLoading || (!inputValue.trim() && attachedFiles.length === 0)} className={`w-9 h-9 flex items-center justify-center rounded-full transition-all duration-200 ml-1 ${(inputValue.trim() || attachedFiles.length > 0) && !isLoading ? 'bg-white text-black hover:bg-zinc-200 shadow-lg' : 'bg-white/10 text-zinc-500 cursor-not-allowed'}`}><svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg></button>
                                 </div>
-                                {attachedFile && (<div className="absolute bottom-full left-4 mb-2"><div className="inline-flex items-center gap-2 bg-black/50 backdrop-blur-md text-zinc-200 text-xs px-3 py-1.5 rounded-full border border-white/10 animate-pop-in"><div className="w-4 h-4 flex items-center justify-center">{attachedFile.type.startsWith('image/') ? <svg className="w-3 h-3" viewBox="0 0 24 24"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg> : <svg className="w-3 h-3" viewBox="0 0 24 24"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/></svg>}</div><span className="max-w-[150px] truncate font-medium">{attachedFile.name}</span><button type="button" onClick={removeFile} className="ml-1 hover:text-white p-0.5 rounded-full hover:bg-white/10 transition-colors"><svg className="w-3 h-3" viewBox="0 0 24 24"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></button></div></div>)}
+                                {attachedFiles.length > 0 && (
+                                    <div className="absolute bottom-full w-full left-0 mb-2 px-2">
+                                        <div className="flex gap-3 flex-wrap p-2 bg-black/30 backdrop-blur-md rounded-xl border border-white/10">
+                                            {attachedFiles.map(file => (
+                                                <div key={file.id} className="relative w-20 h-20 bg-black/50 rounded-lg border border-white/10 group animate-pop-in">
+                                                    {file.type.startsWith('image/') ? (
+                                                        <img src={file.content} alt={file.name} className="w-full h-full object-cover rounded-lg" />
+                                                    ) : (
+                                                        <div className="w-full h-full flex flex-col items-center justify-center p-2 text-center">
+                                                            <svg className="w-6 h-6 text-zinc-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/></svg>
+                                                            <span className="text-xs text-zinc-300 mt-1 truncate w-full">{file.name}</span>
+                                                        </div>
+                                                    )}
+                                                    <button type="button" onClick={() => removeFile(file.id)} className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-zinc-800 hover:bg-red-500 border border-white/20 rounded-full flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-all" title={`Remove ${file.name}`}>
+                                                        <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                                                    </button>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
                             </form>
                         </div>
                     )}

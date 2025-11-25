@@ -27,7 +27,7 @@ export async function* streamGemini(
     useSearch: boolean,
     personality: PersonalityMode = 'conversational',
     imageModelPreference: string = 'img3',
-    attachedFile: { name: string, content: string, type: string } | null = null,
+    attachedFiles: { name: string, content: string, type: string }[] | null = null,
     signal: AbortSignal,
     firstName: string | null | undefined,
     personalizationEntries: string[]
@@ -62,7 +62,7 @@ export async function* streamGemini(
         const preliminaryCheckKeywords = ['generate', 'create', 'draw', 'paint', 'visualize', 'picture', 'photo', 'image', 'edit', 'modify', 'change', 'make it'];
         const mightBeImageRequest = preliminaryCheckKeywords.some(k => prompt.toLowerCase().includes(k));
 
-        if (!attachedFile && (mightBeImageRequest || wasLastResponseAnImage)) {
+        if ((!attachedFiles || attachedFiles.length === 0) && (mightBeImageRequest || wasLastResponseAnImage)) {
             let intentSystemPrompt = `You are an expert request analyzer. Your task is to determine if the user's prompt is a request to generate or modify an image.
 If it is an image request, you must refine their request into a detailed, high-quality prompt for an image generation model.
 When refining the prompt, focus on realism, accuracy, and ensuring the output is not a duplicate of common images.
@@ -168,16 +168,30 @@ To build a comprehensive profile of the user, you MUST identify and save any new
             let messages: any[] = [{ role: 'system', content: systemInstruction }, ...history];
             let activeModel = 'x-ai/grok-4.1-fast'; 
 
-            if (attachedFile) {
-                if (attachedFile.type.startsWith('image/')) {
+            const userMessageContent: any[] = [{ type: 'text', text: prompt }];
+            let nonImageFileContent = '';
+
+            if (attachedFiles && attachedFiles.length > 0) {
+                let hasImage = false;
+                attachedFiles.forEach(file => {
+                    if (file.type.startsWith('image/')) {
+                        hasImage = true;
+                        userMessageContent.push({ type: 'image_url', image_url: { url: file.content } });
+                    } else {
+                        nonImageFileContent += `\n\n[File Content of ${file.name}]:\n${file.content}`;
+                    }
+                });
+
+                if (hasImage) {
                     activeModel = 'google/gemini-2.0-flash-001';
-                    messages.push({
-                        role: 'user',
-                        content: [{ type: 'text', text: prompt }, { type: 'image_url', image_url: { url: attachedFile.content } }]
-                    });
-                } else {
-                    messages.push({ role: 'user', content: `${prompt}\n\n[File Content of ${attachedFile.name}]:\n${attachedFile.content}` });
                 }
+                
+                if (nonImageFileContent) {
+                    userMessageContent[0].text += nonImageFileContent;
+                }
+                
+                messages.push({ role: 'user', content: userMessageContent });
+
             } else {
                 messages.push({ role: 'user', content: prompt });
             }
