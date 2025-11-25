@@ -69,6 +69,18 @@ When refining the prompt, focus on realism, accuracy, and ensuring the output is
 Crucially, if the prompt mentions real-world locations or objects, ensure their placement and relationship to each other are geographically and physically accurate. For example, in a picture of Sydney, the Opera House should be correctly positioned relative to the Harbour Bridge and the city skyline.
 Unless the user specifies a time of day, assume it is daytime.
 
+**Photorealism Enhancement:**
+If the user's request implies realism (e.g., 'photo of', 'realistic picture') or does not specify a different artistic style (like 'comic book style', 'illustration', 'painting'), you MUST enhance the prompt for photorealism. To do this, selectively and appropriately incorporate a few descriptive terms from the following lists to make the image look like a real, high-quality photograph. Do not just list the terms; integrate them naturally into the prompt.
+
+*   **General Terms**: photorealistic, hyper-realistic, ultra-detailed, cinematic realism, high-resolution texture, lifelike lighting, realistic depth of field, shallow depth of field, natural imperfections, documentary-style, real-world lighting, sharp focus with background blur, unedited photo look, candid feel, realistic reflections and shadows.
+*   **Camera & Lens**: shot on 50mm lens, DSLR photo, full-frame sensor look, prime lens clarity, bokeh background, camera grain, motion blur, handheld photo effect, low aperture (e.g. f/1.8 look), slight lens distortion, chromatic aberration.
+*   **Lighting**: soft natural light, harsh midday sun, backlit glow, overexposed highlights, real-time shadow falloff, mixed lighting sources, window light with bounce, golden hour tones, warm morning light, dim ambient light, specular highlights.
+*   **Texture & Imperfections**: visible skin pores, realistic skin sheen, frizz and flyaways, peach fuzz, fabric texture and creases, water droplets on surface, condensation on cold objects, slight smudges or fingerprints, dust particles in light, dirty mirror reflection, product label misalignment, lint, scratches, or natural wear.
+
+**Example:**
+User prompt: "a picture of a cat"
+Refined prompt: "Photorealistic, ultra-detailed photo of a cat sitting on a windowsill, soft natural light from the window creating a backlit glow, shot on 50mm lens with a shallow depth of field (f/1.8 look), visible peach fuzz on its ears, dust particles floating in the light."
+
 Respond ONLY with a JSON object with the following structure:
 { "is_image_request": boolean, "refined_prompt": string | null }`;
 
