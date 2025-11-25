@@ -14,6 +14,7 @@ interface GeminiLiveViewProps {
 const GeminiLiveView: React.FC<GeminiLiveViewProps> = ({ isActive, onClose, onFinalTranscript }) => {
     const [transcript, setTranscript] = useState('');
     const [isListening, setIsListening] = useState(false);
+    const [error, setError] = useState<string | null>(null);
     const recognitionRef = useRef<any>(null);
     const silenceTimerRef = useRef<NodeJS.Timeout | null>(null);
     const audioContextRef = useRef<AudioContext | null>(null);
@@ -46,11 +47,11 @@ const GeminiLiveView: React.FC<GeminiLiveViewProps> = ({ isActive, onClose, onFi
 
     useEffect(() => {
         if (isActive) {
+            setError(null);
             // @ts-ignore
             const SpeechRecognition = window.webkitSpeechRecognition || window.SpeechRecognition;
             if (!SpeechRecognition) {
-                alert("Speech recognition not supported in this browser.");
-                onClose();
+                setError("Speech recognition is not supported in this browser.");
                 return;
             }
 
@@ -76,7 +77,7 @@ const GeminiLiveView: React.FC<GeminiLiveViewProps> = ({ isActive, onClose, onFi
                 }
                 setTranscript(finalTranscript + interimTranscript);
                 silenceTimerRef.current = setTimeout(() => {
-                    if (transcript.trim()) {
+                    if ((finalTranscript + interimTranscript).trim()) {
                         handleSend();
                     }
                 }, 3000);
@@ -84,13 +85,18 @@ const GeminiLiveView: React.FC<GeminiLiveViewProps> = ({ isActive, onClose, onFi
 
             recognitionRef.current.onend = () => {
                 setIsListening(false);
-                if (isActive) { // only call onClose if it wasn't manually closed
+                if (isActive) {
                     onClose();
                 }
             };
             
             recognitionRef.current.onerror = (event: any) => {
                 console.error("Speech recognition error", event.error);
+                if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
+                    setError("Microphone access was denied. Please enable it in your browser settings.");
+                } else {
+                    setError(`An error occurred: ${event.error}`);
+                }
                 setIsListening(false);
             };
 
@@ -108,8 +114,7 @@ const GeminiLiveView: React.FC<GeminiLiveViewProps> = ({ isActive, onClose, onFi
                 })
                 .catch(err => {
                     console.error("Error accessing microphone:", err);
-                    alert("Could not access microphone. Please grant permission.");
-                    onClose();
+                    setError("Could not access microphone. Please grant permission and try again.");
                 });
 
         } else {
@@ -138,20 +143,17 @@ const GeminiLiveView: React.FC<GeminiLiveViewProps> = ({ isActive, onClose, onFi
 
         ctx.clearRect(0, 0, width, height);
 
-        // Center orb
         const centerX = width / 2;
         const centerY = height / 2;
         const baseRadius = Math.min(width, height) / 8;
         const radius = baseRadius * scale;
 
-        // Outer glow
         const glowGradient = ctx.createRadialGradient(centerX, centerY, radius, centerX, centerY, radius * 1.5);
         glowGradient.addColorStop(0, 'rgba(255, 255, 255, 0.2)');
         glowGradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
         ctx.fillStyle = glowGradient;
         ctx.fillRect(0, 0, width, height);
 
-        // Liquid glass orb
         const orbGradient = ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, radius);
         orbGradient.addColorStop(0, 'rgba(255, 255, 255, 0.1)');
         orbGradient.addColorStop(0.8, 'rgba(255, 255, 255, 0.05)');
@@ -165,7 +167,6 @@ const GeminiLiveView: React.FC<GeminiLiveViewProps> = ({ isActive, onClose, onFi
         ctx.lineWidth = 1;
         ctx.stroke();
 
-        // Inner highlight
         const highlightGradient = ctx.createRadialGradient(centerX - radius * 0.3, centerY - radius * 0.3, 0, centerX, centerY, radius);
         highlightGradient.addColorStop(0, 'rgba(255, 255, 255, 0.2)');
         highlightGradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
@@ -176,8 +177,13 @@ const GeminiLiveView: React.FC<GeminiLiveViewProps> = ({ isActive, onClose, onFi
     useEffect(() => {
         const canvas = canvasRef.current;
         if (canvas) {
-            canvas.width = window.innerWidth;
-            canvas.height = window.innerHeight;
+            const resizeCanvas = () => {
+                canvas.width = window.innerWidth;
+                canvas.height = window.innerHeight;
+            };
+            window.addEventListener('resize', resizeCanvas);
+            resizeCanvas();
+            return () => window.removeEventListener('resize', resizeCanvas);
         }
     }, []);
 
@@ -194,19 +200,33 @@ const GeminiLiveView: React.FC<GeminiLiveViewProps> = ({ isActive, onClose, onFi
             </div>
 
             <div className="relative w-full max-w-4xl text-center flex flex-col items-center z-10">
-                <p className="text-2xl md:text-4xl font-medium text-white min-h-[80px] drop-shadow-lg">
-                    {transcript || <span className="text-zinc-500">Listening...</span>}
-                </p>
-
-                <div className="mt-12">
-                    <button 
-                        onClick={handleSend}
-                        className="w-20 h-20 bg-white rounded-full flex items-center justify-center text-black shadow-2xl shadow-white/20 hover:bg-zinc-200 transition-all transform hover:scale-105"
-                        title="Send Message"
-                    >
-                        <svg className="w-8 h-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
-                    </button>
-                </div>
+                {error ? (
+                    <div className="space-y-4">
+                        <div className="w-16 h-16 bg-red-500/20 text-red-400 rounded-full flex items-center justify-center mx-auto">
+                            <svg className="w-8 h-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                        </div>
+                        <h2 className="text-2xl font-bold text-white">Access Denied</h2>
+                        <p className="text-zinc-400 max-w-md mx-auto">{error}</p>
+                        <button onClick={stopListening} className="mt-4 bg-white/10 hover:bg-white/20 border border-white/20 text-white px-5 py-2.5 rounded-full font-medium transition-all">
+                            Go Back
+                        </button>
+                    </div>
+                ) : (
+                    <>
+                        <p className="text-2xl md:text-4xl font-medium text-white min-h-[80px] drop-shadow-lg">
+                            {transcript || <span className="text-zinc-500">Listening...</span>}
+                        </p>
+                        <div className="mt-12">
+                            <button 
+                                onClick={handleSend}
+                                className="w-20 h-20 bg-white rounded-full flex items-center justify-center text-black shadow-2xl shadow-white/20 hover:bg-zinc-200 transition-all transform hover:scale-105"
+                                title="Send Message"
+                            >
+                                <svg className="w-8 h-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+                            </button>
+                        </div>
+                    </>
+                )}
             </div>
         </div>
     );
