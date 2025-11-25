@@ -85,9 +85,9 @@ const GeminiLiveView: React.FC<GeminiLiveViewProps> = ({ isActive, onClose, onFi
 
             recognitionRef.current.onend = () => {
                 setIsListening(false);
-                if (isActive) {
-                    onClose();
-                }
+                // Do not call onClose here. It causes the component to unmount
+                // prematurely on permission errors before the error message can be displayed.
+                // The user will close manually or it will be closed on cleanup.
             };
             
             recognitionRef.current.onerror = (event: any) => {
