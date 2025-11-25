@@ -8,7 +8,7 @@ import { supabase } from '../src/integrations/supabase/client';
 import DynamicBackground from './DynamicBackground';
 import PlaygroundView from './PlaygroundView';
 import EmbeddedView from './EmbeddedView';
-import GeminiLiveView from './GeminiLiveView';
+import VoiceInputView from './VoiceInputView';
 
 const NexusIconSmall = () => (
     <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center border border-white/10 shadow-lg">
@@ -44,7 +44,7 @@ const ChatView: React.FC = () => {
     const [backgroundStatus, setBackgroundStatus] = useState<'idle' | 'loading-text' | 'loading-image'>('idle');
 
     const [playgroundViewActive, setPlaygroundViewActive] = useState(false);
-    const [isGeminiLiveActive, setIsGeminiLiveActive] = useState(false);
+    const [isVoiceMode, setIsVoiceMode] = useState(false);
     const [embeddedUrl, setEmbeddedUrl] = useState<string | null>(null);
     
     const [personalizationEntries, setPersonalizationEntries] = useState<{id: string, entry: string}[]>([]);
@@ -628,12 +628,6 @@ const ChatView: React.FC = () => {
             <PlaygroundView isActive={playgroundViewActive} onSelectTool={handleSelectTool} />
             {embeddedUrl && <EmbeddedView url={embeddedUrl} onClose={() => setEmbeddedUrl(null)} />}
 
-            <GeminiLiveView 
-                isActive={isGeminiLiveActive}
-                onClose={() => setIsGeminiLiveActive(false)}
-                onFinalTranscript={processSubmission}
-            />
-
             {showSettings && (
                 <div className="fixed inset-0 z-[60] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4" onClick={() => setShowSettings(false)}>
                     <div data-liquid-glass className="liquid-glass w-full max-w-md shadow-2xl animate-pop-in" onClick={(e) => e.stopPropagation()}>
@@ -809,6 +803,14 @@ const ChatView: React.FC = () => {
                                 Stop Generating
                             </button>
                         </div>
+                    ) : isVoiceMode ? (
+                        <VoiceInputView
+                            onClose={() => setIsVoiceMode(false)}
+                            onFinalTranscript={(transcript) => {
+                                processSubmission(transcript);
+                                setIsVoiceMode(false);
+                            }}
+                        />
                     ) : (
                         <div className="relative">
                             <form onSubmit={handleChatSubmit} className="relative">
@@ -816,7 +818,7 @@ const ChatView: React.FC = () => {
                                     <button type="button" onClick={triggerFileSelect} className="p-2 rounded-full text-zinc-300 hover:text-white hover:bg-white/10 transition-colors ml-1" title="Attach File"><svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg></button>
                                     <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" accept="image/*,application/pdf,text/plain,text/code,application/json" />
                                     <textarea ref={textareaRef} value={inputValue} onChange={(e) => setInputValue(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleChatSubmit(e); } }} rows={1} placeholder="Message Nexus..." className="flex-1 bg-transparent border-none text-white placeholder-zinc-500 focus:ring-0 resize-none py-3 px-3 max-h-[120px] overflow-y-auto scrollbar-hide"></textarea>
-                                    <button type="button" onClick={() => setIsGeminiLiveActive(true)} className="p-2 rounded-full text-zinc-300 hover:text-white hover:bg-white/10 transition-colors"><svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/></svg></button>
+                                    <button type="button" onClick={() => setIsVoiceMode(true)} className="p-2 rounded-full text-zinc-300 hover:text-white hover:bg-white/10 transition-colors"><svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/></svg></button>
                                     <button type="submit" disabled={isLoading || (!inputValue.trim() && !attachedFile)} className={`w-9 h-9 flex items-center justify-center rounded-full transition-all duration-200 ml-1 ${(inputValue.trim() || attachedFile) && !isLoading ? 'bg-white text-black hover:bg-zinc-200 shadow-lg' : 'bg-white/10 text-zinc-500 cursor-not-allowed'}`}><svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg></button>
                                 </div>
                                 {attachedFile && (<div className="absolute bottom-full left-4 mb-2"><div className="inline-flex items-center gap-2 bg-black/50 backdrop-blur-md text-zinc-200 text-xs px-3 py-1.5 rounded-full border border-white/10 animate-pop-in"><div className="w-4 h-4 flex items-center justify-center">{attachedFile.type.startsWith('image/') ? <svg className="w-3 h-3" viewBox="0 0 24 24"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg> : <svg className="w-3 h-3" viewBox="0 0 24 24"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/></svg>}</div><span className="max-w-[150px] truncate font-medium">{attachedFile.name}</span><button type="button" onClick={removeFile} className="ml-1 hover:text-white p-0.5 rounded-full hover:bg-white/10 transition-colors"><svg className="w-3 h-3" viewBox="0 0 24 24"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></button></div></div>)}
