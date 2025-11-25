@@ -49,8 +49,6 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
                     setSession(session);
                     setUser(session.user);
 
-                    // Isolate the profile fetch in its own try/catch to prevent timeouts
-                    // from killing the entire session.
                     try {
                         const profilePromise = supabase
                             .from('profiles')
@@ -73,7 +71,7 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
                         }
                     } catch (profileError: any) {
                         console.error("Caught error during profile fetch:", profileError.message);
-                        setProfile(null); // Gracefully fail on profile fetch, but keep session alive.
+                        setProfile(null);
                     }
 
                 } else if (event === 'SIGNED_OUT') {
@@ -82,7 +80,6 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
                     setProfile(null);
                 }
             } catch (e: any) {
-                // This outer catch will now only handle critical auth errors.
                 console.error("A critical error occurred during the authentication process:", e.message);
                 setSession(null);
                 setUser(null);
@@ -94,6 +91,18 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
         return () => {
             subscription.unsubscribe();
+        };
+    }, []);
+
+    useEffect(() => {
+        const handleVisibilityChange = () => {
+            if (document.visibilityState === 'visible') {
+                supabase.auth.getSession();
+            }
+        };
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+        return () => {
+            document.removeEventListener('visibilitychange', handleVisibilityChange);
         };
     }, []);
 
