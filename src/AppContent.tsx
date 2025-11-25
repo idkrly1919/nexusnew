@@ -5,6 +5,7 @@ import ChatView from './components/ChatView';
 import LandingPage from './components/LandingPage';
 import Onboarding from './components/Onboarding';
 import AuthPage from './pages/AuthPage';
+import SupabaseKeepAlive from './components/SupabaseKeepAlive';
 
 const AppContent: React.FC = () => {
     const { session, profile, isLoading } = useSession();
@@ -31,26 +32,29 @@ const AppContent: React.FC = () => {
     }
 
     return (
-        <Routes>
-            <Route 
-                path="/" 
-                element={session ? <Navigate to="/chat" replace /> : <LandingPage />} 
-            />
-            <Route 
-                path="/auth" 
-                element={session ? <Navigate to="/chat" replace /> : <AuthPage />} 
-            />
-            <Route 
-                path="/chat" 
-                element={session ? <ChatView /> : <Navigate to="/auth" replace />} 
-            />
-            <Route 
-                path="/chat/:conversationId" 
-                element={session ? <ChatView /> : <Navigate to="/auth" replace />} 
-            />
-            {/* Fallback route to redirect any unknown URL to the correct starting point */}
-            <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
+        <>
+            {session && <SupabaseKeepAlive />}
+            <Routes>
+                <Route 
+                    path="/" 
+                    element={session ? <Navigate to="/chat" replace /> : <LandingPage />} 
+                />
+                <Route 
+                    path="/auth" 
+                    element={session ? <Navigate to="/chat" replace /> : <AuthPage />} 
+                />
+                <Route 
+                    path="/chat" 
+                    element={session ? <ChatView /> : <Navigate to="/auth" replace />} 
+                />
+                <Route 
+                    path="/chat/:conversationId" 
+                    element={session ? <ChatView /> : <Navigate to="/auth" replace />} 
+                />
+                {/* Fallback route to redirect any unknown URL to the correct starting point */}
+                <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+        </>
     );
 };
 

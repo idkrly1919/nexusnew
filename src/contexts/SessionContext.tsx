@@ -96,6 +96,9 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
     useEffect(() => {
         const handleVisibilityChange = () => {
+            // This helps refresh the session if the user was away for a long time.
+            // The Supabase client handles background token refreshing automatically,
+            // but this ensures the session state is synced on tab focus.
             if (document.visibilityState === 'visible') {
                 supabase.auth.getSession();
             }

@@ -10,7 +10,7 @@ export default defineConfig(({ mode }) => {
   
   return {
     plugins: [react()],
-    base: './',
+    base: '/',
     define: {
       // This block makes environment variables available in your client-side code.
       // It prioritizes VITE_ prefixed variables, which is the standard for Vite,

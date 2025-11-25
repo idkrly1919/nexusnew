@@ -10,7 +10,6 @@ import DynamicBackground from './DynamicBackground';
 import PlaygroundView from './PlaygroundView';
 import EmbeddedView from './EmbeddedView';
 import VoiceInputView from './VoiceInputView';
-import SupabaseKeepAlive from './SupabaseKeepAlive';
 
 const NexusIconSmall = () => (
     <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center border border-white/10 shadow-lg">
@@ -641,7 +640,6 @@ const ChatView: React.FC = () => {
 
     return (
         <div id="chat-view" className="fixed inset-0 z-50 flex flex-col bg-transparent text-zinc-100 font-sans overflow-hidden">
-            <SupabaseKeepAlive />
             <DynamicBackground status={backgroundStatus} />
             
             {showMemoryToast && (
