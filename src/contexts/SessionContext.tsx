@@ -49,33 +49,40 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
                     setSession(session);
                     setUser(session.user);
 
-                    const profilePromise = supabase
-                        .from('profiles')
-                        .select('*')
-                        .eq('id', session.user.id)
-                        .single();
-                    
-                    const timeoutPromise = new Promise((_, reject) => 
-                        setTimeout(() => reject(new Error('Profile fetch timed out after 5 seconds.')), 5000)
-                    );
+                    // Isolate the profile fetch in its own try/catch to prevent timeouts
+                    // from killing the entire session.
+                    try {
+                        const profilePromise = supabase
+                            .from('profiles')
+                            .select('*')
+                            .eq('id', session.user.id)
+                            .single();
+                        
+                        const timeoutPromise = new Promise((_, reject) => 
+                            setTimeout(() => reject(new Error('Profile fetch timed out after 8 seconds.')), 8000)
+                        );
 
-                    // @ts-ignore
-                    const { data: profileData, error } = await Promise.race([profilePromise, timeoutPromise]);
+                        // @ts-ignore
+                        const { data: profileData, error } = await Promise.race([profilePromise, timeoutPromise]);
 
-                    if (error) {
-                        console.error("Error fetching profile:", error.message);
-                        setProfile(null);
-                    } else {
-                        setProfile(profileData);
+                        if (error) {
+                            console.error("Error fetching profile:", error.message);
+                            setProfile(null);
+                        } else {
+                            setProfile(profileData);
+                        }
+                    } catch (profileError: any) {
+                        console.error("Caught error during profile fetch:", profileError.message);
+                        setProfile(null); // Gracefully fail on profile fetch, but keep session alive.
                     }
+
                 } else if (event === 'SIGNED_OUT') {
-                    // Only clear the session on an explicit sign-out event.
-                    // This prevents accidental logouts on tab focus or network hiccups.
                     setSession(null);
                     setUser(null);
                     setProfile(null);
                 }
             } catch (e: any) {
+                // This outer catch will now only handle critical auth errors.
                 console.error("A critical error occurred during the authentication process:", e.message);
                 setSession(null);
                 setUser(null);
