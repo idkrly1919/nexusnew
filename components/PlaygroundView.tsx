@@ -2,12 +2,12 @@ import { useEffect, useRef } from 'react';
 import Starfield from './Starfield';
 import ShootingStar from './ShootingStar';
 
-interface CosmosViewProps {
-    onSelectPlanet: (url: string | 'chat') => void;
+interface PlaygroundViewProps {
+    onSelectTool: (url: string | 'chat') => void;
     isActive: boolean;
 }
 
-const CosmosView: React.FC<CosmosViewProps> = ({ onSelectPlanet, isActive }) => {
+const PlaygroundView: React.FC<PlaygroundViewProps> = ({ onSelectTool, isActive }) => {
     const containerRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
@@ -60,7 +60,7 @@ const CosmosView: React.FC<CosmosViewProps> = ({ onSelectPlanet, isActive }) => 
 
             <div className="relative w-full max-w-7xl h-full flex justify-center items-center">
                 {/* Center Planet: Main Chat */}
-                <div className="absolute text-center cursor-pointer group z-10" onClick={() => onSelectPlanet('chat')}>
+                <div className="absolute text-center cursor-pointer group z-10" onClick={() => onSelectTool('chat')}>
                     <div className="planet-interactive w-64 h-64 liquid-planet rounded-full relative flex items-center justify-center" style={{ animation: 'pulse-glow 4s ease-in-out infinite' }}>
                         <img src="/nexus-logo.png" alt="Nexus Logo" className="w-32 h-32 opacity-90 relative z-10" style={{ filter: 'grayscale(100%) brightness(1.5)' }} />
                     </div>
@@ -69,7 +69,7 @@ const CosmosView: React.FC<CosmosViewProps> = ({ onSelectPlanet, isActive }) => 
                 </div>
 
                 {/* Left Planet: Video Generator */}
-                <div className="absolute left-[20%] top-1/2 -translate-y-1/2 text-center cursor-pointer group z-10" onClick={() => onSelectPlanet('https://veoaifree.com/veo-video-generator/')}>
+                <div className="absolute left-[20%] top-1/2 -translate-y-1/2 text-center cursor-pointer group z-10" onClick={() => onSelectTool('https://veoaifree.com/veo-video-generator/')}>
                     <div className="planet-interactive w-48 h-48 liquid-planet rounded-full relative flex items-center justify-center">
                         <svg className="w-16 h-16 text-white opacity-80 relative z-10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18"></rect><line x1="7" y1="2" x2="7" y2="22"></line><line x1="17" y1="2" x2="17" y2="22"></line><line x1="2" y1="12" x2="22" y2="12"></line><line x1="2" y1="7" x2="7" y2="7"></line><line x1="2" y1="17" x2="7" y2="17"></line><line x1="17" y1="17" x2="22" y2="17"></line><line x1="17" y1="7" x2="22" y2="7"></line></svg>
                     </div>
@@ -78,7 +78,7 @@ const CosmosView: React.FC<CosmosViewProps> = ({ onSelectPlanet, isActive }) => 
                 </div>
 
                 {/* Right Planet: Image Generator */}
-                <div className="absolute right-[20%] top-1/2 -translate-y-1/2 text-center cursor-pointer group z-10" onClick={() => onSelectPlanet('https://lmarena.ai/?mode=direct&chat-modality=image')}>
+                <div className="absolute right-[20%] top-1/2 -translate-y-1/2 text-center cursor-pointer group z-10" onClick={() => onSelectTool('https://lmarena.ai/?mode=direct&chat-modality=image')}>
                     <div className="planet-interactive w-48 h-48 liquid-planet rounded-full relative flex items-center justify-center">
                         <svg className="w-16 h-16 text-white opacity-80 relative z-10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>
                     </div>
@@ -90,4 +90,4 @@ const CosmosView: React.FC<CosmosViewProps> = ({ onSelectPlanet, isActive }) => 
     );
 };
 
-export default CosmosView;
+export default PlaygroundView;

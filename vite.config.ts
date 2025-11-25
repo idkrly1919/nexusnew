@@ -17,6 +17,7 @@ export default defineConfig(({ mode }) => {
       // but also includes fallbacks for the non-prefixed versions for compatibility.
       'process.env.API_KEY': JSON.stringify(env.VITE_API_KEY || env.API_KEY),
       'process.env.HIGGSFIELD_API_KEY': JSON.stringify(env.VITE_HIGGSFIELD_API_KEY || env.HIGGSFIELD_API_KEY),
+      'process.env.GEMINI_API_KEY': JSON.stringify(env.VITE_GEMINI_API_KEY || env.GEMINI_API_KEY),
     }
   }
 })
