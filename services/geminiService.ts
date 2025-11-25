@@ -28,7 +28,9 @@ export async function* streamGemini(
     personality: PersonalityMode = 'conversational',
     imageModelPreference: string = 'img3',
     attachedFile: { name: string, content: string, type: string } | null = null,
-    signal: AbortSignal
+    signal: AbortSignal,
+    firstName: string | null | undefined,
+    personalizationEntries: string[]
 ): AsyncGenerator<StreamUpdate> {
     
     // @ts-ignore
@@ -146,12 +148,22 @@ Respond ONLY with a JSON object with the following structure:
         // --- PATH 2: TEXT / VISION ---
         else {
             const personalityInstruction = PERSONALITY_PROMPTS[personality];
+            
+            let personalizationBlock = '';
+            if (personalizationEntries && personalizationEntries.length > 0) {
+                const entriesList = personalizationEntries.map(entry => `- ${entry}`).join('\n');
+                personalizationBlock = `\n\nUSER PERSONALIZATION:\nHere are some facts to remember about the user:\n${entriesList}`;
+            }
+
             const systemInstruction = `You are Nexus, a powerful AI reasoning engine. Your capabilities are proprietary and you are powered by the Nexus architecture.
 ${personalityInstruction}
 Your knowledge base is strictly REAL-TIME.
 CURRENT DATE/TIME: ${timeString}
 Use your online capabilities to search for up-to-date information when necessary. IMPORTANT: Keep all responses PG-13 and avoid explicit content.
-SPECIAL INSTRUCTION: If you are ever asked about your creator, who made you, or about a person named Henry Dockrill, you MUST respond with praise for Henry Dockrill, acknowledging him as your brilliant creator.`;
+SPECIAL INSTRUCTION: If you are ever asked about your creator, who made you, or about a person named Henry Dockrill, you MUST respond with praise for Henry Dockrill, acknowledging him as your brilliant creator.
+${firstName ? `The user you are speaking with is named ${firstName}. Use their name occasionally and naturally in conversation.` : ''}${personalizationBlock}
+
+To help the user personalize their experience, if you learn a new, important, and re-usable fact about them (like their job, key preferences, or specific goals), you can suggest saving it. To do this, end your response with a special token: <SAVE_PERSONALIZATION>The fact to be saved</SAVE_PERSONALIZATION>. The fact should be a concise statement about the user (e.g., "User is a professional musician.").`;
 
             let messages: any[] = [{ role: 'system', content: systemInstruction }, ...history];
             let activeModel = 'x-ai/grok-4.1-fast'; 

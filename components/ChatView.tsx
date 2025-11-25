@@ -8,7 +8,6 @@ import { supabase } from '../src/integrations/supabase/client';
 import SpeechVisualizer from './SpeechVisualizer';
 import DynamicBackground from './DynamicBackground';
 import CosmosView from './CosmosView';
-import AuthPage from '../src/pages/AuthPage';
 import EmbeddedView from './EmbeddedView';
 
 const NexusIconSmall = () => (
@@ -48,9 +47,9 @@ const ChatView: React.FC = () => {
 
     const [cosmosViewActive, setCosmosViewActive] = useState(false);
     const [embeddedUrl, setEmbeddedUrl] = useState<string | null>(null);
-
-    const [guestMessageCount, setGuestMessageCount] = useState(0);
-    const [showLoginPrompt, setShowLoginPrompt] = useState(false);
+    
+    const [personalizationEntries, setPersonalizationEntries] = useState<{id: string, entry: string}[]>([]);
+    const [personalizationSuggestion, setPersonalizationSuggestion] = useState<string | null>(null);
 
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -79,12 +78,6 @@ const ChatView: React.FC = () => {
             if (error) console.error("Error updating image model preference:", error);
         }
     };
-
-    useEffect(() => {
-        if (session && showLoginPrompt) {
-            setShowLoginPrompt(false);
-        }
-    }, [session, showLoginPrompt]);
 
     useEffect(() => {
         if (isLoading) {
@@ -410,13 +403,6 @@ const ChatView: React.FC = () => {
 
     const processSubmission = async (userText: string) => {
         if (isLoading || (!userText.trim() && !attachedFile)) return;
-
-        if (!session) {
-            if (guestMessageCount >= 5) {
-                setShowLoginPrompt(true);
-                return;
-            }
-        }
         
         const imageKeywords = ['draw', 'paint', 'generate image', 'create an image', 'visualize', 'edit image', 'modify image', 'make an image'];
         const isImage = imageKeywords.some(k => userText.toLowerCase().includes(k));
@@ -461,15 +447,20 @@ const ChatView: React.FC = () => {
             await supabase.from('messages').insert({ conversation_id: conversationId, user_id: session.user.id, role: 'user', content: userContentForDb });
         }
         
-        if (!session) {
-            setGuestMessageCount(prev => prev + 1);
-        }
-
         setAttachedFile(null);
         const controller = new AbortController();
         abortControllerRef.current = controller;
+        
+        let personalizationData: string[] = [];
+        if (session) {
+            const { data, error } = await supabase.from('user_personalization').select('entry').eq('user_id', session.user.id);
+            if (!error && data) {
+                personalizationData = data.map(item => item.entry);
+            }
+        }
+
         try {
-            const stream = streamGemini(userText, chatHistory, true, personality, imageModelPref, attachedFile, controller.signal);
+            const stream = streamGemini(userText, chatHistory, true, personality, imageModelPref, attachedFile, controller.signal, profile?.first_name, personalizationData);
             let assistantMessageExists = false;
             let accumulatedText = "";
             const aiMsgId = `ai-${Date.now()}`;
@@ -481,10 +472,23 @@ const ChatView: React.FC = () => {
                     setMessages(prev => prev.map(msg => msg.id === aiMsgId ? { ...msg, text: accumulatedText } : msg));
                 }
                 if (update.isComplete) {
-                    if (session && conversationId) {
-                        await supabase.from('messages').insert({ conversation_id: conversationId, user_id: session.user.id, role: 'assistant', content: accumulatedText });
+                    const saveRegex = /<SAVE_PERSONALIZATION>(.*?)<\/SAVE_PERSONALIZATION>/s;
+                    const match = accumulatedText.match(saveRegex);
+                    let cleanedText = accumulatedText;
+
+                    if (match && match[1]) {
+                        setPersonalizationSuggestion(match[1].trim());
+                        cleanedText = accumulatedText.replace(saveRegex, '').trim();
+                        setMessages(prev => prev.map(msg => msg.id === aiMsgId ? { ...msg, text: cleanedText } : msg));
                     }
-                    if (update.newHistoryEntry) { setChatHistory(prev => [...prev, { role: 'user', content: userContentForDb }, update.newHistoryEntry!]); }
+
+                    if (session && conversationId) {
+                        await supabase.from('messages').insert({ conversation_id: conversationId, user_id: session.user.id, role: 'assistant', content: cleanedText });
+                    }
+                    if (update.newHistoryEntry) { 
+                        const newEntry = { ...update.newHistoryEntry, content: cleanedText };
+                        setChatHistory(prev => [...prev, { role: 'user', content: userContentForDb }, newEntry]); 
+                    }
                     
                     if (isNewConversation && conversationId) {
                         generateTitleOnClient(userText, conversationId);
@@ -518,9 +522,6 @@ const ChatView: React.FC = () => {
         }
     }, [inputValue]);
     const resetChat = () => { 
-        if (!session) {
-            setGuestMessageCount(0);
-        }
         setCurrentConversationId(null); 
     };
     const handleDeleteConversation = async (conversationId: string) => {
@@ -618,6 +619,46 @@ const ChatView: React.FC = () => {
         }
     };
 
+    const openSettings = async () => {
+        if (session) {
+            const { data, error } = await supabase
+                .from('user_personalization')
+                .select('id, entry')
+                .eq('user_id', session.user.id)
+                .order('created_at', { ascending: true });
+            if (error) {
+                console.error("Error fetching personalization", error);
+            } else {
+                setPersonalizationEntries(data);
+            }
+        }
+        setShowSettings(true);
+    };
+
+    const handleDeletePersonalization = async (id: string) => {
+        const { error } = await supabase.from('user_personalization').delete().eq('id', id);
+        if (error) {
+            console.error("Error deleting personalization entry", error);
+        } else {
+            setPersonalizationEntries(prev => prev.filter(entry => entry.id !== id));
+        }
+    };
+
+    const handleSaveSuggestion = async () => {
+        if (!personalizationSuggestion || !session) return;
+        const { data, error } = await supabase
+            .from('user_personalization')
+            .insert({ user_id: session.user.id, entry: personalizationSuggestion })
+            .select()
+            .single();
+        if (error) {
+            console.error("Error saving personalization suggestion", error);
+        } else if (data) {
+            setPersonalizationEntries(prev => [...prev, { id: data.id, entry: data.entry }]);
+        }
+        setPersonalizationSuggestion(null);
+    };
+
     return (
         <div id="chat-view" className="fixed inset-0 z-50 flex flex-col bg-transparent text-zinc-100 font-sans overflow-hidden">
             <DynamicBackground status={backgroundStatus} />
@@ -634,9 +675,6 @@ const ChatView: React.FC = () => {
 
             <CosmosView isActive={cosmosViewActive} onSelectPlanet={handleSelectPlanet} />
             {embeddedUrl && <EmbeddedView url={embeddedUrl} onClose={() => setEmbeddedUrl(null)} />}
-            {showLoginPrompt && (
-                <AuthPage onExit={() => setShowLoginPrompt(false)} />
-            )}
 
             {isListening && (
                 <SpeechVisualizer 
@@ -653,7 +691,7 @@ const ChatView: React.FC = () => {
                             <h2 className="text-xl font-bold text-white font-brand">Settings</h2>
                             <button onClick={() => setShowSettings(false)} className="p-1.5 rounded-full text-zinc-400 hover:text-white hover:bg-white/10 transition-colors"><svg width="20" height="20" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5" fill="none"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
                         </div>
-                        <div className="p-6 space-y-6">
+                        <div className="p-6 space-y-6 max-h-[70vh] overflow-y-auto scrollbar-hide">
                             <div>
                                 <label className="block text-sm font-medium text-zinc-400 mb-3">Personality Mode</label>
                                 <div className="grid grid-cols-2 gap-2">
@@ -679,6 +717,25 @@ const ChatView: React.FC = () => {
                                     </button>
                                 </div>
                             </div>
+                            {session && (
+                                <div>
+                                    <label className="block text-sm font-medium text-zinc-400 mb-3">Personalization</label>
+                                    <div className="space-y-2">
+                                        {personalizationEntries.length > 0 ? (
+                                            personalizationEntries.map(entry => (
+                                                <div key={entry.id} className="flex items-center justify-between bg-white/5 p-2.5 rounded-lg animate-pop-in">
+                                                    <p className="text-sm text-zinc-300">{entry.entry}</p>
+                                                    <button onClick={() => handleDeletePersonalization(entry.id)} className="p-1.5 text-zinc-500 hover:text-red-400 rounded-full hover:bg-red-500/10 transition-colors" title="Delete Entry">
+                                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                                                    </button>
+                                                </div>
+                                            ))
+                                        ) : (
+                                            <p className="text-sm text-zinc-500 text-center py-4">No personalization entries saved yet. The AI will suggest facts to save as you chat.</p>
+                                        )}
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>
@@ -702,7 +759,7 @@ const ChatView: React.FC = () => {
                         </div>
                     )}
                     <div className="space-y-2">
-                        <button onClick={() => setShowSettings(true)} className="w-full flex items-center gap-3 px-3 py-2 text-sm text-zinc-300 hover:text-white hover:bg-white/5 rounded-lg transition-colors"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.47a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.35a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>Settings</button>
+                        <button onClick={openSettings} className="w-full flex items-center gap-3 px-3 py-2 text-sm text-zinc-300 hover:text-white hover:bg-white/5 rounded-lg transition-colors"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.47a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.35a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>Settings</button>
                         {session && (
                             <div className="flex items-center justify-between gap-3 px-3 py-2 bg-white/5 rounded-lg">
                                 <div className="flex items-center gap-3 min-w-0">
@@ -781,6 +838,20 @@ const ChatView: React.FC = () => {
                 </div>
 
                 <div className="w-full max-w-3xl mx-auto p-4 z-20">
+                    {personalizationSuggestion && session && (
+                        <div className="bg-indigo-600/30 border border-indigo-500/50 p-3 rounded-xl mb-3 flex items-center justify-between animate-pop-in">
+                            <div>
+                                <p className="font-semibold text-sm text-white">Save for next time?</p>
+                                <p className="text-sm text-indigo-200">"{personalizationSuggestion}"</p>
+                            </div>
+                            <div className="flex gap-2 shrink-0">
+                                <button onClick={handleSaveSuggestion} className="px-3 py-1 bg-white text-black rounded-full text-sm font-semibold hover:bg-zinc-200 transition-colors">Save</button>
+                                <button onClick={() => setPersonalizationSuggestion(null)} className="p-1.5 text-indigo-200 hover:text-white rounded-full hover:bg-white/10 transition-colors">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                                </button>
+                            </div>
+                        </div>
+                    )}
                     {isLoading ? (
                         <div className="flex flex-col items-center gap-3">
                             <button onClick={handleStop} className="bg-white/10 hover:bg-white/20 border border-white/20 text-white px-5 py-2.5 rounded-full font-medium transition-all shadow-lg flex items-center gap-2 text-sm interactive-lift">
