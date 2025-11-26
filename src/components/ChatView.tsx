@@ -880,15 +880,12 @@ const ChatView: React.FC = () => {
                             <h1 className="text-2xl font-medium text-white mb-8 tracking-tight">What can I do for you today?</h1>
                             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-4xl w-full px-4">
                                 <button 
-                                    onClick={() => {
-                                        setInputValue('Suggest a new feature for this app');
-                                        textareaRef.current?.focus();
-                                    }}
+                                    onClick={() => setEmbeddedUrl('https://veoaifree.com')}
                                     data-liquid-glass
                                     className="liquid-glass p-4 rounded-2xl text-left interactive-lift space-y-2"
                                 >
-                                    <h3 className="font-semibold text-white">Suggest a feature</h3>
-                                    <p className="text-sm text-zinc-400">Brainstorm ideas for what to build next.</p>
+                                    <h3 className="font-semibold text-white">Generate a video</h3>
+                                    <p className="text-sm text-zinc-400">Create a video from a text prompt using an external tool.</p>
                                 </button>
                                 <button 
                                     onClick={() => navigate('/dev')}
