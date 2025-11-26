@@ -13,7 +13,7 @@ serve(async (req: Request) => {
   }
 
   try {
-    const { prompt, model } = await req.json();
+    const { prompt, model, size } = await req.json();
     if (!prompt) {
       return new Response(JSON.stringify({ error: "Prompt is required" }), {
         status: 400,
@@ -38,7 +38,7 @@ serve(async (req: Request) => {
         prompt: prompt,
         model: model || 'img3', // Use the provided model, or default to img3
         n: 1,
-        size: '1024x1024'
+        size: size || '1024x1792' // Use provided size, or default to 9:16
     };
 
     const response = await fetch(infipUrl, {
