@@ -880,12 +880,12 @@ const ChatView: React.FC = () => {
                             <h1 className="text-2xl font-medium text-white mb-8 tracking-tight">What can I do for you today?</h1>
                             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-4xl w-full px-4">
                                 <button 
-                                    onClick={() => setEmbeddedUrl('https://veoaifree.com')}
+                                    onClick={() => navigate('/dev')}
                                     data-liquid-glass
                                     className="liquid-glass p-4 rounded-2xl text-left interactive-lift space-y-2"
                                 >
-                                    <h3 className="font-semibold text-white">Make a video</h3>
-                                    <p className="text-sm text-zinc-400">Generate a video from a text prompt using VEO AI.</p>
+                                    <h3 className="font-semibold text-white">AI Web Developer</h3>
+                                    <p className="text-sm text-zinc-400">Build and edit code with an AI partner.</p>
                                 </button>
                                 <button 
                                     onClick={() => {

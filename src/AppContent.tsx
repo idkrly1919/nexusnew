@@ -7,6 +7,7 @@ import Onboarding from './components/Onboarding';
 import AuthPage from './pages/AuthPage';
 import SupabaseKeepAlive from './components/SupabaseKeepAlive';
 import QuizPage from './pages/QuizPage';
+import DevEnvironmentPage from './pages/DevEnvironmentPage';
 
 const AppContent: React.FC = () => {
     const { session, profile, isLoading } = useSession();
@@ -55,6 +56,14 @@ const AppContent: React.FC = () => {
                 <Route
                     path="/quiz"
                     element={session ? <QuizPage /> : <Navigate to="/auth" replace />}
+                />
+                <Route
+                    path="/dev"
+                    element={session ? <DevEnvironmentPage /> : <Navigate to="/auth" replace />}
+                />
+                 <Route
+                    path="/dev/:conversationId"
+                    element={session ? <DevEnvironmentPage /> : <Navigate to="/auth" replace />}
                 />
                 {/* Fallback route to redirect any unknown URL to the correct starting point */}
                 <Route path="*" element={<Navigate to="/" replace />} />
