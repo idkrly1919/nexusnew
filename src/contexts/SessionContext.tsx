@@ -57,7 +57,7 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
                             .single();
                         
                         const timeoutPromise = new Promise((_, reject) => 
-                            setTimeout(() => reject(new Error('Profile fetch timed out after 8 seconds.')), 8000)
+                            setTimeout(() => reject(new Error('Profile fetch timed out after 3 seconds.')), 3000)
                         );
 
                         // @ts-ignore

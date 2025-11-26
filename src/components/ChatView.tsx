@@ -7,7 +7,6 @@ import { ThinkingProcess } from './ThinkingProcess';
 import { useSession } from '../contexts/SessionContext';
 import { supabase } from '../integrations/supabase/client';
 import DynamicBackground from './DynamicBackground';
-import PlaygroundView from './PlaygroundView';
 import EmbeddedView from './EmbeddedView';
 import VoiceInputView from './VoiceInputView';
 import FileGenerator from './FileGenerator';
@@ -50,7 +49,6 @@ const ChatView: React.FC = () => {
     const [currentConversationId, setCurrentConversationId] = useState<string | null>(null);
     const [backgroundStatus, setBackgroundStatus] = useState<'idle' | 'loading-text' | 'loading-image'>('idle');
 
-    const [playgroundViewActive, setPlaygroundViewActive] = useState(false);
     const [isVoiceMode, setIsVoiceMode] = useState(false);
     const [embeddedUrl, setEmbeddedUrl] = useState<string | null>(null);
     
@@ -598,17 +596,6 @@ const ChatView: React.FC = () => {
         return <div dangerouslySetInnerHTML={{ __html: simpleParse(text) }} />;
     };
 
-    const handleSelectTool = (url: string | 'chat') => {
-        setPlaygroundViewActive(false);
-        if (url === 'chat') {
-            // Just close the playground view
-        } else if (url === 'https://veoaifree.com/veo-video-generator/') {
-            setEmbeddedUrl(url);
-        } else {
-            window.open(url, '_blank', 'noopener,noreferrer');
-        }
-    };
-
     const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         if (!session) return;
         const file = e.target.files?.[0];
@@ -706,7 +693,6 @@ const ChatView: React.FC = () => {
                 </div>
             )}
 
-            <PlaygroundView isActive={playgroundViewActive} onSelectTool={handleSelectTool} />
             {embeddedUrl && <EmbeddedView url={embeddedUrl} onClose={() => setEmbeddedUrl(null)} />}
 
             {showSettings && (
@@ -839,16 +825,41 @@ const ChatView: React.FC = () => {
 
                 <div className="flex-1 overflow-y-auto relative z-10 scrollbar-hide">
                     {messages.length === 0 && !isLoading && !currentConversationId ? (
-                        <div className={`h-full flex flex-col items-center justify-center pb-32 transition-all duration-700 ${playgroundViewActive ? 'opacity-0 scale-90 pointer-events-none' : 'opacity-100 scale-100'}`}>
+                        <div className="h-full flex flex-col items-center justify-center pb-32">
                             <OrbLogo />
-                            <h1 className="text-2xl font-medium text-white mb-2 tracking-tight">How can I help you?</h1>
-                            <button 
-                                onClick={() => setPlaygroundViewActive(true)}
-                                data-liquid-glass
-                                className="liquid-glass mt-8 px-8 py-3 rounded-full font-semibold text-white border border-white/10 interactive-lift"
-                            >
-                                AI Playground
-                            </button>
+                            <h1 className="text-2xl font-medium text-white mb-8 tracking-tight">What can I do for you today?</h1>
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-3xl w-full px-4">
+                                <button 
+                                    onClick={() => setEmbeddedUrl('https://veoaifree.com/veo-video-generator/')}
+                                    data-liquid-glass
+                                    className="liquid-glass p-4 rounded-2xl text-left interactive-lift space-y-2"
+                                >
+                                    <h3 className="font-semibold text-white">Make a video</h3>
+                                    <p className="text-sm text-zinc-400">Generate a video from a text prompt using VEO AI.</p>
+                                </button>
+                                <button 
+                                    onClick={() => {
+                                        setInputValue('Write an essay about ');
+                                        textareaRef.current?.focus();
+                                    }}
+                                    data-liquid-glass
+                                    className="liquid-glass p-4 rounded-2xl text-left interactive-lift space-y-2"
+                                >
+                                    <h3 className="font-semibold text-white">Write me an essay</h3>
+                                    <p className="text-sm text-zinc-400">Start a new conversation with a prompt for an essay.</p>
+                                </button>
+                                <button 
+                                    onClick={() => {
+                                        setInputValue('Make an image of ');
+                                        textareaRef.current?.focus();
+                                    }}
+                                    data-liquid-glass
+                                    className="liquid-glass p-4 rounded-2xl text-left interactive-lift space-y-2"
+                                >
+                                    <h3 className="font-semibold text-white">Make an image</h3>
+                                    <p className="text-sm text-zinc-400">Generate an image from a descriptive prompt.</p>
+                                </button>
+                            </div>
                         </div>
                     ) : (
                         <div className="max-w-3xl mx-auto px-4 py-8 space-y-8">
