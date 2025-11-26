@@ -11,6 +11,7 @@ import PlaygroundView from './PlaygroundView';
 import EmbeddedView from './EmbeddedView';
 import VoiceInputView from './VoiceInputView';
 import FileGenerator from './FileGenerator';
+import FileIcon from './FileIcon';
 
 const NexusIconSmall = () => (
     <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center border border-white/10 shadow-lg">
@@ -45,6 +46,7 @@ const ChatView: React.FC = () => {
     const [isDragging, setIsDragging] = useState(false);
 
     const [conversations, setConversations] = useState<Conversation[]>([]);
+    const [isConversationsLoading, setIsConversationsLoading] = useState(true);
     const [currentConversationId, setCurrentConversationId] = useState<string | null>(null);
     const [backgroundStatus, setBackgroundStatus] = useState<'idle' | 'loading-text' | 'loading-image'>('idle');
 
@@ -174,14 +176,20 @@ const ChatView: React.FC = () => {
     }, []);
 
     useEffect(() => {
-        if (!session) return;
+        if (!session) {
+            setIsConversationsLoading(false);
+            return;
+        }
         const fetchConversations = async () => {
+            setIsConversationsLoading(true);
             const { data, error } = await supabase.from('conversations').select('*').order('created_at', { ascending: false });
             if (error) console.error('Error fetching conversations:', error);
             else setConversations(data as Conversation[]);
+            setIsConversationsLoading(false);
         };
         fetchConversations();
     }, [session]);
+
     useEffect(() => {
         if (!currentConversationId || !session) {
             setMessages([]);
@@ -765,14 +773,24 @@ const ChatView: React.FC = () => {
                     {session && (
                         <div className="flex-1 overflow-y-auto space-y-1 pr-2 -mr-2 scrollbar-hide">
                             <div className="text-xs font-semibold text-zinc-500 px-2 py-1 uppercase tracking-wider mb-1">Recent Chats</div>
-                            {conversations.map(chat => (
-                                <div key={chat.id} className="relative group">
-                                    <button onClick={() => navigate(`/chat/${chat.id}`)} className={`w-full text-left pl-3 pr-8 py-2 text-sm rounded-lg transition-colors duration-200 truncate ${currentConversationId === chat.id ? 'bg-white/10 text-white' : 'text-zinc-400 hover:bg-white/5 hover:text-white'}`}>
-                                        <div className="truncate">{chat.title || 'New Chat'}</div>
-                                    </button>
-                                    <button onClick={(e) => { e.stopPropagation(); handleDeleteConversation(chat.id); }} className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-zinc-500 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity" title="Delete Chat"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg></button>
+                            {isConversationsLoading ? (
+                                <div className="flex items-center justify-center gap-2 p-2 text-sm text-zinc-400">
+                                    <svg className="animate-spin h-4 w-4 text-zinc-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                    </svg>
+                                    Loading chats...
                                 </div>
-                            ))}
+                            ) : (
+                                conversations.map(chat => (
+                                    <div key={chat.id} className="relative group">
+                                        <button onClick={() => navigate(`/chat/${chat.id}`)} className={`w-full text-left pl-3 pr-8 py-2 text-sm rounded-lg transition-colors duration-200 truncate ${currentConversationId === chat.id ? 'bg-white/10 text-white' : 'text-zinc-400 hover:bg-white/5 hover:text-white'}`}>
+                                            <div className="truncate">{chat.title || 'New Chat'}</div>
+                                        </button>
+                                        <button onClick={(e) => { e.stopPropagation(); handleDeleteConversation(chat.id); }} className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-zinc-500 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity" title="Delete Chat"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg></button>
+                                    </div>
+                                ))
+                            )}
                         </div>
                     )}
                     <div className="space-y-2">
