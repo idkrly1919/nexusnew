@@ -10,6 +10,7 @@ import DynamicBackground from './DynamicBackground';
 import PlaygroundView from './PlaygroundView';
 import EmbeddedView from './EmbeddedView';
 import VoiceInputView from './VoiceInputView';
+import FileGenerator from './FileGenerator';
 
 const NexusIconSmall = () => (
     <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center border border-white/10 shadow-lg">
@@ -524,33 +525,67 @@ const ChatView: React.FC = () => {
             }
         }
     };
-    const parseMarkdown = (text: string) => {
-        if (!text) return '';
-        let parsed = text.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, (_, alt, url) => {
-            const downloadIcon = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>`;
-            const fullscreenIcon = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg>`;
-            const promptForClipboard = alt.replace(/"/g, '&quot;'); // Escape quotes for the data attribute
-            return `<div class="mt-3 mb-3 block w-full">
-                <div class="relative group">
-                    <img src="${url}" alt="${alt}" class="rounded-xl shadow-lg border border-white/10 w-full h-auto object-cover" />
-                    <div class="absolute top-3 right-3 flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-all duration-300">
-                        <a href="${url}" target="_blank" title="View Fullscreen" class="bg-black/60 hover:bg-black/80 backdrop-blur-md text-white w-10 h-10 flex items-center justify-center rounded-full shadow-xl border border-white/10 interactive-lift">
-                            ${fullscreenIcon}
-                        </a>
-                        <a href="${url}" title="Download Image" class="download-image-btn bg-black/60 hover:bg-black/80 backdrop-blur-md text-white w-10 h-10 flex items-center justify-center rounded-full shadow-xl border border-white/10 interactive-lift">
-                            ${downloadIcon}
-                        </a>
+    
+    const renderMessageContent = (text: string) => {
+        if (!text) return null;
+    
+        const fileBlockRegex = /```(pdf|txt|html)\nfilename:\s*(.*?)\n---\n([\s\S]*?)\n```/g;
+    
+        const simpleParse = (str: string) => {
+            let parsed = str.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, (_, alt, url) => {
+                const downloadIcon = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>`;
+                const fullscreenIcon = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg>`;
+                const promptForClipboard = alt.replace(/"/g, '&quot;');
+                return `<div class="mt-3 mb-3 block w-full">
+                    <div class="relative group">
+                        <img src="${url}" alt="${alt}" class="rounded-xl shadow-lg border border-white/10 w-full h-auto object-cover" />
+                        <div class="absolute top-3 right-3 flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-all duration-300">
+                            <a href="${url}" target="_blank" title="View Fullscreen" class="bg-black/60 hover:bg-black/80 backdrop-blur-md text-white w-10 h-10 flex items-center justify-center rounded-full shadow-xl border border-white/10 interactive-lift">
+                                ${fullscreenIcon}
+                            </a>
+                            <a href="${url}" title="Download Image" class="download-image-btn bg-black/60 hover:bg-black/80 backdrop-blur-md text-white w-10 h-10 flex items-center justify-center rounded-full shadow-xl border border-white/10 interactive-lift">
+                                ${downloadIcon}
+                            </a>
+                        </div>
                     </div>
-                </div>
-                <div class="mt-3 text-left">
-                    <button data-prompt="${promptForClipboard}" data-liquid-glass class="better-image-btn liquid-glass inline-flex items-center bg-indigo-600/50 hover:bg-indigo-600/80 text-white px-4 py-2.5 rounded-full text-sm font-semibold transition-all duration-300 interactive-lift">
-                        Want higher quality images? Click here
-                    </button>
-                </div>
-            </div>`;
+                    <div class="mt-3 text-left">
+                        <button data-prompt="${promptForClipboard}" data-liquid-glass class="better-image-btn liquid-glass inline-flex items-center bg-indigo-600/50 hover:bg-indigo-600/80 text-white px-4 py-2.5 rounded-full text-sm font-semibold transition-all duration-300 interactive-lift">
+                            Want higher quality images? Click here
+                        </button>
+                    </div>
+                </div>`;
+            });
+            parsed = parsed.replace(/\*\*(.*?)\*\*/g, '<strong class="text-white font-semibold">$1</strong>').replace(/`([^`]+)`/g, '<code class="bg-black/20 px-1.5 py-0.5 rounded text-sm font-mono text-cyan-300 border border-white/10">$1</code>').replace(/\n/g, '<br />');
+            return parsed;
+        };
+    
+        const parts = [];
+        let lastIndex = 0;
+        const matches = [...text.matchAll(fileBlockRegex)];
+    
+        if (matches.length === 0) {
+            return <div dangerouslySetInnerHTML={{ __html: simpleParse(text) }} />;
+        }
+    
+        matches.forEach((match, i) => {
+            const [fullMatch, fileType, filename, content] = match;
+            const startIndex = match.index!;
+    
+            if (startIndex > lastIndex) {
+                const textPart = text.substring(lastIndex, startIndex);
+                parts.push(<div key={`text-${i}`} dangerouslySetInnerHTML={{ __html: simpleParse(textPart) }} />);
+            }
+    
+            parts.push(<FileGenerator key={`file-${i}`} fileType={fileType.trim()} filename={filename.trim()} content={content.trim()} />);
+            lastIndex = startIndex + fullMatch.length;
         });
-        parsed = parsed.replace(/\*\*(.*?)\*\*/g, '<strong class="text-white font-semibold">$1</strong>').replace(/`([^`]+)`/g, '<code class="bg-black/20 px-1.5 py-0.5 rounded text-sm font-mono text-cyan-300 border border-white/10">$1</code>').replace(/\n/g, '<br />');
-        return parsed;
+    
+        if (lastIndex < text.length) {
+            const remainingText = text.substring(lastIndex);
+            parts.push(<div key="text-last" dangerouslySetInnerHTML={{ __html: simpleParse(remainingText) }} />);
+        }
+    
+        return parts;
     };
 
     const handleSelectTool = (url: string | 'chat') => {
@@ -802,7 +837,9 @@ const ChatView: React.FC = () => {
                                     {msg.role === 'assistant' && <div className="shrink-0 mt-1"><NexusIconSmall /></div>}
                                     <div data-liquid-glass className={`max-w-[85%] leading-relaxed ${msg.role === 'user' ? 'light-liquid-glass text-white px-5 py-3 rounded-3xl rounded-br-lg' : 'dark-liquid-glass px-5 py-3 rounded-3xl rounded-bl-lg'}`}>
                                         {msg.role === 'assistant' && <div className="font-medium text-sm text-zinc-400 mb-2">Nexus</div>}
-                                        <div className={`${msg.role === 'assistant' ? 'text-zinc-100 prose prose-invert prose-sm max-w-none' : ''}`} dangerouslySetInnerHTML={{ __html: parseMarkdown(msg.text) }} />
+                                        <div className={`${msg.role === 'assistant' ? 'text-zinc-100 prose prose-invert prose-sm max-w-none' : ''}`}>
+                                            {renderMessageContent(msg.text)}
+                                        </div>
                                         {msg.role === 'assistant' && !isLoading && (<div className="flex items-center gap-2 mt-3"><button onClick={() => handleTTS(msg.text)} className="p-1.5 text-zinc-500 hover:text-zinc-300 hover:bg-white/5 rounded-md transition-colors" title="Read Aloud"><svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path></svg></button></div>)}
                                     </div>
                                 </div>
