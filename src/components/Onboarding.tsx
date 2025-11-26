@@ -53,7 +53,7 @@ const Onboarding: React.FC = () => {
             case 1:
                 return (
                     <div className="space-y-6 animate-pop-in">
-                        <h2 className="text-2xl font-bold text-white">How did you find out about Nexus?</h2>
+                        <h2 className="text-2xl font-bold text-white">How did you find out about Quillix?</h2>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             {['Social Media (X, TikTok, etc.)', 'A Friend or Colleague', 'Google Search', 'Other'].map(option => (
                                 <button key={option} onClick={() => handleSelect('discovery_source', option)} className="p-4 rounded-xl bg-white/5 border border-white/10 text-left hover:bg-white/10 hover:border-white/20 transition-all duration-300">
@@ -70,11 +70,11 @@ const Onboarding: React.FC = () => {
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <button onClick={() => handleSelect('image_model_preference', 'img3')} className={`p-4 rounded-xl border text-left transition-all duration-300 relative overflow-hidden ${formData.image_model_preference === 'img3' ? 'bg-indigo-500/20 border-indigo-500/50' : 'bg-white/5 border-white/10 hover:bg-white/10'}`}>
                                 <span className="absolute top-2 right-2 bg-indigo-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">Recommended</span>
-                                <h3 className="font-semibold">Nexus K3</h3>
+                                <h3 className="font-semibold">Quillix K3</h3>
                                 <p className="text-sm text-zinc-400">Ultra-fast generation (~15s), great for rapid iteration.</p>
                             </button>
                             <button onClick={() => handleSelect('image_model_preference', 'img4')} className={`p-4 rounded-xl border text-left transition-all duration-300 ${formData.image_model_preference === 'img4' ? 'bg-indigo-500/20 border-indigo-500/50' : 'bg-white/5 border-white/10 hover:bg-white/10'}`}>
-                                <h3 className="font-semibold">Nexus K4</h3>
+                                <h3 className="font-semibold">Quillix K4</h3>
                                 <p className="text-sm text-zinc-400">Highest quality (~45s), for stunning, detailed visuals.</p>
                             </button>
                         </div>
@@ -83,7 +83,7 @@ const Onboarding: React.FC = () => {
             case 3:
                 return (
                     <div className="space-y-6 animate-pop-in">
-                        <h2 className="text-2xl font-bold text-white">Why do you want to use Nexus?</h2>
+                        <h2 className="text-2xl font-bold text-white">Why do you want to use Quillix?</h2>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             {['For Fun / It\'s Cool', 'For a Personal Project', 'For Work / Business', 'To Learn About AI'].map(option => (
                                 <button key={option} onClick={() => handleSelect('usage_reason', option)} className="p-4 rounded-xl bg-white/5 border border-white/10 text-left hover:bg-white/10 hover:border-white/20 transition-all duration-300">
@@ -106,7 +106,7 @@ const Onboarding: React.FC = () => {
                         </div>
                         <h2 className="text-3xl font-bold text-white">Setup Complete!</h2>
                         <p className="text-zinc-400 text-lg max-w-md mx-auto">
-                            Your preferences have been saved. Welcome to Nexus!
+                            Your preferences have been saved. Welcome to Quillix!
                         </p>
                         <p className="text-zinc-500 text-sm flex items-center justify-center gap-2">
                             <svg className="animate-spin h-4 w-4 text-zinc-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -129,8 +129,8 @@ const Onboarding: React.FC = () => {
                 <div className="w-full max-w-2xl">
                     <div className="text-center mb-12">
                         <div className="flex items-center justify-center gap-2 mb-4">
-                            <img src="/nexus-logo.png" alt="Nexus Logo" className="w-10 h-10 animate-spin-slow" />
-                            <span className="text-3xl font-bold tracking-tight brand-font">Nexus</span>
+                            <img src="/quillix-logo.png" alt="Quillix Logo" className="w-10 h-10" />
+                            <span className="text-3xl font-bold tracking-tight brand-font">Quillix</span>
                         </div>
                         <h1 className="text-2xl font-bold text-white">Just a few questions to get you started...</h1>
                     </div>

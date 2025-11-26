@@ -31,7 +31,7 @@ const LandingPage: React.FC = () => {
                         <div className="relative w-16 h-16 mx-auto">
                             <div className="absolute inset-0 rounded-full bg-indigo-500 animate-pulse"></div>
                             <div className="absolute inset-2 rounded-full bg-black"></div>
-                            <img src="/nexus-logo.png" alt="Nexus Logo" className="w-16 h-16 animate-spin-slow relative" />
+                            <img src="/quillix-logo.png" alt="Quillix Logo" className="w-16 h-16 relative" />
                         </div>
                         <p className="text-lg font-medium text-zinc-300">{spaceStatus}</p>
                     </div>
@@ -41,8 +41,8 @@ const LandingPage: React.FC = () => {
                 <nav className="fixed w-full z-50 top-0">
                     <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
                         <div className="flex items-center gap-2 interactive-lift cursor-pointer">
-                            <img src="/nexus-logo.png" alt="Nexus Logo" className="w-8 h-8 animate-spin-slow" />
-                            <span className="text-xl font-bold tracking-tight brand-font">Nexus</span>
+                            <img src="/quillix-logo.png" alt="Quillix Logo" className="w-8 h-8" />
+                            <span className="text-xl font-bold tracking-tight brand-font">Quillix</span>
                         </div>
                         
                         <div className="hidden md:flex items-center gap-8 text-sm font-medium text-zinc-300">
@@ -65,7 +65,7 @@ const LandingPage: React.FC = () => {
                     <div className="max-w-5xl mx-auto px-6 text-center space-y-8">
                         <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-indigo-500/30 bg-indigo-500/10 text-indigo-300 text-xs font-medium interactive-lift">
                             <span className="w-2 h-2 rounded-full bg-indigo-400 animate-pulse"></span>
-                            Nexus v2.0 is now live
+                            Quillix v2.0 is now live
                         </div>
 
                         <h1 className="text-5xl md:text-7xl font-bold leading-tight tracking-tighter">
@@ -126,7 +126,7 @@ const LandingPage: React.FC = () => {
                             <div className="flex-1 space-y-6">
                                 <h2 className="text-3xl md:text-4xl font-bold">Seamless Integration</h2>
                                 <p className="text-zinc-400 text-lg">
-                                    Connect Nexus to your existing workflow with our robust API. Python, Node, and Rust SDKs available.
+                                    Connect Quillix to your existing workflow with our robust API. Python, Node, and Rust SDKs available.
                                 </p>
                                 <ul className="space-y-3 text-zinc-300">
                                     <li className="flex items-center gap-3">
@@ -152,7 +152,7 @@ const LandingPage: React.FC = () => {
                                         <div className="ml-2 text-xs text-zinc-500 font-mono">main.py</div>
                                     </div>
                                     <div className="p-4 overflow-x-auto bg-black/10">
-                                        <pre className="text-sm font-mono leading-relaxed" dangerouslySetInnerHTML={{__html: `<span class="text-purple-400">import</span> <span class="text-white">nexus_sdk</span> <span class="text-purple-400">as</span> <span class="text-white">nx</span>\n\n<span class="text-zinc-500"># Initialize the solver</span>\n<span class="text-white">client</span> = <span class="text-white">nx.Client</span>(<span class="text-green-400">"api_key_..."</span>)\n\n<span class="text-zinc-500"># Define a complex query</span>\n<span class="text-white">response</span> = <span class="text-white">client.solve</span>(\n    <span class="text-orange-300">problem</span>=<span class="text-green-400">"Calculate the trajectory of..."</span>,\n    <span class="text-orange-300">model</span>=<span class="text-green-400">"nexus-math-v2"</span>,\n    <span class="text-orange-300">precision</span>=<span class="text-blue-400">64</span>\n)\n\n<span class="text-purple-400">print</span>(<span class="text-white">response.solution</span>)`}}></pre>
+                                        <pre className="text-sm font-mono leading-relaxed" dangerouslySetInnerHTML={{__html: `<span class="text-purple-400">import</span> <span class="text-white">quillix_sdk</span> <span class="text-purple-400">as</span> <span class="text-white">qx</span>\n\n<span class="text-zinc-500"># Initialize the solver</span>\n<span class="text-white">client</span> = <span class="text-white">qx.Client</span>(<span class="text-green-400">"api_key_..."</span>)\n\n<span class="text-zinc-500"># Define a complex query</span>\n<span class="text-white">response</span> = <span class="text-white">client.solve</span>(\n    <span class="text-orange-300">problem</span>=<span class="text-green-400">"Calculate the trajectory of..."</span>,\n    <span class="text-orange-300">model</span>=<span class="text-green-400">"quillix-math-v2"</span>,\n    <span class="text-orange-300">precision</span>=<span class="text-blue-400">64</span>\n)\n\n<span class="text-purple-400">print</span>(<span class="text-white">response.solution</span>)`}}></pre>
                                     </div>
                                 </div>
                             </div>
@@ -168,7 +168,7 @@ const LandingPage: React.FC = () => {
                             <div className="trusted-logo text-xl font-bold text-white flex items-center gap-2"><div className="w-6 h-6 rounded-full border-2 border-white border-dashed"></div> Massive</div>
                         </div>
                         <div className="mt-20 text-zinc-600 text-sm">
-                            © 2024 Nexus Intelligence Inc. All rights reserved.
+                            © 2024 Quillix Intelligence Inc. All rights reserved.
                         </div>
                     </div>
 

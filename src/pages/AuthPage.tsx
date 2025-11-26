@@ -157,11 +157,11 @@ const AuthPage: React.FC = () => {
                 <div className="w-full max-w-md space-y-8">
                     <div className="text-center animate-pop-in">
                         <div className="flex items-center justify-center gap-2 mb-4 interactive-lift cursor-pointer">
-                            <img src="/nexus-logo.png" alt="Nexus Logo" className="w-10 h-10 animate-spin-slow" />
-                            <span className="text-3xl font-bold tracking-tight brand-font">Nexus</span>
+                            <img src="/quillix-logo.png" alt="Quillix Logo" className="w-10 h-10" />
+                            <span className="text-3xl font-bold tracking-tight brand-font">Quillix</span>
                         </div>
                         <h1 className="text-2xl font-bold text-white">
-                            {step === 'login' ? 'Welcome Back' : step === 'signup' ? 'Create your Account' : step === 'verify' ? 'One Last Step' : 'Welcome to Nexus'}
+                            {step === 'login' ? 'Welcome Back' : step === 'signup' ? 'Create your Account' : step === 'verify' ? 'One Last Step' : 'Welcome to Quillix'}
                         </h1>
                         <p className="text-zinc-400">
                             {step === 'login' ? 'Sign in to continue' : step === 'signup' ? 'Just a few details to get started' : step === 'verify' ? 'Verify your email to continue' : 'Sign in or create an account'}
