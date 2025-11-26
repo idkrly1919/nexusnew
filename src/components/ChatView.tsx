@@ -880,23 +880,23 @@ const ChatView: React.FC = () => {
                             <h1 className="text-2xl font-medium text-white mb-8 tracking-tight">What can I do for you today?</h1>
                             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-4xl w-full px-4">
                                 <button 
+                                    onClick={() => {
+                                        setInputValue('Suggest a new feature for this app');
+                                        textareaRef.current?.focus();
+                                    }}
+                                    data-liquid-glass
+                                    className="liquid-glass p-4 rounded-2xl text-left interactive-lift space-y-2"
+                                >
+                                    <h3 className="font-semibold text-white">Suggest a feature</h3>
+                                    <p className="text-sm text-zinc-400">Brainstorm ideas for what to build next.</p>
+                                </button>
+                                <button 
                                     onClick={() => navigate('/dev')}
                                     data-liquid-glass
                                     className="liquid-glass p-4 rounded-2xl text-left interactive-lift space-y-2"
                                 >
                                     <h3 className="font-semibold text-white">AI Web Developer</h3>
                                     <p className="text-sm text-zinc-400">Build and edit code with an AI partner.</p>
-                                </button>
-                                <button 
-                                    onClick={() => {
-                                        setInputValue('Write an essay about ');
-                                        textareaRef.current?.focus();
-                                    }}
-                                    data-liquid-glass
-                                    className="liquid-glass p-4 rounded-2xl text-left interactive-lift space-y-2"
-                                >
-                                    <h3 className="font-semibold text-white">Write me an essay</h3>
-                                    <p className="text-sm text-zinc-400">Start a new conversation with a prompt for an essay.</p>
                                 </button>
                                 <button 
                                     onClick={() => {
@@ -915,7 +915,7 @@ const ChatView: React.FC = () => {
                                     className="liquid-glass p-4 rounded-2xl text-left interactive-lift space-y-2"
                                 >
                                     <h3 className="font-semibold text-white">Quiz me on...</h3>
-                                    <p className="text-sm text-zinc-400">Test your knowledge on any topic with an AI-generated quiz.</p>
+                                    <p className="text-sm text-zinc-400">Test your knowledge on any topic.</p>
                                 </button>
                             </div>
                         </div>

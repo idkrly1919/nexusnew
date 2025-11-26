@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 
 interface ThinkingProcessProps {
-    thought: string;
+    thought?: string;
     isThinking?: boolean;
     mode?: 'reasoning' | 'image';
 }
