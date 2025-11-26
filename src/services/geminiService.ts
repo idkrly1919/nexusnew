@@ -186,9 +186,15 @@ The code block format is:
 \`\`\`[filetype]
 filename: [desired_filename.ext]
 ---
-[file content goes here, using simple Markdown for formatting]
+[file content goes here]
 \`\`\`
-Supported filetypes are: pdf, html, txt. For PDFs, use simple Markdown like # for titles, ## for subtitles, and - for bullet points.`;
+Supported filetypes are: pdf, html, txt.
+
+**PDF Content Rules:**
+- When generating content for a PDF, you MUST write a comprehensive, detailed response of approximately 500 words.
+- The content should be in well-structured paragraphs.
+- CRITICAL: Do NOT use bullet points or numbered lists in PDFs unless the user explicitly asks for them.
+- You can still use Markdown for headings (e.g., # Title, ## Subtitle).`;
 
             let messages: any[] = [{ role: 'system', content: systemInstruction }, ...history];
             let activeModel = 'x-ai/grok-4.1-fast'; 

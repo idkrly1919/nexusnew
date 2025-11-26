@@ -529,7 +529,8 @@ const ChatView: React.FC = () => {
     const renderMessageContent = (text: string) => {
         if (!text) return null;
     
-        const fileBlockRegex = /```(pdf|txt|html)\nfilename:\s*(.*?)\n---\n([\s\S]*?)```/;
+        const fileBlockRegex = /```(pdf|txt|html)\nfilename:\s*(.*?)\n---\n([\s\S]*)/;
+        const match = text.match(fileBlockRegex);
     
         const simpleParse = (str: string) => {
             let parsed = str.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, (_, alt, url) => {
@@ -559,25 +560,34 @@ const ChatView: React.FC = () => {
             return parsed;
         };
     
-        const match = text.match(fileBlockRegex);
+        if (match) {
+            const [_, fileType, filename, content] = match;
+            const startIndex = match.index!;
+            const confirmationText = text.substring(0, startIndex).trim();
+            const parts = [];
     
-        if (!match) {
-            return <div dangerouslySetInnerHTML={{ __html: simpleParse(text) }} />;
+            if (confirmationText) {
+                parts.push(<div key="text-part" dangerouslySetInnerHTML={{ __html: simpleParse(confirmationText) }} />);
+            }
+    
+            if (text.trim().endsWith('```')) {
+                const finalContent = content.trim().slice(0, -3).trim();
+                parts.push(<FileGenerator key="file-part" fileType={fileType.trim()} filename={filename.trim()} content={finalContent} />);
+            } else {
+                parts.push(
+                    <div key="file-loading" className="my-2 flex items-center gap-3 p-3 rounded-lg bg-zinc-800 border border-zinc-700 animate-pulse">
+                        <FileIcon fileType={fileType} />
+                        <div className="flex-1">
+                            <div className="font-medium text-zinc-300">Generating {filename.trim() || 'file'}...</div>
+                            <div className="text-sm text-zinc-500">Receiving content...</div>
+                        </div>
+                    </div>
+                );
+            }
+            return parts;
         }
     
-        const [fullMatch, fileType, filename, content] = match;
-        const startIndex = match.index!;
-        const confirmationText = text.substring(0, startIndex).trim();
-    
-        const parts = [];
-    
-        if (confirmationText) {
-            parts.push(<div key="text-part" dangerouslySetInnerHTML={{ __html: simpleParse(confirmationText) }} />);
-        }
-    
-        parts.push(<FileGenerator key="file-part" fileType={fileType.trim()} filename={filename.trim()} content={content.trim()} />);
-    
-        return parts;
+        return <div dangerouslySetInnerHTML={{ __html: simpleParse(text) }} />;
     };
 
     const handleSelectTool = (url: string | 'chat') => {

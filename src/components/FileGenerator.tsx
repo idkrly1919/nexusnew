@@ -35,42 +35,57 @@ const FileGenerator: React.FC<FileGeneratorProps> = ({ fileType, filename, conte
                 if (fileType === 'pdf') {
                     const doc = new jsPDF();
                     const margin = 15;
+                    const listIndent = 5;
                     const pageWidth = doc.internal.pageSize.getWidth();
                     const pageHeight = doc.internal.pageSize.getHeight();
+                    const maxLineWidth = pageWidth - margin * 2;
                     let y = margin;
 
-                    const addWrappedText = (text: string, options: { size: number, style: 'normal' | 'bold', x?: number }) => {
-                        const { size, style, x = margin } = options;
-                        doc.setFontSize(size);
-                        doc.setFont('helvetica', style);
-                        const lines = doc.splitTextToSize(text, pageWidth - margin - x);
-                        
-                        lines.forEach((line: string) => {
-                            if (y > pageHeight - margin) {
-                                doc.addPage();
-                                y = margin;
-                            }
-                            doc.text(line, x, y);
-                            y += (size / 2.5) + 2; // Add line height + a little space
-                        });
+                    const checkPageBreak = (requiredHeight: number) => {
+                        if (y + requiredHeight > pageHeight - margin) {
+                            doc.addPage();
+                            y = margin;
+                        }
                     };
 
                     const lines = content.split('\n');
                     for (const line of lines) {
-                        if (line.startsWith('# ')) {
-                            addWrappedText(line.substring(2), { size: 18, style: 'bold' });
-                        } else if (line.startsWith('## ')) {
-                            addWrappedText(line.substring(3), { size: 15, style: 'bold' });
-                        } else if (line.startsWith('### ')) {
-                            addWrappedText(line.substring(4), { size: 12, style: 'bold' });
-                        } else if (line.startsWith('- ')) {
-                            const itemText = `• ${line.substring(2).replace(/\*\*/g, '')}`;
-                            addWrappedText(itemText, { size: 11, style: 'normal' });
-                        } else if (line.trim() === '') {
-                            y += 6; // Paragraph break
-                        } else {
-                            addWrappedText(line.replace(/\*\*/g, ''), { size: 11, style: 'normal' });
+                        if (line.trim() === '') {
+                            y += 6;
+                            checkPageBreak(0);
+                            continue;
                         }
+
+                        let text = line.replace(/\*\*(.*?)\*\*/g, '$1');
+                        let size = 11;
+                        let style: 'normal' | 'bold' = 'normal';
+                        let x = margin;
+                        let wrapWidth = maxLineWidth;
+
+                        if (line.startsWith('# ')) {
+                            text = line.substring(2); size = 18; style = 'bold';
+                        } else if (line.startsWith('## ')) {
+                            text = line.substring(3); size = 15; style = 'bold';
+                        } else if (line.startsWith('### ')) {
+                            text = line.substring(4); size = 12; style = 'bold';
+                        } else if (line.startsWith('- ')) {
+                            text = line.substring(2);
+                            x = margin + listIndent;
+                            wrapWidth = maxLineWidth - listIndent;
+                            doc.setFontSize(size);
+                            doc.text('•', margin, y);
+                        }
+
+                        doc.setFontSize(size);
+                        doc.setFont('helvetica', style);
+                        const splitText = doc.splitTextToSize(text, wrapWidth);
+                        const lineHeight = (size / 2.5) + 1;
+                        const blockHeight = splitText.length * lineHeight;
+                        
+                        checkPageBreak(blockHeight);
+                        
+                        doc.text(splitText, x, y);
+                        y += blockHeight;
                     }
 
                     blob = doc.output('blob');
