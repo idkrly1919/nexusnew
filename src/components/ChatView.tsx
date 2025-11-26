@@ -10,10 +10,9 @@ import DynamicBackground from './DynamicBackground';
 import PlaygroundView from './PlaygroundView';
 import EmbeddedView from './EmbeddedView';
 import VoiceInputView from './VoiceInputView';
-import { useTheme } from '../contexts/ThemeContext';
 
 const NexusIconSmall = () => (
-    <div className="w-8 h-8 rounded-full bg-zinc-200 dark:bg-white/10 flex items-center justify-center border border-zinc-300 dark:border-white/10 shadow-lg">
+    <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center border border-white/10 shadow-lg">
         <img src="/nexus-logo.png" alt="Nexus Logo" className="w-5 h-5" />
     </div>
 );
@@ -29,7 +28,6 @@ const ChatView: React.FC = () => {
     const { session, profile, refreshProfile } = useSession();
     const { conversationId: paramConversationId } = useParams<{ conversationId?: string }>();
     const navigate = useNavigate();
-    const { theme, setTheme } = useTheme();
 
     const [messages, setMessages] = useState<Message[]>([]);
     const [chatHistory, setChatHistory] = useState<ChatHistory>([]);
@@ -534,7 +532,7 @@ const ChatView: React.FC = () => {
             const promptForClipboard = alt.replace(/"/g, '&quot;'); // Escape quotes for the data attribute
             return `<div class="mt-3 mb-3 block w-full">
                 <div class="relative group">
-                    <img src="${url}" alt="${alt}" class="rounded-xl shadow-lg border border-zinc-200 dark:border-white/10 w-full h-auto object-cover" />
+                    <img src="${url}" alt="${alt}" class="rounded-xl shadow-lg border border-white/10 w-full h-auto object-cover" />
                     <div class="absolute top-3 right-3 flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-all duration-300">
                         <a href="${url}" target="_blank" title="View Fullscreen" class="bg-black/60 hover:bg-black/80 backdrop-blur-md text-white w-10 h-10 flex items-center justify-center rounded-full shadow-xl border border-white/10 interactive-lift">
                             ${fullscreenIcon}
@@ -545,13 +543,13 @@ const ChatView: React.FC = () => {
                     </div>
                 </div>
                 <div class="mt-3 text-left">
-                    <button data-prompt="${promptForClipboard}" data-liquid-glass class="better-image-btn liquid-glass inline-flex items-center bg-indigo-600/10 dark:bg-indigo-600/50 hover:bg-indigo-600/20 dark:hover:bg-indigo-600/80 text-indigo-600 dark:text-white px-4 py-2.5 rounded-full text-sm font-semibold transition-all duration-300 interactive-lift">
+                    <button data-prompt="${promptForClipboard}" data-liquid-glass class="better-image-btn liquid-glass inline-flex items-center bg-indigo-600/50 hover:bg-indigo-600/80 text-white px-4 py-2.5 rounded-full text-sm font-semibold transition-all duration-300 interactive-lift">
                         Want higher quality images? Click here
                     </button>
                 </div>
             </div>`;
         });
-        parsed = parsed.replace(/\*\*(.*?)\*\*/g, '<strong class="text-zinc-900 dark:text-white font-semibold">$1</strong>').replace(/`([^`]+)`/g, '<code class="bg-zinc-200 dark:bg-black/20 px-1.5 py-0.5 rounded text-sm font-mono text-cyan-700 dark:text-cyan-300 border border-zinc-300 dark:border-white/10">$1</code>').replace(/\n/g, '<br />');
+        parsed = parsed.replace(/\*\*(.*?)\*\*/g, '<strong class="text-white font-semibold">$1</strong>').replace(/`([^`]+)`/g, '<code class="bg-black/20 px-1.5 py-0.5 rounded text-sm font-mono text-cyan-300 border border-white/10">$1</code>').replace(/\n/g, '<br />');
         return parsed;
     };
 
@@ -641,14 +639,14 @@ const ChatView: React.FC = () => {
     };
 
     return (
-        <div id="chat-view" className="fixed inset-0 z-50 flex flex-col bg-transparent font-sans overflow-hidden">
+        <div id="chat-view" className="fixed inset-0 z-50 flex flex-col bg-transparent text-zinc-100 font-sans overflow-hidden">
             <DynamicBackground status={backgroundStatus} />
             
             {showMemoryToast && (
                 <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-50">
                     <div data-liquid-glass className="liquid-glass flex items-center gap-3 py-2 px-5 rounded-full animate-pop-in">
-                        <svg className="w-5 h-5 text-indigo-500 dark:text-indigo-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 20h9"/><path d="M4 20h2"/><path d="M4 12h16"/><path d="M4 4h10"/><path d="M18 8h2"/><path d="M16 4v16"/></svg>
-                        <span className="text-sm font-medium text-zinc-900 dark:text-white">Memory Updated</span>
+                        <svg className="w-5 h-5 text-indigo-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 20h9"/><path d="M4 20h2"/><path d="M4 12h16"/><path d="M4 4h10"/><path d="M18 8h2"/><path d="M16 4v16"/></svg>
+                        <span className="text-sm font-medium text-white">Memory Updated</span>
                     </div>
                 </div>
             )}
@@ -669,26 +667,16 @@ const ChatView: React.FC = () => {
             {showSettings && (
                 <div className="fixed inset-0 z-[60] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4" onClick={() => setShowSettings(false)}>
                     <div data-liquid-glass className="liquid-glass w-full max-w-md shadow-2xl animate-pop-in" onClick={(e) => e.stopPropagation()}>
-                        <div className="p-6 border-b border-black/10 dark:border-white/10 flex justify-between items-center">
-                            <h2 className="text-xl font-bold font-brand">Settings</h2>
-                            <button onClick={() => setShowSettings(false)} className="p-1.5 rounded-full text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white hover:bg-black/10 dark:hover:bg-white/10 transition-colors"><svg width="20" height="20" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5" fill="none"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+                        <div className="p-6 border-b border-white/10 flex justify-between items-center">
+                            <h2 className="text-xl font-bold text-white font-brand">Settings</h2>
+                            <button onClick={() => setShowSettings(false)} className="p-1.5 rounded-full text-zinc-400 hover:text-white hover:bg-white/10 transition-colors"><svg width="20" height="20" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5" fill="none"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
                         </div>
                         <div className="p-6 space-y-6 max-h-[70vh] overflow-y-auto scrollbar-hide">
                             <div>
-                                <label className="block text-sm font-medium text-zinc-600 dark:text-zinc-400 mb-3">Theme</label>
-                                <div className="grid grid-cols-3 gap-2">
-                                    {(['light', 'dark', 'system'] as const).map((t) => (
-                                        <button key={t} onClick={() => setTheme(t)} className={`px-4 py-2.5 rounded-xl border text-sm font-medium capitalize transition-all duration-300 ${theme === t ? 'bg-indigo-500/10 dark:bg-indigo-500/20 border-indigo-500/50 text-indigo-600 dark:text-white shadow-lg' : 'bg-black/5 dark:bg-white/5 border-black/10 dark:border-white/10 hover:border-black/20 dark:hover:border-white/20 hover:bg-black/10 dark:hover:bg-white/10'}`}>
-                                            {t}
-                                        </button>
-                                    ))}
-                                </div>
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-zinc-600 dark:text-zinc-400 mb-3">Personality Mode</label>
+                                <label className="block text-sm font-medium text-zinc-400 mb-3">Personality Mode</label>
                                 <div className="grid grid-cols-2 gap-2">
                                     {[{ id: 'conversational', name: 'Conversational', desc: 'Friendly and helpful.' }, { id: 'academic', name: 'Academic', desc: 'Formal and technical.' }, { id: 'brainrot', name: 'Brainrot', desc: 'Chaotic Gen Z slang.' }, { id: 'roast-master', name: 'Roast Master', desc: 'Sarcastic and witty.' }, { id: 'formal', name: 'Business Formal', desc: 'Strictly professional.' }, { id: 'zesty', name: 'Zesty', desc: 'Flamboyant and sassy.' }].map((mode) => (
-                                        <button key={mode.id} onClick={() => setPersonality(mode.id as PersonalityMode)} className={`text-left px-4 py-3 rounded-xl border transition-all duration-300 ${personality === mode.id ? 'bg-indigo-500/10 dark:bg-indigo-500/20 border-indigo-500/50 text-indigo-600 dark:text-white shadow-lg' : 'bg-black/5 dark:bg-white/5 border-black/10 dark:border-white/10 hover:border-black/20 dark:hover:border-white/20 hover:bg-black/10 dark:hover:bg-white/10'}`}>
+                                        <button key={mode.id} onClick={() => setPersonality(mode.id as PersonalityMode)} className={`text-left px-4 py-3 rounded-xl border transition-all duration-300 ${personality === mode.id ? 'bg-indigo-500/20 border-indigo-500/50 text-white shadow-lg' : 'bg-white/5 border-white/10 text-zinc-300 hover:border-white/20 hover:bg-white/10'}`}>
                                             <div className="font-medium text-sm">{mode.name}</div>
                                             <div className="text-xs opacity-60">{mode.desc}</div>
                                         </button>
@@ -696,14 +684,14 @@ const ChatView: React.FC = () => {
                                 </div>
                             </div>
                              <div>
-                                <label className="block text-sm font-medium text-zinc-600 dark:text-zinc-400 mb-3">Image Model Preference</label>
+                                <label className="block text-sm font-medium text-zinc-400 mb-3">Image Model Preference</label>
                                 <div className="grid grid-cols-2 gap-2">
-                                    <button onClick={() => handleImageModelChange('img3')} className={`text-left px-4 py-3 rounded-xl border transition-all duration-300 relative overflow-hidden ${imageModelPref === 'img3' ? 'bg-indigo-500/10 dark:bg-indigo-500/20 border-indigo-500/50 text-indigo-600 dark:text-white shadow-lg' : 'bg-black/5 dark:bg-white/5 border-black/10 dark:border-white/10 hover:border-black/20 dark:hover:border-white/20 hover:bg-black/10 dark:hover:bg-white/10'}`}>
+                                    <button onClick={() => handleImageModelChange('img3')} className={`text-left px-4 py-3 rounded-xl border transition-all duration-300 relative overflow-hidden ${imageModelPref === 'img3' ? 'bg-indigo-500/20 border-indigo-500/50 text-white shadow-lg' : 'bg-white/5 border-white/10 text-zinc-300 hover:border-white/20 hover:bg-white/10'}`}>
                                         <span className="absolute top-2 right-2 bg-indigo-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">Recommended</span>
                                         <div className="font-medium text-sm">Nexus K3</div>
                                         <div className="text-xs opacity-60">Fast generation (~15s).</div>
                                     </button>
-                                    <button onClick={() => handleImageModelChange('img4')} className={`text-left px-4 py-3 rounded-xl border transition-all duration-300 ${imageModelPref === 'img4' ? 'bg-indigo-500/10 dark:bg-indigo-500/20 border-indigo-500/50 text-indigo-600 dark:text-white shadow-lg' : 'bg-black/5 dark:bg-white/5 border-black/10 dark:border-white/10 hover:border-black/20 dark:hover:border-white/20 hover:bg-black/10 dark:hover:bg-white/10'}`}>
+                                    <button onClick={() => handleImageModelChange('img4')} className={`text-left px-4 py-3 rounded-xl border transition-all duration-300 ${imageModelPref === 'img4' ? 'bg-indigo-500/20 border-indigo-500/50 text-white shadow-lg' : 'bg-white/5 border-white/10 text-zinc-300 hover:border-white/20 hover:bg-white/10'}`}>
                                         <div className="font-medium text-sm">Nexus K4</div>
                                         <div className="text-xs opacity-60">Highest quality (~45s).</div>
                                     </button>
@@ -711,13 +699,13 @@ const ChatView: React.FC = () => {
                             </div>
                             {session && (
                                 <div>
-                                    <label className="block text-sm font-medium text-zinc-600 dark:text-zinc-400 mb-3">Personalization</label>
+                                    <label className="block text-sm font-medium text-zinc-400 mb-3">Personalization</label>
                                     <div className="space-y-2">
                                         {personalizationEntries.length > 0 ? (
                                             personalizationEntries.map(entry => (
-                                                <div key={entry.id} className="flex items-center justify-between bg-black/5 dark:bg-white/5 p-2.5 rounded-lg animate-pop-in">
-                                                    <p className="text-sm text-zinc-700 dark:text-zinc-300">{entry.entry}</p>
-                                                    <button onClick={() => handleDeletePersonalization(entry.id)} className="p-1.5 text-zinc-500 hover:text-red-500 dark:hover:text-red-400 rounded-full hover:bg-red-500/10 transition-colors" title="Delete Entry">
+                                                <div key={entry.id} className="flex items-center justify-between bg-white/5 p-2.5 rounded-lg animate-pop-in">
+                                                    <p className="text-sm text-zinc-300">{entry.entry}</p>
+                                                    <button onClick={() => handleDeletePersonalization(entry.id)} className="p-1.5 text-zinc-500 hover:text-red-400 rounded-full hover:bg-red-500/10 transition-colors" title="Delete Entry">
                                                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                                                     </button>
                                                 </div>
@@ -735,47 +723,47 @@ const ChatView: React.FC = () => {
 
             <div data-liquid-glass className={`fixed inset-y-0 left-0 z-40 w-72 liquid-glass border-l-0 border-t-0 border-b-0 rounded-none rounded-r-2xl transform transition-transform duration-300 ease-in-out ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
                 <div className="flex flex-col h-full p-4 space-y-4">
-                    <div className="flex justify-between items-center"><div className="font-bold tracking-wide flex items-center gap-2"><img src="/nexus-logo.png" alt="Nexus Logo" className="w-6 h-6 animate-spin-slow" />Nexus</div><button onClick={() => setIsSidebarOpen(false)} className="text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white p-1 rounded-full hover:bg-black/10 dark:hover:bg-white/10"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m15 18-6-6 6-6"/></svg></button></div>
-                    <button onClick={() => { resetChat(); setIsSidebarOpen(false); }} className="w-full flex items-center justify-center gap-2 px-3 py-2.5 bg-zinc-900 dark:bg-white hover:bg-zinc-700 dark:hover:bg-zinc-200 text-white dark:text-black rounded-full transition-colors duration-300 text-sm font-semibold interactive-lift"><svg width="16" height="16" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5" fill="none"><path d="M12 5v14"/><path d="M5 12h14"/></svg>New Chat</button>
+                    <div className="flex justify-between items-center"><div className="font-bold tracking-wide text-white flex items-center gap-2"><img src="/nexus-logo.png" alt="Nexus Logo" className="w-6 h-6 animate-spin-slow" />Nexus</div><button onClick={() => setIsSidebarOpen(false)} className="text-zinc-400 hover:text-white p-1 rounded-full hover:bg-white/10"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m15 18-6-6 6-6"/></svg></button></div>
+                    <button onClick={() => { resetChat(); setIsSidebarOpen(false); }} className="w-full flex items-center justify-center gap-2 px-3 py-2.5 bg-white hover:bg-zinc-200 text-black rounded-full transition-colors duration-300 text-sm font-semibold interactive-lift"><svg width="16" height="16" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5" fill="none"><path d="M12 5v14"/><path d="M5 12h14"/></svg>New Chat</button>
                     {session && (
                         <div className="flex-1 overflow-y-auto space-y-1 pr-2 -mr-2 scrollbar-hide">
                             <div className="text-xs font-semibold text-zinc-500 px-2 py-1 uppercase tracking-wider mb-1">Recent Chats</div>
                             {conversations.map(chat => (
                                 <div key={chat.id} className="relative group">
-                                    <button onClick={() => navigate(`/chat/${chat.id}`)} className={`w-full text-left pl-3 pr-8 py-2 text-sm rounded-lg transition-colors duration-200 truncate ${currentConversationId === chat.id ? 'bg-black/10 dark:bg-white/10 text-zinc-900 dark:text-white' : 'text-zinc-600 dark:text-zinc-400 hover:bg-black/5 dark:hover:bg-white/5 hover:text-zinc-900 dark:hover:text-white'}`}>
+                                    <button onClick={() => navigate(`/chat/${chat.id}`)} className={`w-full text-left pl-3 pr-8 py-2 text-sm rounded-lg transition-colors duration-200 truncate ${currentConversationId === chat.id ? 'bg-white/10 text-white' : 'text-zinc-400 hover:bg-white/5 hover:text-white'}`}>
                                         <div className="truncate">{chat.title || 'New Chat'}</div>
                                     </button>
-                                    <button onClick={(e) => { e.stopPropagation(); handleDeleteConversation(chat.id); }} className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-zinc-500 hover:text-red-500 dark:hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity" title="Delete Chat"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg></button>
+                                    <button onClick={(e) => { e.stopPropagation(); handleDeleteConversation(chat.id); }} className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-zinc-500 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity" title="Delete Chat"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg></button>
                                 </div>
                             ))}
                         </div>
                     )}
                     <div className="space-y-2">
-                        <button onClick={openSettings} className="w-full flex items-center gap-3 px-3 py-2 text-sm text-zinc-700 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/5 rounded-lg transition-colors"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.47a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.35a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>Settings</button>
+                        <button onClick={openSettings} className="w-full flex items-center gap-3 px-3 py-2 text-sm text-zinc-300 hover:text-white hover:bg-white/5 rounded-lg transition-colors"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.47a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.35a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>Settings</button>
                         {session && (
-                            <div className="flex items-center justify-between gap-3 px-3 py-2 bg-black/5 dark:bg-white/5 rounded-lg">
+                            <div className="flex items-center justify-between gap-3 px-3 py-2 bg-white/5 rounded-lg">
                                 <div className="flex items-center gap-3 min-w-0">
                                     <input type="file" ref={avatarFileRef} onChange={handleAvatarUpload} className="hidden" accept="image/png, image/jpeg" />
                                     <button onClick={() => avatarFileRef.current?.click()} className="shrink-0 group relative" title="Change profile picture">
                                         {profile?.avatar_url ? (
                                             <img src={profile.avatar_url} alt="User Avatar" className="w-8 h-8 rounded-full object-cover group-hover:opacity-80 transition-opacity" />
                                         ) : (
-                                            <div className="w-8 h-8 rounded-full liquid-glass flex items-center justify-center border border-black/10 dark:border-white/10 group-hover:border-black/20 dark:group-hover:border-white/20 transition-colors">
-                                                <svg className="w-5 h-5 text-zinc-600 dark:text-zinc-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                                            <div className="w-8 h-8 rounded-full liquid-glass flex items-center justify-center border border-white/10 group-hover:border-white/20 transition-colors">
+                                                <svg className="w-5 h-5 text-zinc-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
                                             </div>
                                         )}
                                     </button>
-                                    <div className="text-sm text-zinc-800 dark:text-zinc-200 truncate">
+                                    <div className="text-sm text-zinc-200 truncate">
                                         {profile?.first_name && profile?.last_name 
                                             ? `${profile.first_name} ${profile.last_name}` 
                                             : session.user.email}
                                     </div>
                                 </div>
-                                <button onClick={() => supabase.auth.signOut()} className="text-zinc-600 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-white p-1.5 hover:bg-black/10 dark:hover:bg-white/10 rounded-md" title="Log Out"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg></button>
+                                <button onClick={() => supabase.auth.signOut()} className="text-zinc-300 hover:text-white p-1.5 hover:bg-white/10 rounded-md" title="Log Out"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg></button>
                             </div>
                         )}
                         {session && (
-                            <button onClick={handleDeleteAllConversations} className="w-full flex items-center gap-3 px-3 py-2 text-sm text-zinc-500 dark:text-zinc-400 hover:text-red-500 dark:hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors">
+                            <button onClick={handleDeleteAllConversations} className="w-full flex items-center gap-3 px-3 py-2 text-sm text-zinc-400 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors">
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
                                 Clear all chats
                             </button>
@@ -787,10 +775,10 @@ const ChatView: React.FC = () => {
             {isSidebarOpen && <div className="fixed inset-0 bg-black/50 z-30" onClick={() => setIsSidebarOpen(false)}></div>}
 
             <main className="flex-1 relative flex flex-col overflow-hidden transition-all duration-300 ease-in-out" style={{ marginLeft: isSidebarOpen ? '18rem' : '0' }}>
-                <header className="h-16 flex items-center justify-between px-6 shrink-0 border-b border-black/10 dark:border-white/10 backdrop-blur-md bg-white/80 dark:bg-black/10">
+                <header className="h-16 flex items-center justify-between px-6 shrink-0 border-b border-white/10 backdrop-blur-md bg-black/10">
                     <div className="flex items-center gap-3">
-                        <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="p-2 hover:bg-black/5 dark:hover:bg-white/5 rounded-full text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white transition-colors" title="Menu"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><line x1="9" y1="3" x2="9" y2="21"/></svg></button>
-                        <span className="font-semibold text-sm tracking-wide text-zinc-700 dark:text-zinc-300">{currentConversationId && session ? conversations.find(c => c.id === currentConversationId)?.title : 'Nexus'}</span>
+                        <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="p-2 hover:bg-white/5 rounded-full text-zinc-400 hover:text-white transition-colors" title="Menu"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><line x1="9" y1="3" x2="9" y2="21"/></svg></button>
+                        <span className="font-semibold text-sm tracking-wide text-zinc-300">{currentConversationId && session ? conversations.find(c => c.id === currentConversationId)?.title : 'Nexus'}</span>
                     </div>
                 </header>
 
@@ -798,11 +786,11 @@ const ChatView: React.FC = () => {
                     {messages.length === 0 && !isLoading && !currentConversationId ? (
                         <div className={`h-full flex flex-col items-center justify-center pb-32 transition-all duration-700 ${playgroundViewActive ? 'opacity-0 scale-90 pointer-events-none' : 'opacity-100 scale-100'}`}>
                             <OrbLogo />
-                            <h1 className="text-2xl font-medium mb-2 tracking-tight">How can I help you?</h1>
+                            <h1 className="text-2xl font-medium text-white mb-2 tracking-tight">How can I help you?</h1>
                             <button 
                                 onClick={() => setPlaygroundViewActive(true)}
                                 data-liquid-glass
-                                className="liquid-glass mt-8 px-8 py-3 rounded-full font-semibold border interactive-lift"
+                                className="liquid-glass mt-8 px-8 py-3 rounded-full font-semibold text-white border border-white/10 interactive-lift"
                             >
                                 AI Playground
                             </button>
@@ -812,10 +800,10 @@ const ChatView: React.FC = () => {
                             {messages.map((msg) => (
                                 <div key={msg.id} className={`flex items-start gap-4 animate-pop-in ${msg.role === 'user' ? 'justify-end' : ''}`}>
                                     {msg.role === 'assistant' && <div className="shrink-0 mt-1"><NexusIconSmall /></div>}
-                                    <div className={`max-w-[85%] leading-relaxed px-5 py-3 rounded-3xl ${msg.role === 'user' ? 'bg-indigo-600 text-white rounded-br-lg' : 'bg-zinc-100 dark:bg-zinc-800 rounded-bl-lg'}`}>
-                                        {msg.role === 'assistant' && <div className="font-medium text-sm text-zinc-600 dark:text-zinc-400 mb-2">Nexus</div>}
-                                        <div className={`${msg.role === 'assistant' ? 'prose prose-invert prose-sm max-w-none text-zinc-800 dark:text-zinc-100' : 'text-white'}`} dangerouslySetInnerHTML={{ __html: parseMarkdown(msg.text) }} />
-                                        {msg.role === 'assistant' && !isLoading && (<div className="flex items-center gap-2 mt-3"><button onClick={() => handleTTS(msg.text)} className="p-1.5 text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-300 hover:bg-black/5 dark:hover:bg-white/5 rounded-md transition-colors" title="Read Aloud"><svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path></svg></button></div>)}
+                                    <div data-liquid-glass className={`max-w-[85%] leading-relaxed ${msg.role === 'user' ? 'light-liquid-glass text-white px-5 py-3 rounded-3xl rounded-br-lg' : 'dark-liquid-glass px-5 py-3 rounded-3xl rounded-bl-lg'}`}>
+                                        {msg.role === 'assistant' && <div className="font-medium text-sm text-zinc-400 mb-2">Nexus</div>}
+                                        <div className={`${msg.role === 'assistant' ? 'text-zinc-100 prose prose-invert prose-sm max-w-none' : ''}`} dangerouslySetInnerHTML={{ __html: parseMarkdown(msg.text) }} />
+                                        {msg.role === 'assistant' && !isLoading && (<div className="flex items-center gap-2 mt-3"><button onClick={() => handleTTS(msg.text)} className="p-1.5 text-zinc-500 hover:text-zinc-300 hover:bg-white/5 rounded-md transition-colors" title="Read Aloud"><svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path></svg></button></div>)}
                                     </div>
                                 </div>
                             ))}
@@ -849,26 +837,26 @@ const ChatView: React.FC = () => {
                         <div className="relative">
                             <form onSubmit={handleChatSubmit} className="relative">
                                 <div data-liquid-glass className="liquid-glass rounded-full flex items-center p-2 transition-all duration-300 focus-within:shadow-2xl focus-within:shadow-indigo-500/20">
-                                    <button type="button" onClick={triggerFileSelect} className="p-2 rounded-full text-zinc-600 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-white hover:bg-black/10 dark:hover:bg-white/10 transition-colors ml-1" title="Attach File"><svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg></button>
+                                    <button type="button" onClick={triggerFileSelect} className="p-2 rounded-full text-zinc-300 hover:text-white hover:bg-white/10 transition-colors ml-1" title="Attach File"><svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg></button>
                                     <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" accept="image/*,application/pdf,text/plain,text/code,application/json" multiple />
-                                    <textarea ref={textareaRef} value={inputValue} onChange={(e) => setInputValue(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleChatSubmit(e); } }} rows={1} placeholder="Message Nexus..." className="flex-1 bg-transparent border-none placeholder-zinc-500 focus:ring-0 focus:outline-none resize-none py-2 px-3 max-h-[120px] overflow-y-auto scrollbar-hide"></textarea>
-                                    <button type="button" onClick={() => setIsVoiceMode(true)} className="p-2 rounded-full text-zinc-600 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-white hover:bg-black/10 dark:hover:bg-white/10 transition-colors"><svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/></svg></button>
-                                    <button type="submit" disabled={isLoading || (!inputValue.trim() && attachedFiles.length === 0)} className={`w-9 h-9 flex items-center justify-center rounded-full transition-all duration-200 ml-1 ${(inputValue.trim() || attachedFiles.length > 0) && !isLoading ? 'bg-zinc-900 dark:bg-white text-white dark:text-black hover:bg-zinc-700 dark:hover:bg-zinc-200 shadow-lg' : 'bg-zinc-200 dark:bg-white/10 text-zinc-400 dark:text-zinc-500 cursor-not-allowed'}`}><svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg></button>
+                                    <textarea ref={textareaRef} value={inputValue} onChange={(e) => setInputValue(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleChatSubmit(e); } }} rows={1} placeholder="Message Nexus..." className="flex-1 bg-transparent border-none text-white placeholder-zinc-500 focus:ring-0 focus:outline-none resize-none py-2 px-3 max-h-[120px] overflow-y-auto scrollbar-hide"></textarea>
+                                    <button type="button" onClick={() => setIsVoiceMode(true)} className="p-2 rounded-full text-zinc-300 hover:text-white hover:bg-white/10 transition-colors"><svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/></svg></button>
+                                    <button type="submit" disabled={isLoading || (!inputValue.trim() && attachedFiles.length === 0)} className={`w-9 h-9 flex items-center justify-center rounded-full transition-all duration-200 ml-1 ${(inputValue.trim() || attachedFiles.length > 0) && !isLoading ? 'bg-white text-black hover:bg-zinc-200 shadow-lg' : 'bg-white/10 text-zinc-500 cursor-not-allowed'}`}><svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg></button>
                                 </div>
                                 {attachedFiles.length > 0 && (
                                     <div className="absolute bottom-full w-full left-0 mb-2 px-2">
-                                        <div className="flex gap-3 flex-wrap p-2 bg-white/50 dark:bg-black/30 backdrop-blur-md rounded-xl border border-black/10 dark:border-white/10">
+                                        <div className="flex gap-3 flex-wrap p-2 bg-black/30 backdrop-blur-md rounded-xl border border-white/10">
                                             {attachedFiles.map(file => (
-                                                <div key={file.id} className="relative w-20 h-20 bg-black/5 dark:bg-black/50 rounded-lg border border-black/10 dark:border-white/10 group animate-pop-in">
+                                                <div key={file.id} className="relative w-20 h-20 bg-black/50 rounded-lg border border-white/10 group animate-pop-in">
                                                     {file.type.startsWith('image/') ? (
                                                         <img src={file.content} alt={file.name} className="w-full h-full object-cover rounded-lg" />
                                                     ) : (
                                                         <div className="w-full h-full flex flex-col items-center justify-center p-2 text-center">
-                                                            <svg className="w-6 h-6 text-zinc-600 dark:text-zinc-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/></svg>
-                                                            <span className="text-xs text-zinc-700 dark:text-zinc-300 mt-1 truncate w-full">{file.name}</span>
+                                                            <svg className="w-6 h-6 text-zinc-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/></svg>
+                                                            <span className="text-xs text-zinc-300 mt-1 truncate w-full">{file.name}</span>
                                                         </div>
                                                     )}
-                                                    <button type="button" onClick={() => removeFile(file.id)} className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-zinc-200 dark:bg-zinc-800 hover:bg-red-500 border border-black/10 dark:border-white/20 rounded-full flex items-center justify-center text-zinc-800 dark:text-white hover:text-white dark:hover:text-white opacity-0 group-hover:opacity-100 transition-all" title={`Remove ${file.name}`}>
+                                                    <button type="button" onClick={() => removeFile(file.id)} className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-zinc-800 hover:bg-red-500 border border-white/20 rounded-full flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-all" title={`Remove ${file.name}`}>
                                                         <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                                                     </button>
                                                 </div>
