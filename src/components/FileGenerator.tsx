@@ -39,35 +39,39 @@ const FileGenerator: React.FC<FileGeneratorProps> = ({ fileType, filename, conte
                     const pageHeight = doc.internal.pageSize.getHeight();
                     let y = margin;
 
-                    const addText = (text: string, size: number, style: 'normal' | 'bold') => {
+                    const addWrappedText = (text: string, options: { size: number, style: 'normal' | 'bold', x?: number }) => {
+                        const { size, style, x = margin } = options;
                         doc.setFontSize(size);
                         doc.setFont('helvetica', style);
-                        const lines = doc.splitTextToSize(text, pageWidth - margin * 2);
+                        const lines = doc.splitTextToSize(text, pageWidth - margin - x);
                         
                         lines.forEach((line: string) => {
-                            if (y + (size / 2.5) > pageHeight - margin) {
+                            if (y > pageHeight - margin) {
                                 doc.addPage();
                                 y = margin;
                             }
-                            doc.text(line, margin, y);
-                            y += (size / 2.5);
+                            doc.text(line, x, y);
+                            y += (size / 2.5) + 2; // Add line height + a little space
                         });
                     };
 
                     const lines = content.split('\n');
-                    lines.forEach(line => {
+                    for (const line of lines) {
                         if (line.startsWith('# ')) {
-                            addText(line.substring(2), 16, 'bold');
+                            addWrappedText(line.substring(2), { size: 18, style: 'bold' });
                         } else if (line.startsWith('## ')) {
-                            addText(line.substring(3), 14, 'bold');
+                            addWrappedText(line.substring(3), { size: 15, style: 'bold' });
+                        } else if (line.startsWith('### ')) {
+                            addWrappedText(line.substring(4), { size: 12, style: 'bold' });
                         } else if (line.startsWith('- ')) {
-                            addText(`• ${line.substring(2)}`, 11, 'normal');
+                            const itemText = `• ${line.substring(2).replace(/\*\*/g, '')}`;
+                            addWrappedText(itemText, { size: 11, style: 'normal' });
+                        } else if (line.trim() === '') {
+                            y += 6; // Paragraph break
                         } else {
-                            const plainLine = line.replace(/\*\*(.*?)\*\*/g, '$1');
-                            addText(plainLine, 11, 'normal');
+                            addWrappedText(line.replace(/\*\*/g, ''), { size: 11, style: 'normal' });
                         }
-                        y += 2; 
-                    });
+                    }
 
                     blob = doc.output('blob');
                 } else {

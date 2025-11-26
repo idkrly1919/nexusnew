@@ -529,7 +529,7 @@ const ChatView: React.FC = () => {
     const renderMessageContent = (text: string) => {
         if (!text) return null;
     
-        const fileBlockRegex = /```(pdf|txt|html)\nfilename:\s*(.*?)\n---\n([\s\S]*?)\n```/;
+        const fileBlockRegex = /```(pdf|txt|html)\nfilename:\s*(.*?)\n---\n([\s\S]*?)```/;
     
         const simpleParse = (str: string) => {
             let parsed = str.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, (_, alt, url) => {
