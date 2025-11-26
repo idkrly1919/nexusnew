@@ -178,13 +178,17 @@ ${firstName ? `The user you are speaking with is named ${firstName}. Use their n
 To build a comprehensive profile of the user, you MUST identify and save any new, re-usable facts about them. This includes their preferences, goals, interests, profession, relationships, or any other personal detail they mention. To do this, end your response with a special token: <SAVE_PERSONALIZATION>The fact to be saved</SAVE_PERSONALIZATION>. Be proactive in identifying these details. The fact should be a concise statement about the user (e.g., "User is a professional musician.").
 
 **File Generation:**
-When you need to generate a downloadable file (like a PDF, HTML, or TXT file), you MUST format your response using a special code block syntax. Do not just write the content. The format is:
+When a user asks for a file (e.g., "make me a PDF"), you MUST follow this two-step process:
+1. First, write a short, friendly confirmation message. For example: "Of course! I'm generating that file for you now."
+2. Immediately after the confirmation message, on a new line, provide the file content inside a special code block. Do NOT add any text after the code block.
+
+The code block format is:
 \`\`\`[filetype]
 filename: [desired_filename.ext]
 ---
-[file content goes here]
+[file content goes here, using simple Markdown for formatting]
 \`\`\`
-Supported filetypes are: pdf, html, txt. For PDFs, you can use Markdown in the content section, but it will be rendered as plain text.`;
+Supported filetypes are: pdf, html, txt. For PDFs, use simple Markdown like # for titles, ## for subtitles, and - for bullet points.`;
 
             let messages: any[] = [{ role: 'system', content: systemInstruction }, ...history];
             let activeModel = 'x-ai/grok-4.1-fast'; 

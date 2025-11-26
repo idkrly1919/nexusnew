@@ -529,7 +529,7 @@ const ChatView: React.FC = () => {
     const renderMessageContent = (text: string) => {
         if (!text) return null;
     
-        const fileBlockRegex = /```(pdf|txt|html)\nfilename:\s*(.*?)\n---\n([\s\S]*?)\n```/g;
+        const fileBlockRegex = /```(pdf|txt|html)\nfilename:\s*(.*?)\n---\n([\s\S]*?)\n```/;
     
         const simpleParse = (str: string) => {
             let parsed = str.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, (_, alt, url) => {
@@ -559,31 +559,23 @@ const ChatView: React.FC = () => {
             return parsed;
         };
     
-        const parts = [];
-        let lastIndex = 0;
-        const matches = [...text.matchAll(fileBlockRegex)];
+        const match = text.match(fileBlockRegex);
     
-        if (matches.length === 0) {
+        if (!match) {
             return <div dangerouslySetInnerHTML={{ __html: simpleParse(text) }} />;
         }
     
-        matches.forEach((match, i) => {
-            const [fullMatch, fileType, filename, content] = match;
-            const startIndex = match.index!;
+        const [fullMatch, fileType, filename, content] = match;
+        const startIndex = match.index!;
+        const confirmationText = text.substring(0, startIndex).trim();
     
-            if (startIndex > lastIndex) {
-                const textPart = text.substring(lastIndex, startIndex);
-                parts.push(<div key={`text-${i}`} dangerouslySetInnerHTML={{ __html: simpleParse(textPart) }} />);
-            }
+        const parts = [];
     
-            parts.push(<FileGenerator key={`file-${i}`} fileType={fileType.trim()} filename={filename.trim()} content={content.trim()} />);
-            lastIndex = startIndex + fullMatch.length;
-        });
-    
-        if (lastIndex < text.length) {
-            const remainingText = text.substring(lastIndex);
-            parts.push(<div key="text-last" dangerouslySetInnerHTML={{ __html: simpleParse(remainingText) }} />);
+        if (confirmationText) {
+            parts.push(<div key="text-part" dangerouslySetInnerHTML={{ __html: simpleParse(confirmationText) }} />);
         }
+    
+        parts.push(<FileGenerator key="file-part" fileType={fileType.trim()} filename={filename.trim()} content={content.trim()} />);
     
         return parts;
     };

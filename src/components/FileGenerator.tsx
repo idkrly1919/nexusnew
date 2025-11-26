@@ -34,7 +34,41 @@ const FileGenerator: React.FC<FileGeneratorProps> = ({ fileType, filename, conte
 
                 if (fileType === 'pdf') {
                     const doc = new jsPDF();
-                    doc.text(content, 10, 10);
+                    const margin = 15;
+                    const pageWidth = doc.internal.pageSize.getWidth();
+                    const pageHeight = doc.internal.pageSize.getHeight();
+                    let y = margin;
+
+                    const addText = (text: string, size: number, style: 'normal' | 'bold') => {
+                        doc.setFontSize(size);
+                        doc.setFont('helvetica', style);
+                        const lines = doc.splitTextToSize(text, pageWidth - margin * 2);
+                        
+                        lines.forEach((line: string) => {
+                            if (y + (size / 2.5) > pageHeight - margin) {
+                                doc.addPage();
+                                y = margin;
+                            }
+                            doc.text(line, margin, y);
+                            y += (size / 2.5);
+                        });
+                    };
+
+                    const lines = content.split('\n');
+                    lines.forEach(line => {
+                        if (line.startsWith('# ')) {
+                            addText(line.substring(2), 16, 'bold');
+                        } else if (line.startsWith('## ')) {
+                            addText(line.substring(3), 14, 'bold');
+                        } else if (line.startsWith('- ')) {
+                            addText(`• ${line.substring(2)}`, 11, 'normal');
+                        } else {
+                            const plainLine = line.replace(/\*\*(.*?)\*\*/g, '$1');
+                            addText(plainLine, 11, 'normal');
+                        }
+                        y += 2; 
+                    });
+
                     blob = doc.output('blob');
                 } else {
                     blob = new Blob([content], { type: mimeMap[fileType] || 'application/octet-stream' });
