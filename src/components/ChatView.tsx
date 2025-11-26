@@ -394,6 +394,19 @@ const ChatView: React.FC = () => {
 
     const processSubmission = async (userText: string) => {
         if (isLoading || (!userText.trim() && attachedFiles.length === 0)) return;
+
+        const videoKeywords = ['make a video', 'generate a video', 'create a video', 'video of'];
+        const isVideoRequest = videoKeywords.some(k => userText.toLowerCase().includes(k));
+
+        if (isVideoRequest) {
+            setEmbeddedUrl('https://veoaifree.com');
+            const userMessage: Message = { id: `user-${Date.now()}`, role: 'user', text: userText };
+            const assistantMessage: Message = { id: `ai-${Date.now()}`, role: 'assistant', text: "Of course! Opening the video generation tool for you now." };
+            setMessages(prev => [...prev, userMessage, assistantMessage]);
+            setInputValue('');
+            if (textareaRef.current) textareaRef.current.style.height = '52px';
+            return;
+        }
         
         const imageKeywords = ['draw', 'paint', 'generate image', 'create an image', 'visualize', 'edit image', 'modify image', 'make an image'];
         const isImage = imageKeywords.some(k => userText.toLowerCase().includes(k));
@@ -867,7 +880,7 @@ const ChatView: React.FC = () => {
                             <h1 className="text-2xl font-medium text-white mb-8 tracking-tight">What can I do for you today?</h1>
                             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-4xl w-full px-4">
                                 <button 
-                                    onClick={() => setEmbeddedUrl('https://veoaifree.com/veo-video-generator/')}
+                                    onClick={() => setEmbeddedUrl('https://veoaifree.com')}
                                     data-liquid-glass
                                     className="liquid-glass p-4 rounded-2xl text-left interactive-lift space-y-2"
                                 >
