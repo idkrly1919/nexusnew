@@ -105,7 +105,7 @@ const VoiceInputView: React.FC<VoiceInputViewProps> = ({ onClose, onFinalTranscr
         animationFrameRef.current = requestAnimationFrame(draw);
         if (!analyserRef.current || !dataArrayRef.current || !canvasRef.current) return;
 
-        analyserRef.current.getByteFrequencyData(dataArrayRef.current);
+        analyserRef.current.getByteFrequencyData(dataArrayRef.current as any);
         const canvas = canvasRef.current;
         const ctx = canvas.getContext('2d');
         if (!ctx) return;

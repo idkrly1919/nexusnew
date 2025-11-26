@@ -1,10 +1,11 @@
-import React, { useState, useEffect, FormEvent } from 'react';
+import React, { useState, FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Quiz, QuizQuestion, UserAnswer } from '../types';
 import { generateQuiz, evaluateAnswer, getExplanation, getImprovementTips } from '../services/geminiService';
 import DynamicBackground from '../components/DynamicBackground';
+import { useSession } from '../contexts/SessionContext';
+import { supabase } from '../integrations/supabase/client';
 
-// You would create these components in separate files
 const ScoreCircle = ({ score }: { score: number }) => {
     const size = 160;
     const strokeWidth = 12;
@@ -85,6 +86,7 @@ const QuizExplanationSidebar = ({ isOpen, onClose, question, userAnswer, explana
 
 
 const QuizPage: React.FC = () => {
+    const { session } = useSession();
     const [quizState, setQuizState] = useState<'topic' | 'generating' | 'active' | 'finished'>('topic');
     const [topic, setTopic] = useState('');
     const [quizData, setQuizData] = useState<Quiz | null>(null);
@@ -97,6 +99,7 @@ const QuizPage: React.FC = () => {
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const [explanation, setExplanation] = useState<string | null>(null);
     const [improvementTips, setImprovementTips] = useState<string | null>(null);
+    const [isSaving, setIsSaving] = useState(false);
     const navigate = useNavigate();
 
     const handleTopicSubmit = async (e: FormEvent) => {
@@ -174,6 +177,45 @@ const QuizPage: React.FC = () => {
         const totalPossibleScore = quizData.questions.length * 10;
         const userTotalScore = userAnswers.reduce((sum, ans) => sum + ans.score, 0);
         return (userTotalScore / totalPossibleScore) * 100;
+    };
+
+    const handleSaveToHistory = async () => {
+        if (!quizData || !session) return;
+        setIsSaving(true);
+
+        const score = calculateScore();
+        let summary = `### Quiz Results: ${quizData.topic}\n\n**Final Score: ${Math.round(score)}%**\n\n---\n\n`;
+        quizData.questions.forEach((q, i) => {
+            const userAnswer = userAnswers.find(a => a.questionIndex === i);
+            summary += `**${i + 1}. ${q.question.replace('___', `[${q.correct_answer}]`)}**\n`;
+            summary += `*Your Answer:* ${userAnswer?.answer} ${userAnswer?.isCorrect ? '✅' : '❌'}\n\n`;
+        });
+
+        try {
+            const { data: newConversation, error: createError } = await supabase
+                .from('conversations')
+                .insert({ user_id: session.user.id, title: `Quiz: ${quizData.topic}` })
+                .select()
+                .single();
+
+            if (createError) throw createError;
+
+            const messagesToInsert = [
+                { conversation_id: newConversation.id, user_id: session.user.id, role: 'user', content: `I took a quiz on "${quizData.topic}".` },
+                { conversation_id: newConversation.id, user_id: session.user.id, role: 'assistant', content: summary }
+            ];
+            const { error: messageError } = await supabase.from('messages').insert(messagesToInsert);
+
+            if (messageError) throw messageError;
+
+            navigate(`/chat/${newConversation.id}`);
+
+        } catch (error) {
+            console.error("Error saving quiz to history:", error);
+            alert("Could not save quiz to history. Please try again.");
+        } finally {
+            setIsSaving(false);
+        }
     };
 
     const renderContent = () => {
@@ -274,7 +316,10 @@ const QuizPage: React.FC = () => {
                         <div className="flex justify-center mb-8">
                             <ScoreCircle score={finalScore} />
                         </div>
-                        <button onClick={handleGetImprovementTips} className="bg-indigo-600 hover:bg-indigo-500 text-white px-6 py-2.5 rounded-full font-medium transition-all duration-300 mb-8">How can I improve?</button>
+                        <div className="flex justify-center gap-4 mb-8">
+                            <button onClick={handleGetImprovementTips} className="bg-indigo-600 hover:bg-indigo-500 text-white px-6 py-2.5 rounded-full font-medium transition-all duration-300">How can I improve?</button>
+                            <button onClick={handleSaveToHistory} disabled={isSaving} className="bg-white/10 hover:bg-white/20 text-white px-6 py-2.5 rounded-full font-medium transition-all duration-300">{isSaving ? 'Saving...' : 'Save to History'}</button>
+                        </div>
                         {improvementTips && (
                             <div data-liquid-glass className="liquid-glass p-6 rounded-2xl text-left mb-8 whitespace-pre-wrap">{improvementTips}</div>
                         )}

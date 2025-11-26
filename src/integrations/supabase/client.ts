@@ -1,4 +1,4 @@
-import { createClient, StorageAdapter } from '@supabase/supabase-js';
+import { createClient } from '@supabase/supabase-js';
 
 const SUPABASE_URL = "https://tlkwgszwzsplpuiacaet.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRsa3dnc3p3enNwbHB1aWFjYWV0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM4ODc0MTUsImV4cCI6MjA3OTQ2MzQxNX0.KInbSGLK7YzMbGceIAIsdtDcybK5EnKIkjG005BOv-0";
@@ -6,20 +6,20 @@ const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiO
 // A custom storage adapter that uses localStorage. This can help with
 // browser-specific issues or when running in environments like iframes
 // where default storage detection might be inconsistent.
-const localStorageAdapter: StorageAdapter = {
-  getItem: (key) => {
+const localStorageAdapter = {
+  getItem: (key: string) => {
     // Check if localStorage is available before using it
     if (typeof window !== 'undefined' && window.localStorage) {
       return window.localStorage.getItem(key);
     }
     return null;
   },
-  setItem: (key, value) => {
+  setItem: (key: string, value: string) => {
     if (typeof window !== 'undefined' && window.localStorage) {
       window.localStorage.setItem(key, value);
     }
   },
-  removeItem: (key) => {
+  removeItem: (key: string) => {
     if (typeof window !== 'undefined' && window.localStorage) {
       window.localStorage.removeItem(key);
     }

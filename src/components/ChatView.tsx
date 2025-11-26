@@ -180,7 +180,7 @@ const ChatView: React.FC = () => {
         }
         const fetchConversations = async () => {
             setIsConversationsLoading(true);
-            const { data, error } = await supabase.from('conversations').select('*').order('created_at', { ascending: false });
+            const { data, error } = await supabase.from('conversations').select('*').order('updated_at', { ascending: false });
             if (error) console.error('Error fetching conversations:', error);
             else setConversations(data as Conversation[]);
             setIsConversationsLoading(false);
@@ -664,6 +664,43 @@ const ChatView: React.FC = () => {
         }
     };
 
+    const groupConversations = (conversations: Conversation[]) => {
+        const groups: { [key: string]: Conversation[] } = {
+            'Today': [],
+            'Yesterday': [],
+            'This Week': [],
+            'This Month': [],
+            'Longer Ago': [],
+        };
+
+        const now = new Date();
+        const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        const yesterday = new Date(today);
+        yesterday.setDate(yesterday.getDate() - 1);
+        const startOfWeek = new Date(today);
+        startOfWeek.setDate(startOfWeek.getDate() - now.getDay());
+        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+
+        conversations.forEach(convo => {
+            const convoDate = new Date(convo.updated_at || convo.created_at);
+            if (convoDate >= today) {
+                groups['Today'].push(convo);
+            } else if (convoDate >= yesterday) {
+                groups['Yesterday'].push(convo);
+            } else if (convoDate >= startOfWeek) {
+                groups['This Week'].push(convo);
+            } else if (convoDate >= startOfMonth) {
+                groups['This Month'].push(convo);
+            } else {
+                groups['Longer Ago'].push(convo);
+            }
+        });
+
+        return groups;
+    };
+
+    const groupedConversations = groupConversations(conversations);
+
     return (
         <div id="chat-view" className="fixed inset-0 z-50 flex flex-col bg-transparent text-zinc-100 font-sans overflow-hidden">
             <DynamicBackground status={backgroundStatus} />
@@ -752,7 +789,6 @@ const ChatView: React.FC = () => {
                     <button onClick={() => { resetChat(); setIsSidebarOpen(false); }} className="w-full flex items-center justify-center gap-2 px-3 py-2.5 bg-white hover:bg-zinc-200 text-black rounded-full transition-colors duration-300 text-sm font-semibold interactive-lift"><svg width="16" height="16" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5" fill="none"><path d="M12 5v14"/><path d="M5 12h14"/></svg>New Chat</button>
                     {session && (
                         <div className="flex-1 overflow-y-auto space-y-1 pr-2 -mr-2 scrollbar-hide">
-                            <div className="text-xs font-semibold text-zinc-500 px-2 py-1 uppercase tracking-wider mb-1">Recent Chats</div>
                             {isConversationsLoading ? (
                                 <div className="flex items-center justify-center gap-2 p-2 text-sm text-zinc-400">
                                     <svg className="animate-spin h-4 w-4 text-zinc-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -762,13 +798,20 @@ const ChatView: React.FC = () => {
                                     Loading chats...
                                 </div>
                             ) : (
-                                conversations.map(chat => (
-                                    <div key={chat.id} className="relative group">
-                                        <button onClick={() => navigate(`/chat/${chat.id}`)} className={`w-full text-left pl-3 pr-8 py-2 text-sm rounded-lg transition-colors duration-200 truncate ${currentConversationId === chat.id ? 'bg-white/10 text-white' : 'text-zinc-400 hover:bg-white/5 hover:text-white'}`}>
-                                            <div className="truncate">{chat.title || 'New Chat'}</div>
-                                        </button>
-                                        <button onClick={(e) => { e.stopPropagation(); handleDeleteConversation(chat.id); }} className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-zinc-500 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity" title="Delete Chat"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg></button>
-                                    </div>
+                                Object.entries(groupedConversations).map(([groupName, groupConversations]) => (
+                                    groupConversations.length > 0 && (
+                                        <div key={groupName} className="mb-3">
+                                            <div className="text-xs font-semibold text-zinc-500 px-2 py-1 uppercase tracking-wider mb-1">{groupName}</div>
+                                            {groupConversations.map(chat => (
+                                                <div key={chat.id} className="relative group">
+                                                    <button onClick={() => navigate(`/chat/${chat.id}`)} className={`w-full text-left pl-3 pr-8 py-2 text-sm rounded-lg transition-colors duration-200 truncate ${currentConversationId === chat.id ? 'bg-white/10 text-white' : 'text-zinc-400 hover:bg-white/5 hover:text-white'}`}>
+                                                        <div className="truncate">{chat.title || 'New Chat'}</div>
+                                                    </button>
+                                                    <button onClick={(e) => { e.stopPropagation(); handleDeleteConversation(chat.id); }} className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-zinc-500 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity" title="Delete Chat"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg></button>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )
                                 ))
                             )}
                         </div>
