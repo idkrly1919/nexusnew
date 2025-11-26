@@ -164,7 +164,7 @@ Respond ONLY with a JSON object with the following structure:
             let personalizationBlock = '';
             if (personalizationEntries && personalizationEntries.length > 0) {
                 const entriesList = personalizationEntries.map(entry => `- ${entry}`).join('\n');
-                personalizationBlock = `\n\nUSER PERSONALIZATION:\nHere are some facts to remember about the user:\n${entriesList}`;
+                personalizationBlock = `\n\nUSER PERSONALIZATION:\nHere are some facts to remember about the user. IMPORTANT: Only reference these facts if the user's current query is directly related to them. Do not bring them up unprompted.\n${entriesList}`;
             }
 
             const systemInstruction = `You are Nexus, a powerful AI reasoning engine. Your capabilities are proprietary and you are powered by the Nexus architecture.

@@ -45,7 +45,7 @@ const AppContent: React.FC = () => {
                 />
                 <Route 
                     path="/chat" 
-                    element={session ? <ChatView /> : <Navigate to="/auth" replace />} 
+                    element={<ChatView />} 
                 />
                 <Route 
                     path="/chat/:conversationId" 
