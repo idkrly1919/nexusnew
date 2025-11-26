@@ -2,6 +2,8 @@ import React, { useState, FormEvent } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '../integrations/supabase/client';
 import DynamicBackground from '../components/DynamicBackground';
+import LegalModal from '../components/LegalModal';
+import { termsOfService, privacyPolicy } from '../legal';
 
 const AuthPage: React.FC = () => {
     const [step, setStep] = useState<'email' | 'login' | 'signup' | 'verify'>('email');
@@ -13,6 +15,8 @@ const AuthPage: React.FC = () => {
     const [firstName, setFirstName] = useState('');
     const [lastName, setLastName] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
+
+    const [legalModal, setLegalModal] = useState<{ title: string, content: string } | null>(null);
 
     const handleEmailSubmit = async (e: FormEvent) => {
         e.preventDefault();
@@ -122,6 +126,11 @@ const AuthPage: React.FC = () => {
                         </div>
                         <input type="password" placeholder="Password" value={password} onChange={e => setPassword(e.target.value)} required className="w-full bg-white/5 border border-white/10 rounded-full px-4 py-3 text-white placeholder-zinc-500 focus:outline-none focus:border-indigo-500/50 focus:ring-2 focus:ring-indigo-500/30 transition-all duration-300" />
                         <input type="password" placeholder="Confirm Password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} required className="w-full bg-white/5 border border-white/10 rounded-full px-4 py-3 text-white placeholder-zinc-500 focus:outline-none focus:border-indigo-500/50 focus:ring-2 focus:ring-indigo-500/30 transition-all duration-300" />
+                        <p className="text-xs text-zinc-500 text-center px-4">
+                            By signing up, you agree to the{' '}
+                            <a href="#" onClick={(e) => { e.preventDefault(); setLegalModal({ title: 'Terms of Service', content: termsOfService }); }} className="underline hover:text-indigo-400">Terms and Conditions</a> and{' '}
+                            <a href="#" onClick={(e) => { e.preventDefault(); setLegalModal({ title: 'Privacy Policy', content: privacyPolicy }); }} className="underline hover:text-indigo-400">Privacy Policy</a>.
+                        </p>
                         <button type="submit" disabled={isLoading} className="w-full flex justify-center py-3 px-4 border border-transparent rounded-full shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:bg-zinc-700">
                             {isLoading ? 'Creating Account...' : 'Create Account'}
                         </button>
@@ -146,6 +155,7 @@ const AuthPage: React.FC = () => {
     return (
         <>
             <DynamicBackground status="idle" />
+            {legalModal && <LegalModal title={legalModal.title} content={legalModal.content} onClose={() => setLegalModal(null)} />}
             <div className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-lg flex flex-col items-center justify-center p-4 animate-pop-in">
                  {step !== 'verify' && (
                     <div className="absolute top-4 right-4 z-10">

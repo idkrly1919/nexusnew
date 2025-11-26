@@ -280,9 +280,15 @@ Supported filetypes are: pdf, html, txt.
 
 // --- Quiz Functions ---
 
-export async function generateQuiz(topic: string): Promise<Quiz> {
+export async function generateQuiz(topic: string, numQuestions: number, fileContext: string): Promise<Quiz> {
     const client = getClient();
-    const systemPrompt = `You are an expert quiz generator. Create a quiz with 10 questions on the given topic. The quiz must have a mix of question types: 6 multiple-choice, 2 short-answer, and 2 fill-in-the-blank.
+    const mcCount = Math.ceil(numQuestions * 0.6);
+    const saCount = Math.floor((numQuestions - mcCount) / 2);
+    const fitbCount = numQuestions - mcCount - saCount;
+
+    const systemPrompt = `You are an expert quiz generator. Create a quiz with ${numQuestions} questions on the given topic.
+    ${fileContext ? `Use the following provided context to generate the questions: ${fileContext}` : ''}
+    The quiz must have a specific mix of question types: ${mcCount} multiple-choice, ${saCount} short-answer, and ${fitbCount} fill-in-the-blank.
     Respond ONLY with a valid JSON object following this structure: 
     { "topic": string, "questions": [{ "question": string, "type": "multiple-choice" | "short-answer" | "fill-in-the-blank", "options": string[] | null, "correct_answer": string }] }.
     - For "multiple-choice", 'options' must be an array of 4 strings, one of which is the 'correct_answer'.
@@ -303,9 +309,11 @@ export async function generateQuiz(topic: string): Promise<Quiz> {
 
 export async function evaluateAnswer(question: QuizQuestion, userAnswer: string): Promise<{ score: number, is_correct: boolean }> {
     const client = getClient();
-    const systemPrompt = `You are an AI grading assistant. Evaluate the user's answer to the following short-answer/fill-in-the-blank question. The ideal answer is provided. Based on how accurate and complete the user's answer is, provide a score from 0 to 10.
-    Respond ONLY with a JSON object: { "score": number, "is_correct": boolean }.
-    'is_correct' should be true if the score is 7 or higher.`;
+    const systemPrompt = `You are a strict AI grading assistant. Evaluate the user's answer to the following short-answer/fill-in-the-blank question. The ideal answer is provided.
+    - Award a score of 10 ONLY if the user's answer is a perfect or near-perfect match to the ideal answer.
+    - Deduct points for inaccuracies, omissions, or significant grammatical errors.
+    - A score of 7 or higher means the answer is largely correct.
+    Respond ONLY with a JSON object: { "score": number, "is_correct": boolean }.`;
 
     const response = await client.chat.completions.create({
         model: 'x-ai/grok-4.1-fast',
