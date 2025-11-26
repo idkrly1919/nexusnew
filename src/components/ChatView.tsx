@@ -39,7 +39,7 @@ const ChatView: React.FC = () => {
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const [showSettings, setShowSettings] = useState(false);
     const [personality, setPersonality] = useState<PersonalityMode>('conversational');
-    const [imageModelPref, setImageModelPref] = useState(profile?.image_model_preference || 'img3');
+    const [imageModelPref, setImageModelPref] = useState(profile?.image_model_preference || 'img4');
     
     const [attachedFiles, setAttachedFiles] = useState<{id: string, name: string, content: string, type: string}[]>([]);
     const [isDragging, setIsDragging] = useState(false);
@@ -711,14 +711,14 @@ const ChatView: React.FC = () => {
                              <div>
                                 <label className="block text-sm font-medium text-zinc-400 mb-3">Image Model Preference</label>
                                 <div className="grid grid-cols-2 gap-2">
-                                    <button onClick={() => handleImageModelChange('img3')} className={`text-left px-4 py-3 rounded-xl border transition-all duration-300 relative overflow-hidden ${imageModelPref === 'img3' ? 'bg-indigo-500/20 border-indigo-500/50 text-white shadow-lg' : 'bg-white/5 border-white/10 text-zinc-300 hover:border-white/20 hover:bg-white/10'}`}>
-                                        <span className="absolute top-2 right-2 bg-indigo-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">Recommended</span>
+                                    <button onClick={() => handleImageModelChange('img3')} className={`text-left px-4 py-3 rounded-xl border transition-all duration-300 ${imageModelPref === 'img3' ? 'bg-indigo-500/20 border-indigo-500/50 text-white shadow-lg' : 'bg-white/5 border-white/10 text-zinc-300 hover:border-white/20 hover:bg-white/10'}`}>
                                         <div className="font-medium text-sm">Quillix K3</div>
                                         <div className="text-xs opacity-60">Fast generation (~15s).</div>
                                     </button>
-                                    <button onClick={() => handleImageModelChange('img4')} className={`text-left px-4 py-3 rounded-xl border transition-all duration-300 ${imageModelPref === 'img4' ? 'bg-indigo-500/20 border-indigo-500/50 text-white shadow-lg' : 'bg-white/5 border-white/10 text-zinc-300 hover:border-white/20 hover:bg-white/10'}`}>
+                                    <button onClick={() => handleImageModelChange('img4')} className={`text-left px-4 py-3 rounded-xl border transition-all duration-300 relative overflow-hidden ${imageModelPref === 'img4' ? 'bg-indigo-500/20 border-indigo-500/50 text-white shadow-lg' : 'bg-white/5 border-white/10 text-zinc-300 hover:border-white/20 hover:bg-white/10'}`}>
+                                        <span className="absolute top-2 right-2 bg-indigo-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">Recommended</span>
                                         <div className="font-medium text-sm">Quillix K4</div>
-                                        <div className="text-xs opacity-60">Highest quality (~45s).</div>
+                                        <div className="text-xs opacity-60">Highest quality (~20s).</div>
                                     </button>
                                 </div>
                             </div>
@@ -774,7 +774,7 @@ const ChatView: React.FC = () => {
                         </div>
                     )}
                     <div className="space-y-2">
-                        <button onClick={openSettings} className="w-full flex items-center gap-3 px-3 py-2 text-sm text-zinc-300 hover:text-white hover:bg-white/5 rounded-lg transition-colors"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.47a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.35a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>Settings</button>
+                        <button onClick={openSettings} className="w-full flex items-center gap-3 px-3 py-2 text-sm text-zinc-300 hover:text-white hover:bg-white/5 rounded-lg transition-colors"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l-.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.47a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.35a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>Settings</button>
                         {session && (
                             <div className="flex items-center justify-between gap-3 px-3 py-2 bg-white/5 rounded-lg">
                                 <div className="flex items-center gap-3 min-w-0">
@@ -822,7 +822,7 @@ const ChatView: React.FC = () => {
                         <div className="h-full flex flex-col items-center justify-center pb-32">
                             <OrbLogo />
                             <h1 className="text-2xl font-medium text-white mb-8 tracking-tight">What can I do for you today?</h1>
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-3xl w-full px-4">
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-4xl w-full px-4">
                                 <button 
                                     onClick={() => setEmbeddedUrl('https://veoaifree.com/veo-video-generator/')}
                                     data-liquid-glass
@@ -852,6 +852,14 @@ const ChatView: React.FC = () => {
                                 >
                                     <h3 className="font-semibold text-white">Make an image</h3>
                                     <p className="text-sm text-zinc-400">Generate an image from a descriptive prompt.</p>
+                                </button>
+                                <button 
+                                    onClick={() => navigate('/quiz')}
+                                    data-liquid-glass
+                                    className="liquid-glass p-4 rounded-2xl text-left interactive-lift space-y-2"
+                                >
+                                    <h3 className="font-semibold text-white">Quiz me on...</h3>
+                                    <p className="text-sm text-zinc-400">Test your knowledge on any topic with an AI-generated quiz.</p>
                                 </button>
                             </div>
                         </div>

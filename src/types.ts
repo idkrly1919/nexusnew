@@ -27,3 +27,26 @@ export interface Conversation {
   title: string;
   created_at: string;
 }
+
+// --- Quiz Feature Types ---
+
+export type QuestionType = 'multiple-choice' | 'short-answer' | 'fill-in-the-blank';
+
+export interface QuizQuestion {
+  question: string;
+  type: QuestionType;
+  options?: string[]; // For multiple-choice
+  correct_answer: string; // For MC and FITB, this is the exact answer. For SA, it's the ideal answer.
+}
+
+export interface Quiz {
+  topic: string;
+  questions: QuizQuestion[];
+}
+
+export interface UserAnswer {
+    questionIndex: number;
+    answer: string;
+    isCorrect?: boolean;
+    score: number; // 10 for correct MC, 0-10 for AI-graded
+}
