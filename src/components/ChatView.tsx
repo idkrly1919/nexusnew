@@ -398,15 +398,30 @@ const ChatView: React.FC = () => {
         // --- Context Management ---
         let currentChatHistory = [...chatHistory];
         const historyText = currentChatHistory.map(m => m.content).join('\n');
-        const CONTEXT_THRESHOLD = 32000; // Approx 8k tokens
+        const CONTEXT_THRESHOLD = 1900000;
+        const SUMMARIZE_THRESHOLD = 900000;
 
         if (historyText.length > CONTEXT_THRESHOLD) {
             setIsLoading(true);
-            setMessages(prev => [...prev, { id: `sys-summary-${Date.now()}`, role: 'system', text: 'Compressing conversation history to save space...' }]);
+            const summaryMessageId = `sys-summary-${Date.now()}`;
+            setMessages(prev => [...prev, { id: summaryMessageId, role: 'system', text: 'Compressing conversation history to save space...' }]);
             
-            const midpoint = Math.floor(currentChatHistory.length / 2);
-            const toSummarize = currentChatHistory.slice(0, midpoint);
-            const toKeep = currentChatHistory.slice(midpoint);
+            let charCount = 0;
+            let splitIndex = 0;
+            for (let i = 0; i < currentChatHistory.length; i++) {
+                charCount += currentChatHistory[i].content.length;
+                if (charCount > SUMMARIZE_THRESHOLD) {
+                    splitIndex = i;
+                    break;
+                }
+            }
+
+            if (splitIndex === 0 && currentChatHistory.length > 1) {
+                splitIndex = 1;
+            }
+
+            const toSummarize = currentChatHistory.slice(0, splitIndex);
+            const toKeep = currentChatHistory.slice(splitIndex);
 
             try {
                 const summary = await summarizeHistory(toSummarize);
@@ -415,9 +430,9 @@ const ChatView: React.FC = () => {
                     ...toKeep
                 ];
                 setChatHistory(currentChatHistory);
-                setMessages(prev => prev.map(m => m.id === `sys-summary-${Date.now()}` ? { ...m, text: 'History compressed successfully.' } : m));
+                setMessages(prev => prev.map(m => m.id === summaryMessageId ? { ...m, text: 'History compressed successfully.' } : m));
             } catch (e) {
-                setMessages(prev => prev.map(m => m.id === `sys-summary-${Date.now()}` ? { ...m, text: 'Could not compress history. Proceeding with full context.' } : m));
+                setMessages(prev => prev.map(m => m.id === summaryMessageId ? { ...m, text: 'Could not compress history. Proceeding with full context.' } : m));
             }
         }
         // --- End Context Management ---
