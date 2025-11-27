@@ -74,7 +74,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ messages, isLoading, onSubmit, on
     };
 
     return (
-        <div className="w-full h-1/2 md:w-3/8 md:max-w-lg md:h-full flex flex-col bg-black/30 md:border-r border-b md:border-b-0 border-white/10 shrink-0">
+        <div className="order-2 md:order-1 w-full h-1/2 md:w-3/8 md:max-w-lg md:h-full flex flex-col bg-black/30 md:border-r border-t md:border-t-0 border-white/10 shrink-0">
             <header className="h-16 flex items-center justify-between px-6 shrink-0 border-b border-white/10">
                 <div className="flex items-center gap-3">
                     <button onClick={() => navigate('/chat')} className="p-2 hover:bg-white/5 rounded-full text-zinc-400 hover:text-white transition-colors" title="Back to Chat">

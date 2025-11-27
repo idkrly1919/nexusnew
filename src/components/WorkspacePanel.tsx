@@ -32,7 +32,7 @@ const WorkspacePanel: React.FC<WorkspacePanelProps> = ({ projectFiles, activePat
 
 
     return (
-        <div className="flex-1 flex flex-col h-full">
+        <div className="order-1 md:order-2 flex-1 flex flex-col h-full">
             <header className="h-16 flex items-center justify-between px-6 shrink-0 border-b border-white/10 bg-black/30">
                 <span className="font-mono text-sm text-zinc-400">{activePath || 'Workspace'}</span>
                 <div className="flex items-center gap-2 bg-zinc-800/50 p-1 rounded-full border border-zinc-700">
