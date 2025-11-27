@@ -45,10 +45,10 @@ const WorkspacePanel: React.FC<WorkspacePanelProps> = ({ projectFiles, activePat
                 )}
                 <div className="flex-1 bg-zinc-900/50 overflow-auto relative">
                     {isBuilding ? (
-                        <BuildingStatus status="building" />
+                        <BuildingStatus />
                     ) : !projectFiles || projectFiles.length === 0 ? (
-                        <div className="flex items-center justify-center h-full text-zinc-500">
-                            <p>Upload a .zip project to get started.</p>
+                        <div className="flex items-center justify-center h-full text-zinc-500 text-center p-4">
+                            <p>Upload a .zip or ask the AI to get started.</p>
                         </div>
                     ) : view === 'preview' ? (
                         <iframe

@@ -37,6 +37,7 @@ const DevEnvironmentPage: React.FC = () => {
             return;
         }
         const fetchConversation = async () => {
+            setIsBuilding(true);
             const { data: convoData, error: convoError } = await supabase
                 .from('conversations')
                 .select('context')
@@ -46,7 +47,7 @@ const DevEnvironmentPage: React.FC = () => {
             if (convoError) console.error("Error fetching conversation context:", convoError);
             else if (convoData?.context?.files) {
                 setProjectFiles(convoData.context.files);
-                setActivePath(convoData.context.activePath || (convoData.context.files.find(f => f.path === 'index.html')?.path || convoData.context.files[0]?.path || null));
+                setActivePath(convoData.context.activePath || (convoData.context.files.find((f: { path: string }) => f.path === 'index.html')?.path || convoData.context.files[0]?.path || null));
                 setBuildVersion(v => v + 1);
             }
 
@@ -57,32 +58,28 @@ const DevEnvironmentPage: React.FC = () => {
                 const loadedMessages: Message[] = data.map((msg: { id: string; role: string; content: string; }) => ({ id: msg.id, role: msg.role as Role, text: msg.content }));
                 setMessages(loadedMessages);
             }
+            setIsBuilding(false);
         };
         fetchConversation();
     }, [currentConversationId, session]);
 
     const handleBuild = (newFiles: { path: string; content: string }[]) => {
-        setIsBuilding(true);
-        setMessages(prev => [...prev, { id: `build-start-${Date.now()}`, role: 'system', text: "Build process initiated..." }]);
-        
-        setTimeout(() => {
-            setProjectFiles(newFiles);
-            setActivePath(newFiles.find(f => f.path === 'index.html')?.path || newFiles[0]?.path || null);
-            setBuildVersion(prev => prev + 1);
-            setIsBuilding(false);
-            setMessages(prev => [...prev, { id: `build-end-${Date.now()}`, role: 'system', text: "Build complete! Preview updated." }]);
-        }, 2000); // Simulate build time
+        setProjectFiles(newFiles);
+        setActivePath(newFiles.find(f => f.path === 'index.html')?.path || newFiles[0]?.path || null);
+        setBuildVersion(prev => prev + 1);
     };
 
     const handleInitialProject = async (files: { path: string; content: string }[]) => {
-        setProjectFiles(files);
+        setIsBuilding(true);
         const initialPath = files.find(f => f.path === 'index.html')?.path || files[0]?.path || null;
+        setProjectFiles(files);
         setActivePath(initialPath);
         setBuildVersion(prev => prev + 1);
         setMessages([{ id: `system-${Date.now()}`, role: 'system', text: `Started with project: ${files.length} files.` }]);
         if (currentConversationId && session) {
             await supabase.from('conversations').update({ context: { files, activePath: initialPath } }).eq('id', currentConversationId);
         }
+        setTimeout(() => setIsBuilding(false), 1000);
     };
 
     const generateTitle = async (userMessage: string, conversationId: string) => {
@@ -104,6 +101,7 @@ const DevEnvironmentPage: React.FC = () => {
         if (isLoading || (!userText.trim() && attachedFiles.length === 0)) return;
 
         setIsLoading(true);
+        setIsBuilding(true);
         const userMessage: Message = { id: `user-${Date.now()}`, role: 'user', text: userText };
         setMessages(prev => [...prev, userMessage]);
         
@@ -121,6 +119,7 @@ const DevEnvironmentPage: React.FC = () => {
             if (error) {
                 console.error("Error creating dev session:", error);
                 setIsLoading(false);
+                setIsBuilding(false);
                 return;
             }
             conversationId = newConvo.id;
@@ -139,7 +138,11 @@ const DevEnvironmentPage: React.FC = () => {
 
 You can manage the project as a collection of separate files (HTML, CSS, JavaScript, TypeScript, etc.). When the user asks for changes, you can create new files or modify existing ones.
 
-When you provide code, you MUST respond ONLY with the complete file content(s) in one or more markdown code blocks. Do not include any other text, explanation, or conversation. Each code block must start with \`// path: path/to/file.ext\`.
+When you provide code, you MUST follow this format:
+1.  Provide all complete file content(s) in one or more markdown code blocks. Each code block must start with \`// path: path/to/file.ext\`.
+2.  After ALL code blocks, write a special separator token: \`---SUMMARY---\`.
+3.  After the separator, provide a brief, non-technical, one-sentence summary of the changes you made. For example: "I added a new blue button to the main page."
+Do not include any other text, explanation, or conversation outside of this format.
 
 **CRITICAL PREVIEW REQUIREMENT:** For the live preview to work, you must ensure there is always an \`index.html\` file. All necessary CSS and JavaScript for the preview must be **inlined** into this single \`index.html\` file using \`<style>\` and \`<script>\` tags. You can manage them as separate files conceptually, but the final output for the preview must be one self-contained HTML file.
 
@@ -151,14 +154,19 @@ You can receive images for context (e.g., bug screenshots, mockups).`;
             
             let accumulatedText = "";
             const aiMsgId = `ai-${Date.now()}`;
-            setMessages(prev => [...prev, { id: aiMsgId, role: 'assistant', text: '' }]);
-
+            
             for await (const update of stream) {
                 if (update.text) {
                     accumulatedText = update.text;
-                    setMessages(prev => prev.map(msg => msg.id === aiMsgId ? { ...msg, text: accumulatedText } : msg));
                 }
                 if (update.isComplete) {
+                    const separator = '---SUMMARY---';
+                    const parts = accumulatedText.split(separator);
+                    const codePart = parts[0];
+                    const summaryPart = parts.length > 1 ? parts[1].trim() : "I've updated the code as you requested.";
+
+                    setMessages(prev => [...prev, { id: aiMsgId, role: 'assistant', text: summaryPart }]);
+
                     if (session && conversationId) {
                         await supabase.from('messages').insert({ conversation_id: conversationId, user_id: session.user.id, role: 'assistant', content: accumulatedText });
                     }
@@ -166,11 +174,10 @@ You can receive images for context (e.g., bug screenshots, mockups).`;
                         generateTitle(userText, conversationId);
                     }
                     const codeBlockRegex = /```(?:[a-zA-Z0-9]+)?\n\/\/ path: ([\w\/\.-]+)\n([\s\S]*?)```/g;
-                    const matches = [...accumulatedText.matchAll(codeBlockRegex)];
+                    const matches = [...codePart.matchAll(codeBlockRegex)];
                     if (matches.length > 0) {
                         const newFiles = matches.map(m => ({ path: m[1].trim(), content: m[2].trim() }));
                         
-                        // Merge new files with existing ones
                         const updatedFiles = [...projectFiles];
                         newFiles.forEach(newFile => {
                             const existingIndex = updatedFiles.findIndex(f => f.path === newFile.path);
@@ -194,6 +201,7 @@ You can receive images for context (e.g., bug screenshots, mockups).`;
             }
         } finally {
             setIsLoading(false);
+            setIsBuilding(false);
         }
     };
 
