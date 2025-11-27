@@ -2,33 +2,38 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../integrations/supabase/client';
 import { useSession } from '../contexts/SessionContext';
 import { Persona } from '../types';
+import { enhancePersonaInstructions } from '../services/geminiService';
 
 interface PersonaManagerProps {
     isOpen: boolean;
     onClose: () => void;
+    onPersonaUpdate: () => void;
 }
 
-const PersonaManager: React.FC<PersonaManagerProps> = ({ isOpen, onClose }) => {
+const PersonaManager: React.FC<PersonaManagerProps> = ({ isOpen, onClose, onPersonaUpdate }) => {
     const { user } = useSession();
     const [personas, setPersonas] = useState<Persona[]>([]);
     const [view, setView] = useState<'list' | 'form'>('list');
     const [currentPersona, setCurrentPersona] = useState<Partial<Persona> | null>(null);
     const [isSaving, setIsSaving] = useState(false);
+    const [isEnhancing, setIsEnhancing] = useState(false);
+
+    const fetchPersonas = async () => {
+        if (!user) return;
+        const { data, error } = await supabase
+            .from('personas')
+            .select('*')
+            .eq('user_id', user.id)
+            .order('created_at', { ascending: false });
+        if (error) console.error("Error fetching personas:", error);
+        else setPersonas(data as Persona[]);
+    };
 
     useEffect(() => {
-        if (isOpen && user) {
-            const fetchPersonas = async () => {
-                const { data, error } = await supabase
-                    .from('personas')
-                    .select('*')
-                    .eq('user_id', user.id)
-                    .order('created_at', { ascending: false });
-                if (error) console.error("Error fetching personas:", error);
-                else setPersonas(data as Persona[]);
-            };
+        if (isOpen) {
             fetchPersonas();
         }
-    }, [isOpen, user]);
+    }, [isOpen]);
 
     const handleSave = async () => {
         if (!user || !currentPersona || !currentPersona.name || !currentPersona.instructions) return;
@@ -57,8 +62,8 @@ const PersonaManager: React.FC<PersonaManagerProps> = ({ isOpen, onClose }) => {
             console.error("Error saving persona:", error);
             alert("Could not save persona.");
         } else {
-            const { data } = await supabase.from('personas').select('*').eq('user_id', user.id).order('created_at', { ascending: false });
-            setPersonas(data as Persona[]);
+            await fetchPersonas();
+            onPersonaUpdate();
             setView('list');
             setCurrentPersona(null);
         }
@@ -68,8 +73,26 @@ const PersonaManager: React.FC<PersonaManagerProps> = ({ isOpen, onClose }) => {
     const handleDelete = async (personaId: string) => {
         if (window.confirm("Are you sure you want to delete this persona?")) {
             const { error } = await supabase.from('personas').delete().eq('id', personaId);
-            if (error) console.error("Error deleting persona:", error);
-            else setPersonas(prev => prev.filter(p => p.id !== personaId));
+            if (error) {
+                console.error("Error deleting persona:", error);
+            } else {
+                setPersonas(prev => prev.filter(p => p.id !== personaId));
+                onPersonaUpdate();
+            }
+        }
+    };
+
+    const handleEnhance = async () => {
+        if (!currentPersona?.instructions) return;
+        setIsEnhancing(true);
+        try {
+            const enhanced = await enhancePersonaInstructions(currentPersona.instructions);
+            setCurrentPersona(p => ({ ...p, instructions: enhanced }));
+        } catch (error) {
+            console.error("Error enhancing instructions:", error);
+            alert("Could not enhance instructions. Please try again.");
+        } finally {
+            setIsEnhancing(false);
         }
     };
 
@@ -109,7 +132,9 @@ const PersonaManager: React.FC<PersonaManagerProps> = ({ isOpen, onClose }) => {
                             <div className="flex justify-between items-center">
                                 <button onClick={() => setView('list')} className="text-zinc-400 hover:text-white">Cancel</button>
                                 <div className="flex items-center gap-3">
-                                    <button className="bg-white/10 hover:bg-white/20 text-white px-4 py-2 rounded-full text-sm font-medium">Enhance with AI</button>
+                                    <button onClick={handleEnhance} disabled={isEnhancing} className="bg-white/10 hover:bg-white/20 text-white px-4 py-2 rounded-full text-sm font-medium disabled:opacity-50">
+                                        {isEnhancing ? 'Enhancing...' : 'Enhance with AI'}
+                                    </button>
                                     <button onClick={handleSave} disabled={isSaving} className="bg-indigo-600 hover:bg-indigo-500 text-white px-6 py-2 rounded-full font-medium">{isSaving ? 'Saving...' : 'Save'}</button>
                                 </div>
                             </div>

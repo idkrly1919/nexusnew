@@ -34,6 +34,22 @@ const getClient = () => {
     });
 };
 
+export async function enhancePersonaInstructions(instructions: string): Promise<string> {
+    const client = getClient();
+    const systemPrompt = `You are an expert prompt engineer. Your task is to enhance the given instructions for a custom AI persona. Make the instructions more detailed, clear, specific, and effective. Add examples if it helps. The goal is to create a robust set of instructions that will reliably guide an AI's behavior. Respond ONLY with the enhanced instructions.`;
+
+    const response = await client.chat.completions.create({
+        model: 'x-ai/grok-4.1-fast',
+        messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: `Here are the current instructions:\n\n${instructions}` }
+        ],
+        temperature: 0.7,
+    });
+
+    return response.choices[0].message.content || instructions;
+}
+
 export async function summarizeHistory(historyToSummarize: ChatHistory): Promise<string> {
     const client = getClient();
     const systemPrompt = "You are an expert text summarizer. A conversation between a user and an AI assistant is provided. Your task is to create a concise summary of the key points, facts, user requests, and AI responses. This summary will be used as a system prompt to provide context for the rest of the conversation. Respond ONLY with the summary, nothing else.";
@@ -55,11 +71,12 @@ export async function* streamGemini(
     history: ChatHistory,
     useSearch: boolean,
     personality: PersonalityMode = 'conversational',
-    imageModelPreference: string = 'img3',
+    imageModelPreference: string = 'img4',
     attachedFiles: { name: string, content: string, type: string }[] | null = null,
     signal: AbortSignal,
     firstName: string | null | undefined,
-    personalizationEntries: string[]
+    personalizationEntries: string[],
+    personaInstructions: string | null = null
 ): AsyncGenerator<StreamUpdate> {
     
     const textClient = getClient();
@@ -179,7 +196,7 @@ Refined JSON: { "is_image_request": true, "refined_prompt": "Cinematic, ultra-de
         } 
         // --- PATH 2: TEXT / VISION ---
         else {
-            const personalityInstruction = PERSONALITY_PROMPTS[personality];
+            const personalityInstruction = personaInstructions || PERSONALITY_PROMPTS[personality];
             
             let personalizationBlock = '';
             if (personalizationEntries && personalizationEntries.length > 0) {

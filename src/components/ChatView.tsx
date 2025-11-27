@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, FormEvent } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import OpenAI from 'openai';
-import { Message, ChatHistory, PersonalityMode, Conversation, Role } from '../types';
+import { Message, ChatHistory, PersonalityMode, Conversation, Role, Persona } from '../types';
 import { streamGemini, summarizeHistory } from '../services/geminiService';
 import { ThinkingProcess } from './ThinkingProcess';
 import { useSession } from '../contexts/SessionContext';
@@ -47,8 +47,11 @@ const ChatView: React.FC = () => {
     const [isDragging, setIsDragging] = useState(false);
 
     const [conversations, setConversations] = useState<Conversation[]>([]);
-    const [isConversationsLoading, setIsConversationsLoading] = useState(true);
+    const [personas, setPersonas] = useState<Persona[]>([]);
+    const [isDataLoading, setIsDataLoading] = useState(true);
     const [currentConversationId, setCurrentConversationId] = useState<string | null>(null);
+    const [activePersona, setActivePersona] = useState<Persona | null>(null);
+    const [expandedPersonas, setExpandedPersonas] = useState<Record<string, boolean>>({});
     const [backgroundStatus, setBackgroundStatus] = useState<'idle' | 'loading-text' | 'loading-image'>('idle');
 
     const [isVoiceMode, setIsVoiceMode] = useState(false);
@@ -63,8 +66,32 @@ const ChatView: React.FC = () => {
     const avatarFileRef = useRef<HTMLInputElement>(null);
     const abortControllerRef = useRef<AbortController | null>(null);
 
+    const fetchData = async () => {
+        if (!session) {
+            setIsDataLoading(false);
+            return;
+        }
+        setIsDataLoading(true);
+        const { data: convos, error: convoError } = await supabase.from('conversations').select('*').order('updated_at', { ascending: false });
+        if (convoError) console.error('Error fetching conversations:', convoError);
+        else setConversations(convoError ? [] : (convos as Conversation[]));
+
+        const { data: personasData, error: personaError } = await supabase.from('personas').select('*').order('created_at', { ascending: false });
+        if (personaError) console.error('Error fetching personas:', personaError);
+        else setPersonas(personaError ? [] : (personasData as Persona[]));
+        
+        setIsDataLoading(false);
+    };
+
+    useEffect(() => {
+        fetchData();
+    }, [session]);
+
     useEffect(() => {
         setCurrentConversationId(paramConversationId || null);
+        if (!paramConversationId) {
+            setActivePersona(null);
+        }
     }, [paramConversationId]);
 
     useEffect(() => {
@@ -176,22 +203,6 @@ const ChatView: React.FC = () => {
     }, []);
 
     useEffect(() => {
-        if (!session) {
-            setIsConversationsLoading(false);
-            return;
-        }
-        const fetchData = async () => {
-            setIsConversationsLoading(true);
-            const { data: convos, error: convoError } = await supabase.from('conversations').select('*').order('updated_at', { ascending: false });
-            if (convoError) console.error('Error fetching conversations:', convoError);
-            else setConversations(convoError ? [] : (convos as Conversation[]));
-            
-            setIsConversationsLoading(false);
-        };
-        fetchData();
-    }, [session]);
-
-    useEffect(() => {
         if (!currentConversationId || !session) {
             setMessages([]);
             setChatHistory([]);
@@ -202,6 +213,13 @@ const ChatView: React.FC = () => {
             if (error) {
                 console.error('Error fetching messages:', error);
             } else {
+                const currentConvo = conversations.find(c => c.id === currentConversationId);
+                if (currentConvo?.persona_id) {
+                    const persona = personas.find(p => p.id === currentConvo.persona_id);
+                    setActivePersona(persona || null);
+                } else {
+                    setActivePersona(null);
+                }
                 const loadedMessages: Message[] = data.map((msg: { id: string; role: string; content: string; }) => ({ id: msg.id, role: msg.role as Role, text: msg.content }));
                 setMessages(loadedMessages);
                 const history: ChatHistory = data.map((msg: { role: 'user' | 'assistant'; content: string; }) => ({ role: msg.role as 'user' | 'assistant', content: msg.content }));
@@ -209,7 +227,7 @@ const ChatView: React.FC = () => {
             }
         };
         fetchMessages();
-    }, [currentConversationId, session]);
+    }, [currentConversationId, session, conversations, personas]);
 
     const processFiles = (files: FileList) => {
         if (!files) return;
@@ -480,7 +498,11 @@ const ChatView: React.FC = () => {
             isNewConversation = true;
             const { data: newConversation, error: createError } = await supabase
                 .from('conversations')
-                .insert({ user_id: session.user.id, title: "Generating title..." })
+                .insert({ 
+                    user_id: session.user.id, 
+                    title: "Generating title...",
+                    persona_id: activePersona?.id || null,
+                })
                 .select()
                 .single();
 
@@ -514,7 +536,7 @@ const ChatView: React.FC = () => {
         }
 
         try {
-            const stream = streamGemini(userText, currentChatHistory, true, personality, imageModelPref, filesToProcess, controller.signal, profile?.first_name, personalizationData);
+            const stream = streamGemini(userText, currentChatHistory, true, personality, imageModelPref, filesToProcess, controller.signal, profile?.first_name, personalizationData, activePersona?.instructions || null);
             let assistantMessageExists = false;
             let accumulatedText = "";
             const aiMsgId = `ai-${Date.now()}`;
@@ -576,16 +598,25 @@ const ChatView: React.FC = () => {
             textareaRef.current.style.height = `${Math.min(scrollHeight, 200)}px`;
         }
     }, [inputValue]);
+    
+    const startNewPersonaChat = (persona: Persona) => {
+        setActivePersona(persona);
+        navigate('/chat');
+        setIsSidebarOpen(false);
+    };
+
     const resetChat = () => { 
+        setActivePersona(null);
         navigate('/chat');
     };
+
     const handleDeleteConversation = async (conversationId: string) => {
         if (window.confirm('Are you sure you want to delete this chat?')) {
             await supabase.from('messages').delete().eq('conversation_id', conversationId);
             await supabase.from('conversations').delete().eq('id', conversationId);
             setConversations(prev => prev.filter(c => c.id !== conversationId));
             if (currentConversationId === conversationId) { 
-                navigate('/chat');
+                resetChat();
             }
         }
     };
@@ -785,7 +816,7 @@ const ChatView: React.FC = () => {
 
             {embeddedUrl && <EmbeddedView url={embeddedUrl} onClose={() => setEmbeddedUrl(null)} />}
             
-            <PersonaManager isOpen={showPersonaManager} onClose={() => setShowPersonaManager(false)} />
+            <PersonaManager isOpen={showPersonaManager} onClose={() => setShowPersonaManager(false)} onPersonaUpdate={fetchData} />
 
             {showSettings && (
                 <div className="fixed inset-0 z-[60] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4" onClick={() => setShowSettings(false)}>
@@ -848,16 +879,41 @@ const ChatView: React.FC = () => {
                 <div className="flex flex-col h-full p-4 space-y-4">
                     <div className="flex justify-between items-center"><div className="font-bold tracking-wide text-white flex items-center gap-2"><img src="/quillix-logo.png" alt="Quillix Logo" className="w-6 h-6 animate-spin-slow" />Quillix</div><button onClick={() => setIsSidebarOpen(false)} className="text-zinc-400 hover:text-white p-1 rounded-full hover:bg-white/10"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m15 18-6-6 6-6"/></svg></button></div>
                     <button onClick={() => { resetChat(); setIsSidebarOpen(false); }} className="w-full flex items-center justify-center gap-2 px-3 py-2.5 bg-white hover:bg-zinc-200 text-black rounded-full transition-colors duration-300 text-sm font-semibold interactive-lift"><svg width="16" height="16" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5" fill="none"><path d="M12 5v14"/><path d="M5 12h14"/></svg>New Chat</button>
-                    <button onClick={() => setShowPersonaManager(true)} className="w-full flex items-center gap-3 px-3 py-2 text-sm text-zinc-300 hover:text-white hover:bg-white/5 rounded-lg transition-colors"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>My Personas</button>
-                    {session && (
-                        <div className="flex-1 overflow-y-auto space-y-1 p-2 scrollbar-hide">
-                            {isConversationsLoading ? (
-                                <div className="flex items-center justify-center gap-2 p-2 text-sm text-zinc-400">
-                                    <svg className="animate-spin h-4 w-4 text-zinc-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
-                                    Loading...
+                    
+                    <div className="flex-1 overflow-y-auto space-y-1 p-2 scrollbar-hide">
+                        {isDataLoading ? (
+                            <div className="flex items-center justify-center gap-2 p-2 text-sm text-zinc-400">
+                                <svg className="animate-spin h-4 w-4 text-zinc-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                                Loading...
+                            </div>
+                        ) : (
+                            <>
+                                <div className="border-b border-white/10 pb-2 mb-2">
+                                    <div className="flex items-center justify-between px-2">
+                                        <h3 className="text-sm font-semibold text-zinc-300">My Personas</h3>
+                                        <button onClick={() => setShowPersonaManager(true)} className="p-1.5 text-zinc-400 hover:text-white hover:bg-white/10 rounded-full" title="Create New Persona">+</button>
+                                    </div>
+                                    {personas.map(persona => (
+                                        <div key={persona.id}>
+                                            <button onClick={() => setExpandedPersonas(prev => ({...prev, [persona.id]: !prev[persona.id]}))} className="w-full flex items-center justify-between text-left p-2 rounded-lg hover:bg-white/5">
+                                                <span className="text-sm text-zinc-200">{persona.name}</span>
+                                                <svg className={`w-4 h-4 text-zinc-500 transition-transform ${expandedPersonas[persona.id] ? 'rotate-180' : ''}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                                            </button>
+                                            {expandedPersonas[persona.id] && (
+                                                <div className="pl-4 ml-2 border-l border-zinc-700 space-y-1 py-1">
+                                                    <button onClick={() => startNewPersonaChat(persona)} className="w-full text-left text-xs text-indigo-400 hover:text-indigo-300 p-2 rounded-lg hover:bg-white/5">+ New Chat</button>
+                                                    {conversations.filter(c => c.persona_id === persona.id).map(chat => (
+                                                        <div key={chat.id} onClick={() => navigate(`/chat/${chat.id}`)} className={`p-2 rounded-lg group relative cursor-pointer ${currentConversationId === chat.id ? 'bg-white/10' : 'hover:bg-white/5'}`}>
+                                                            <p className="text-xs text-zinc-400 truncate pr-6">{chat.title || 'New Chat'}</p>
+                                                            <button onClick={(e) => { e.stopPropagation(); handleDeleteConversation(chat.id); }} className="absolute right-1 top-1/2 -translate-y-1/2 p-1 text-zinc-500 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity" title="Delete Chat"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg></button>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </div>
+                                    ))}
                                 </div>
-                            ) : (
-                                Object.entries(groupedConversations).map(([groupName, groupConversations]) => (
+                                {Object.entries(groupedConversations).map(([groupName, groupConversations]) => (
                                     groupConversations.length > 0 && (
                                         <div key={groupName} className="mb-3">
                                             <div className="text-xs font-semibold text-zinc-500 px-2 py-1 uppercase tracking-wider mb-1">{groupName}</div>
@@ -871,8 +927,9 @@ const ChatView: React.FC = () => {
                                     )
                                 ))
                             )}
-                        </div>
-                    )}
+                        </>
+                        )}
+                    </div>
                     <div className="space-y-2">
                         <button onClick={openSettings} className="w-full flex items-center gap-3 px-3 py-2 text-sm text-zinc-300 hover:text-white hover:bg-white/5 rounded-lg transition-colors"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l-.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.47a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.35a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>Settings</button>
                         {session && (
@@ -913,7 +970,7 @@ const ChatView: React.FC = () => {
                 <header className="h-16 flex items-center justify-between px-6 shrink-0 border-b border-white/10 backdrop-blur-md bg-black/10">
                     <div className="flex items-center gap-3">
                         <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="p-2 hover:bg-white/5 rounded-full text-zinc-400 hover:text-white transition-colors" title="Menu"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><line x1="9" y1="3" x2="9" y2="21"/></svg></button>
-                        <span className="font-semibold text-sm tracking-wide text-zinc-300">{currentConversationId && session ? conversations.find(c => c.id === currentConversationId)?.title : 'Quillix'}</span>
+                        <span className="font-semibold text-sm tracking-wide text-zinc-300">{activePersona ? activePersona.name : (currentConversationId && session ? conversations.find(c => c.id === currentConversationId)?.title : 'Quillix')}</span>
                     </div>
                 </header>
 
@@ -922,7 +979,10 @@ const ChatView: React.FC = () => {
                         <div className="h-full flex flex-col items-center justify-center">
                             <div className="flex-1 flex flex-col items-center justify-center text-center">
                                 <OrbLogo />
-                                <h1 className="text-2xl font-medium text-white tracking-tight">What can I do for you today?</h1>
+                                <h1 className="text-2xl font-medium text-white tracking-tight">
+                                    {activePersona ? `Chatting with ${activePersona.name}` : "What can I do for you today?"}
+                                </h1>
+                                {activePersona && <p className="text-zinc-400 mt-2 max-w-md">{activePersona.description}</p>}
                             </div>
                             <div className="w-full max-w-4xl mx-auto px-4 pb-8">
                                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -970,7 +1030,7 @@ const ChatView: React.FC = () => {
                                 <div key={msg.id} className={`flex items-start gap-4 animate-pop-in ${msg.role === 'user' ? 'justify-end' : ''}`}>
                                     {msg.role === 'assistant' && <div className="shrink-0 mt-1"><NexusIconSmall /></div>}
                                     <div data-liquid-glass className={`max-w-[85%] leading-relaxed ${msg.role === 'user' ? 'light-liquid-glass text-white px-5 py-3 rounded-3xl rounded-br-lg' : 'dark-liquid-glass px-5 py-3 rounded-3xl rounded-bl-lg'}`}>
-                                        {msg.role === 'assistant' && <div className="font-medium text-sm text-zinc-400 mb-2">Quillix</div>}
+                                        <div className="font-medium text-sm text-zinc-400 mb-2">{activePersona?.name || 'Quillix'}</div>
                                         <div className={`${msg.role === 'assistant' ? 'text-zinc-100 prose prose-invert prose-sm max-w-none' : ''}`}>
                                             {renderMessageContent(msg.text)}
                                         </div>
