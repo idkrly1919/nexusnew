@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, FormEvent } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import OpenAI from 'openai';
 import { Message, ChatHistory, PersonalityMode, Conversation, Role } from '../types';
-import { streamGemini } from '../services/geminiService';
+import { streamGemini, summarizeHistory } from '../services/geminiService';
 import { ThinkingProcess } from './ThinkingProcess';
 import { useSession } from '../contexts/SessionContext';
 import { supabase } from '../integrations/supabase/client';
@@ -395,6 +395,33 @@ const ChatView: React.FC = () => {
     const processSubmission = async (userText: string) => {
         if (isLoading || (!userText.trim() && attachedFiles.length === 0)) return;
 
+        // --- Context Management ---
+        let currentChatHistory = [...chatHistory];
+        const historyText = currentChatHistory.map(m => m.content).join('\n');
+        const CONTEXT_THRESHOLD = 32000; // Approx 8k tokens
+
+        if (historyText.length > CONTEXT_THRESHOLD) {
+            setIsLoading(true);
+            setMessages(prev => [...prev, { id: `sys-summary-${Date.now()}`, role: 'system', text: 'Compressing conversation history to save space...' }]);
+            
+            const midpoint = Math.floor(currentChatHistory.length / 2);
+            const toSummarize = currentChatHistory.slice(0, midpoint);
+            const toKeep = currentChatHistory.slice(midpoint);
+
+            try {
+                const summary = await summarizeHistory(toSummarize);
+                currentChatHistory = [
+                    { role: 'system', content: `This is a summary of the beginning of the conversation: ${summary}` },
+                    ...toKeep
+                ];
+                setChatHistory(currentChatHistory);
+                setMessages(prev => prev.map(m => m.id === `sys-summary-${Date.now()}` ? { ...m, text: 'History compressed successfully.' } : m));
+            } catch (e) {
+                setMessages(prev => prev.map(m => m.id === `sys-summary-${Date.now()}` ? { ...m, text: 'Could not compress history. Proceeding with full context.' } : m));
+            }
+        }
+        // --- End Context Management ---
+
         const videoKeywords = ['make a video', 'generate a video', 'create a video', 'video of'];
         const isVideoRequest = videoKeywords.some(k => userText.toLowerCase().includes(k));
 
@@ -469,7 +496,7 @@ const ChatView: React.FC = () => {
         }
 
         try {
-            const stream = streamGemini(userText, chatHistory, true, personality, imageModelPref, filesToProcess, controller.signal, profile?.first_name, personalizationData);
+            const stream = streamGemini(userText, currentChatHistory, true, personality, imageModelPref, filesToProcess, controller.signal, profile?.first_name, personalizationData);
             let assistantMessageExists = false;
             let accumulatedText = "";
             const aiMsgId = `ai-${Date.now()}`;

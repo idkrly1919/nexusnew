@@ -1,109 +1,33 @@
-import React, { useState, useEffect, useRef, FormEvent } from 'react';
+import React, { useState, useRef, FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Message } from '../types';
-import { streamGemini } from '../services/geminiService';
-import { useSession } from '../contexts/SessionContext';
 import { ThinkingProcess } from './ThinkingProcess';
 
 interface ChatPanelProps {
-    onBuild: (files: { path: string; content: string }[]) => void;
+    messages: Message[];
+    isLoading: boolean;
+    onSubmit: (prompt: string, files: {id: string, name: string, content: string, type: string}[]) => void;
     onInitialFile: (file: { path: string; content: string }) => void;
 }
 
-const ChatPanel: React.FC<ChatPanelProps> = ({ onBuild, onInitialFile }) => {
-    const { profile } = useSession();
+const ChatPanel: React.FC<ChatPanelProps> = ({ messages, isLoading, onSubmit, onInitialFile }) => {
     const navigate = useNavigate();
-    const [messages, setMessages] = useState<Message[]>([]);
     const [inputValue, setInputValue] = useState('');
-    const [isLoading, setIsLoading] = useState(false);
     const [attachedFiles, setAttachedFiles] = useState<{id: string, name: string, content: string, type: string}[]>([]);
     
     const messagesEndRef = useRef<HTMLDivElement>(null);
-    const abortControllerRef = useRef<AbortController | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const initialFileInputRef = useRef<HTMLInputElement>(null);
 
-    useEffect(() => {
+    React.useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     }, [messages]);
 
-    const handleBuildCommand = (responseText: string) => {
-        const codeBlockRegex = /```(?:\w+)?\n\/\/ path: ([\w\/\.-]+)\n([\s\S]*?)```/g;
-        const matches = [...responseText.matchAll(codeBlockRegex)];
-        
-        if (matches.length === 0) {
-            // No files to build, maybe it was just a chat message
-            return;
-        }
-
-        const filesToBuild = matches.map(match => ({ path: match[1].trim(), content: match[2].trim() }));
-        onBuild(filesToBuild);
-
-        setMessages(prev => [...prev, { id: `build-start-${Date.now()}`, role: 'system', text: "Build process initiated..." }]);
-        
-        filesToBuild.forEach((file, index) => {
-            setTimeout(() => {
-                setMessages(prev => [...prev, { id: `build-file-${index}`, role: 'system', text: `✅ Created file: ${file.path}` }]);
-            }, (index + 1) * 700);
-        });
-
-        setTimeout(() => {
-            setMessages(prev => [...prev, { id: `build-end-${Date.now()}`, role: 'system', text: "Build complete! Preview updated." }]);
-        }, (filesToBuild.length + 1) * 700);
-    };
-
-    const processSubmission = async (userText: string) => {
-        if (isLoading || (!userText.trim() && attachedFiles.length === 0)) return;
-
-        setIsLoading(true);
-        setInputValue('');
-        const userMessage: Message = { id: `user-${Date.now()}`, role: 'user', text: userText };
-        setMessages(prev => [...prev, userMessage]);
-        
-        const controller = new AbortController();
-        abortControllerRef.current = controller;
-
-        const devSystemPrompt = "You are an expert AI web developer... Your instructions are the same, but now you can receive images. The user might send a screenshot of a bug, a design mockup, or an asset. Use this visual context to inform your code generation.";
-
-        try {
-            const devHistory = messages
-                .filter(m => m.role === 'user' || m.role === 'assistant')
-                .map(m => ({ role: m.role as 'user' | 'assistant', content: m.text }));
-
-            const filesToProcess = [...attachedFiles];
-            setAttachedFiles([]);
-
-            const stream = streamGemini(devSystemPrompt + "\n\nUser Request: " + userText, devHistory, false, 'formal', 'img4', filesToProcess, controller.signal, profile?.first_name, []);
-            
-            let assistantMessageExists = false;
-            let accumulatedText = "";
-            const aiMsgId = `ai-${Date.now()}`;
-
-            for await (const update of stream) {
-                if (!assistantMessageExists) {
-                    setMessages(prev => [...prev, { id: aiMsgId, role: 'assistant', text: '' }]);
-                    assistantMessageExists = true;
-                }
-                if (update.text) {
-                    accumulatedText = update.text;
-                    setMessages(prev => prev.map(msg => msg.id === aiMsgId ? { ...msg, text: accumulatedText } : msg));
-                }
-                if (update.isComplete) {
-                    handleBuildCommand(accumulatedText);
-                }
-            }
-        } catch (err: any) {
-            if (err.name !== 'AbortError') {
-                setMessages(prev => [...prev, { id: `error-${Date.now()}`, role: 'assistant', text: `**System Error:** ${err.message}` }]);
-            }
-        } finally {
-            setIsLoading(false);
-        }
-    };
-
     const handleSubmit = (e: FormEvent) => {
         e.preventDefault();
-        processSubmission(inputValue);
+        onSubmit(inputValue, attachedFiles);
+        setInputValue('');
+        setAttachedFiles([]);
     };
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -126,7 +50,6 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ onBuild, onInitialFile }) => {
             reader.onload = (event) => {
                 const content = event.target?.result as string;
                 onInitialFile({ path: file.name, content });
-                setMessages([{ id: `system-${Date.now()}`, role: 'system', text: `Started with file: ${file.name}` }]);
             };
             reader.readAsText(file);
         } else {
@@ -150,8 +73,8 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ onBuild, onInitialFile }) => {
                 {messages.map(msg => (
                     <div key={msg.id} className={`flex items-start gap-3 ${msg.role === 'user' ? 'justify-end' : ''}`}>
                         {msg.role === 'assistant' && <img src="/quillix-logo.png" className="w-7 h-7 rounded-full" />}
-                        <div className={`max-w-xs md:max-w-md p-3 rounded-2xl ${msg.role === 'user' ? 'bg-indigo-600 text-white' : msg.role === 'system' ? 'bg-transparent text-green-400 text-sm font-mono' : 'bg-zinc-800'}`}>
-                            {msg.text}
+                        <div className={`max-w-xs md:max-w-md p-3 rounded-2xl prose prose-invert prose-sm max-w-none ${msg.role === 'user' ? 'bg-indigo-600 text-white' : msg.role === 'system' ? 'bg-transparent text-green-400 font-mono' : 'bg-zinc-800'}`}>
+                           <div dangerouslySetInnerHTML={{ __html: msg.text.replace(/\n/g, '<br/>') }} />
                         </div>
                     </div>
                 ))}

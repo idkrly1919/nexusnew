@@ -34,6 +34,22 @@ const getClient = () => {
     });
 };
 
+export async function summarizeHistory(historyToSummarize: ChatHistory): Promise<string> {
+    const client = getClient();
+    const systemPrompt = "You are an expert text summarizer. A conversation between a user and an AI assistant is provided. Your task is to create a concise summary of the key points, facts, user requests, and AI responses. This summary will be used as a system prompt to provide context for the rest of the conversation. Respond ONLY with the summary, nothing else.";
+    
+    const response = await client.chat.completions.create({
+        model: 'mistralai/mistral-7b-instruct-v0.2', // A fast and efficient model for summarization
+        messages: [
+            { role: 'system', content: systemPrompt },
+            ...historyToSummarize
+        ],
+        temperature: 0.2,
+    });
+
+    return response.choices[0].message.content || "Summary could not be generated.";
+}
+
 export async function* streamGemini(
     prompt: string,
     history: ChatHistory,
