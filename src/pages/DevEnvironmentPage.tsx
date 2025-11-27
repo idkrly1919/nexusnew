@@ -16,7 +16,11 @@ const DevEnvironmentPage: React.FC = () => {
 
     const [messages, setMessages] = useState<Message[]>([]);
     const [isLoading, setIsLoading] = useState(false);
-    const [activeFile, setActiveFile] = useState<{ path: string; content: string } | null>(null);
+    const [isBuilding, setIsBuilding] = useState(false);
+    
+    const [projectFiles, setProjectFiles] = useState<{ path: string; content: string }[]>([]);
+    const [activePath, setActivePath] = useState<string | null>(null);
+
     const [buildVersion, setBuildVersion] = useState(0);
     const [currentConversationId, setCurrentConversationId] = useState<string | null>(null);
     const abortControllerRef = useRef<AbortController | null>(null);
@@ -28,7 +32,8 @@ const DevEnvironmentPage: React.FC = () => {
     useEffect(() => {
         if (!currentConversationId || !session) {
             setMessages([]);
-            setActiveFile(null);
+            setProjectFiles([]);
+            setActivePath(null);
             return;
         }
         const fetchConversation = async () => {
@@ -39,8 +44,9 @@ const DevEnvironmentPage: React.FC = () => {
                 .single();
             
             if (convoError) console.error("Error fetching conversation context:", convoError);
-            else if (convoData?.context?.file) {
-                setActiveFile(convoData.context.file);
+            else if (convoData?.context?.files) {
+                setProjectFiles(convoData.context.files);
+                setActivePath(convoData.context.activePath || (convoData.context.files.find(f => f.path === 'index.html')?.path || convoData.context.files[0]?.path || null));
                 setBuildVersion(v => v + 1);
             }
 
@@ -55,27 +61,27 @@ const DevEnvironmentPage: React.FC = () => {
         fetchConversation();
     }, [currentConversationId, session]);
 
-    const handleBuild = (files: { path: string; content: string }[]) => {
-        if (files.length > 0) {
+    const handleBuild = (newFiles: { path: string; content: string }[]) => {
+        setIsBuilding(true);
+        setMessages(prev => [...prev, { id: `build-start-${Date.now()}`, role: 'system', text: "Build process initiated..." }]);
+        
+        setTimeout(() => {
+            setProjectFiles(newFiles);
+            setActivePath(newFiles.find(f => f.path === 'index.html')?.path || newFiles[0]?.path || null);
             setBuildVersion(prev => prev + 1);
-            setMessages(prev => [...prev, { id: `build-start-${Date.now()}`, role: 'system', text: "Build process initiated..." }]);
-            files.forEach((file, index) => {
-                setTimeout(() => {
-                    setMessages(prev => [...prev, { id: `build-file-${index}`, role: 'system', text: `✅ Synced file: ${file.path}` }]);
-                }, (index + 1) * 500);
-            });
-            setTimeout(() => {
-                setMessages(prev => [...prev, { id: `build-end-${Date.now()}`, role: 'system', text: "Build complete! Preview updated." }]);
-            }, (files.length + 1) * 500);
-        }
+            setIsBuilding(false);
+            setMessages(prev => [...prev, { id: `build-end-${Date.now()}`, role: 'system', text: "Build complete! Preview updated." }]);
+        }, 2000); // Simulate build time
     };
 
-    const handleInitialFile = async (file: { path: string; content: string }) => {
-        setActiveFile(file);
+    const handleInitialProject = async (files: { path: string; content: string }[]) => {
+        setProjectFiles(files);
+        const initialPath = files.find(f => f.path === 'index.html')?.path || files[0]?.path || null;
+        setActivePath(initialPath);
         setBuildVersion(prev => prev + 1);
-        setMessages([{ id: `system-${Date.now()}`, role: 'system', text: `Started with file: ${file.path}` }]);
+        setMessages([{ id: `system-${Date.now()}`, role: 'system', text: `Started with project: ${files.length} files.` }]);
         if (currentConversationId && session) {
-            await supabase.from('conversations').update({ context: { file } }).eq('id', currentConversationId);
+            await supabase.from('conversations').update({ context: { files, activePath: initialPath } }).eq('id', currentConversationId);
         }
     };
 
@@ -108,7 +114,7 @@ const DevEnvironmentPage: React.FC = () => {
             isNewConversation = true;
             const { data: newConvo, error } = await supabase
                 .from('conversations')
-                .insert({ user_id: session.user.id, title: "New Dev Session", type: 'dev', context: activeFile ? { file: activeFile } : null })
+                .insert({ user_id: session.user.id, title: "New Dev Session", type: 'dev', context: { files: projectFiles, activePath } })
                 .select()
                 .single();
             
@@ -128,36 +134,29 @@ const DevEnvironmentPage: React.FC = () => {
         const controller = new AbortController();
         abortControllerRef.current = controller;
 
-        const devSystemPrompt = "You are an expert AI web developer. Your task is to help the user build and modify a web application. When asked to create or modify a file, respond ONLY with the complete file content in a single markdown code block. Do not include any other text, explanation, or conversation. The code block must start with `// path: path/to/file.ext`. You can receive images for context (e.g., bug screenshots, mockups).";
+        const devSystemPrompt = `You are an expert AI web developer. Your task is to help the user build and modify a web application.
+**Prioritize creating high-quality, visually appealing, and functional websites over speed.** Take the time to write clean, well-structured code.
+
+You can manage the project as a collection of separate files (HTML, CSS, JavaScript, TypeScript, etc.). When the user asks for changes, you can create new files or modify existing ones.
+
+When you provide code, you MUST respond ONLY with the complete file content(s) in one or more markdown code blocks. Do not include any other text, explanation, or conversation. Each code block must start with \`// path: path/to/file.ext\`.
+
+**CRITICAL PREVIEW REQUIREMENT:** For the live preview to work, you must ensure there is always an \`index.html\` file. All necessary CSS and JavaScript for the preview must be **inlined** into this single \`index.html\` file using \`<style>\` and \`<script>\` tags. You can manage them as separate files conceptually, but the final output for the preview must be one self-contained HTML file.
+
+You can receive images for context (e.g., bug screenshots, mockups).`;
 
         try {
             const devHistory = messages.filter(m => m.role === 'user' || m.role === 'assistant').map(m => ({ role: m.role as 'user' | 'assistant', content: m.text }));
             const stream = streamGemini(devSystemPrompt + "\n\nUser Request: " + userText, devHistory, false, 'formal', 'img4', attachedFiles, controller.signal, profile?.first_name, []);
             
-            let assistantMessageExists = false;
             let accumulatedText = "";
             const aiMsgId = `ai-${Date.now()}`;
+            setMessages(prev => [...prev, { id: aiMsgId, role: 'assistant', text: '' }]);
 
             for await (const update of stream) {
-                if (!assistantMessageExists) {
-                    setMessages(prev => [...prev, { id: aiMsgId, role: 'assistant', text: '' }]);
-                    assistantMessageExists = true;
-                }
                 if (update.text) {
                     accumulatedText = update.text;
                     setMessages(prev => prev.map(msg => msg.id === aiMsgId ? { ...msg, text: accumulatedText } : msg));
-
-                    const codeBlockRegex = /```(?:\w+)?\n\/\/ path: ([\w\/\.-]+)\n([\s\S]*)/;
-                    const match = accumulatedText.match(codeBlockRegex);
-                    if (match) {
-                        const path = match[1].trim();
-                        const content = match[2].replace(/```$/, '').trim();
-                        const newFile = { path, content };
-                        setActiveFile(newFile);
-                        if (conversationId) {
-                            await supabase.from('conversations').update({ context: { file: newFile } }).eq('id', conversationId);
-                        }
-                    }
                 }
                 if (update.isComplete) {
                     if (session && conversationId) {
@@ -166,11 +165,26 @@ const DevEnvironmentPage: React.FC = () => {
                     if (isNewConversation && conversationId) {
                         generateTitle(userText, conversationId);
                     }
-                    const codeBlockRegex = /```(?:\w+)?\n\/\/ path: ([\w\/\.-]+)\n([\s\S]*?)```/g;
+                    const codeBlockRegex = /```(?:[a-zA-Z0-9]+)?\n\/\/ path: ([\w\/\.-]+)\n([\s\S]*?)```/g;
                     const matches = [...accumulatedText.matchAll(codeBlockRegex)];
                     if (matches.length > 0) {
-                        const files = matches.map(m => ({ path: m[1].trim(), content: m[2].trim() }));
-                        handleBuild(files);
+                        const newFiles = matches.map(m => ({ path: m[1].trim(), content: m[2].trim() }));
+                        
+                        // Merge new files with existing ones
+                        const updatedFiles = [...projectFiles];
+                        newFiles.forEach(newFile => {
+                            const existingIndex = updatedFiles.findIndex(f => f.path === newFile.path);
+                            if (existingIndex !== -1) {
+                                updatedFiles[existingIndex] = newFile;
+                            } else {
+                                updatedFiles.push(newFile);
+                            }
+                        });
+
+                        if (conversationId) {
+                            await supabase.from('conversations').update({ context: { files: updatedFiles, activePath } }).eq('id', conversationId);
+                        }
+                        handleBuild(updatedFiles);
                     }
                 }
             }
@@ -191,12 +205,14 @@ const DevEnvironmentPage: React.FC = () => {
                     messages={messages}
                     isLoading={isLoading}
                     onSubmit={handleUserSubmit}
-                    onInitialFile={handleInitialFile} 
+                    onInitialProject={handleInitialProject} 
                 />
                 <WorkspacePanel 
-                    activeFile={activeFile} 
+                    projectFiles={projectFiles}
+                    activePath={activePath}
+                    setActivePath={setActivePath}
                     buildVersion={buildVersion}
-                    isLoading={isLoading}
+                    isBuilding={isBuilding}
                 />
             </div>
         </>

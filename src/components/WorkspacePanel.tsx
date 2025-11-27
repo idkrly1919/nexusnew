@@ -1,68 +1,73 @@
 import React, { useState, useEffect } from 'react';
 import CodeViewer from './CodeViewer';
+import BuildingStatus from './BuildingStatus';
 
 interface WorkspacePanelProps {
-    activeFile: { path: string; content: string } | null;
+    projectFiles: { path: string; content: string }[];
+    activePath: string | null;
+    setActivePath: (path: string) => void;
     buildVersion: number;
-    isLoading: boolean;
+    isBuilding: boolean;
 }
 
-const WorkspacePanel: React.FC<WorkspacePanelProps> = ({ activeFile, buildVersion, isLoading }) => {
+const WorkspacePanel: React.FC<WorkspacePanelProps> = ({ projectFiles, activePath, setActivePath, buildVersion, isBuilding }) => {
     const [view, setView] = useState<'preview' | 'code'>('preview');
     const [iframeContent, setIframeContent] = useState('');
 
     useEffect(() => {
-        if (activeFile) {
-            if (activeFile.path.endsWith('.html')) {
-                setIframeContent(activeFile.content);
-            }
-            // Always switch to code view when new code is being generated
-            if (isLoading) {
-                setView('code');
-            }
+        const indexHtml = projectFiles.find(f => f.path === 'index.html');
+        if (indexHtml) {
+            setIframeContent(indexHtml.content);
         }
-    }, [activeFile, isLoading]);
-    
-    useEffect(() => {
-        if (activeFile && activeFile.path.endsWith('.html')) {
-            setIframeContent(activeFile.content);
-        }
-    }, [buildVersion]);
+    }, [projectFiles, buildVersion]);
 
+    const activeFile = projectFiles.find(f => f.path === activePath);
 
     return (
         <div className="flex-1 flex flex-col h-full">
             <header className="h-16 flex items-center justify-between px-6 shrink-0 border-b border-white/10 bg-black/30">
-                <span className="font-mono text-sm text-zinc-400">{activeFile ? activeFile.path : 'Workspace'}</span>
+                <span className="font-mono text-sm text-zinc-400">{activePath || 'Workspace'}</span>
                 <div className="flex items-center gap-2 bg-zinc-800/50 p-1 rounded-full border border-zinc-700">
                     <button onClick={() => setView('preview')} className={`px-3 py-1.5 text-xs font-semibold rounded-full ${view === 'preview' ? 'bg-indigo-600 text-white' : 'text-zinc-400 hover:text-white'}`}>Preview</button>
                     <button onClick={() => setView('code')} className={`px-3 py-1.5 text-xs font-semibold rounded-full ${view === 'code' ? 'bg-indigo-600 text-white' : 'text-zinc-400 hover:text-white'}`}>Code</button>
                 </div>
             </header>
-            <div className="flex-1 bg-zinc-900/50 overflow-auto relative">
-                {!activeFile ? (
-                    <div className="flex items-center justify-center h-full text-zinc-500">
-                        <p>Ask the AI to create a file or upload an HTML file to get started.</p>
+            <div className="flex-1 flex overflow-hidden">
+                {projectFiles.length > 0 && view === 'code' && (
+                    <div className="w-56 bg-zinc-900/50 border-r border-white/10 p-2 overflow-y-auto scrollbar-hide">
+                        <h3 className="text-xs font-bold uppercase text-zinc-500 px-2 mb-2">Files</h3>
+                        {projectFiles.map(file => (
+                            <button key={file.path} onClick={() => setActivePath(file.path)} className={`w-full text-left text-sm px-2 py-1.5 rounded truncate ${activePath === file.path ? 'bg-indigo-500/20 text-indigo-300' : 'text-zinc-400 hover:bg-white/5'}`}>
+                                {file.path}
+                            </button>
+                        ))}
                     </div>
-                ) : view === 'preview' ? (
-                    <iframe
-                        key={buildVersion}
-                        srcDoc={iframeContent}
-                        title="Live Preview"
-                        className="w-full h-full border-none bg-white"
-                        sandbox="allow-scripts"
-                    />
-                ) : (
-                    <CodeViewer code={activeFile.content} language={activeFile.path.split('.').pop() || 'javascript'} />
                 )}
-                {isLoading && view === 'code' && (
-                    <div className="absolute inset-0 bg-zinc-900/50 flex items-center justify-center pointer-events-none">
-                        <div className="flex items-center gap-3 py-2 px-4 rounded-full bg-black/50 border border-white/10">
-                            <svg className="animate-spin h-5 w-5 text-indigo-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
-                            <span className="text-sm font-medium text-zinc-300">AI is generating code...</span>
+                <div className="flex-1 bg-zinc-900/50 overflow-auto relative">
+                    {isBuilding ? (
+                        <BuildingStatus status="building" />
+                    ) : !projectFiles || projectFiles.length === 0 ? (
+                        <div className="flex items-center justify-center h-full text-zinc-500">
+                            <p>Upload a .zip project to get started.</p>
                         </div>
-                    </div>
-                )}
+                    ) : view === 'preview' ? (
+                        <iframe
+                            key={buildVersion}
+                            srcDoc={iframeContent}
+                            title="Live Preview"
+                            className="w-full h-full border-none bg-white"
+                            sandbox="allow-scripts"
+                        />
+                    ) : (
+                        activeFile ? (
+                            <CodeViewer code={activeFile.content} language={activeFile.path.split('.').pop() || 'javascript'} />
+                        ) : (
+                            <div className="flex items-center justify-center h-full text-zinc-500">
+                                <p>Select a file to view its code.</p>
+                            </div>
+                        )
+                    )}
+                </div>
             </div>
         </div>
     );

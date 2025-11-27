@@ -2,15 +2,16 @@ import React, { useState, useRef, FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Message } from '../types';
 import { ThinkingProcess } from './ThinkingProcess';
+import JSZip from 'jszip';
 
 interface ChatPanelProps {
     messages: Message[];
     isLoading: boolean;
     onSubmit: (prompt: string, files: {id: string, name: string, content: string, type: string}[]) => void;
-    onInitialFile: (file: { path: string; content: string }) => void;
+    onInitialProject: (files: { path: string; content: string }[]) => void;
 }
 
-const ChatPanel: React.FC<ChatPanelProps> = ({ messages, isLoading, onSubmit, onInitialFile }) => {
+const ChatPanel: React.FC<ChatPanelProps> = ({ messages, isLoading, onSubmit, onInitialProject }) => {
     const navigate = useNavigate();
     const [inputValue, setInputValue] = useState('');
     const [attachedFiles, setAttachedFiles] = useState<{id: string, name: string, content: string, type: string}[]>([]);
@@ -43,22 +44,36 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ messages, isLoading, onSubmit, on
         });
     };
 
-    const handleInitialFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleProjectUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
-        if (file && file.type === 'text/html') {
+        if (file && (file.type === 'application/zip' || file.name.endsWith('.zip'))) {
             const reader = new FileReader();
-            reader.onload = (event) => {
-                const content = event.target?.result as string;
-                onInitialFile({ path: file.name, content });
+            reader.onload = async (event) => {
+                try {
+                    const content = event.target?.result as ArrayBuffer;
+                    const jszip = new JSZip();
+                    const zip = await jszip.loadAsync(content);
+                    const files: { path: string; content: string }[] = [];
+                    for (const filename in zip.files) {
+                        if (!zip.files[filename].dir) {
+                            const fileContent = await zip.files[filename].async('string');
+                            files.push({ path: filename, content: fileContent });
+                        }
+                    }
+                    onInitialProject(files);
+                } catch (error) {
+                    console.error("Error reading zip file:", error);
+                    alert("Could not read the zip file. Please ensure it's a valid format.");
+                }
             };
-            reader.readAsText(file);
+            reader.readAsArrayBuffer(file);
         } else {
-            alert('Please upload a valid HTML file.');
+            alert('Please upload a valid .zip file.');
         }
     };
 
     return (
-        <div className="w-1/3 max-w-lg h-full flex flex-col bg-black/30 border-r border-white/10">
+        <div className="w-3/8 max-w-lg h-full flex flex-col bg-black/30 border-r border-white/10 shrink-0">
             <header className="h-16 flex items-center justify-between px-6 shrink-0 border-b border-white/10">
                 <div className="flex items-center gap-3">
                     <button onClick={() => navigate('/chat')} className="p-2 hover:bg-white/5 rounded-full text-zinc-400 hover:text-white transition-colors" title="Back to Chat">
@@ -66,8 +81,8 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ messages, isLoading, onSubmit, on
                     </button>
                     <span className="font-semibold text-sm tracking-wide text-zinc-300">AI Developer</span>
                 </div>
-                <button onClick={() => initialFileInputRef.current?.click()} className="text-xs bg-white/10 hover:bg-white/20 text-white px-3 py-1.5 rounded-full font-medium">Upload HTML</button>
-                <input type="file" ref={initialFileInputRef} onChange={handleInitialFileChange} className="hidden" accept=".html" />
+                <button onClick={() => initialFileInputRef.current?.click()} className="text-xs bg-white/10 hover:bg-white/20 text-white px-3 py-1.5 rounded-full font-medium">Upload .zip</button>
+                <input type="file" ref={initialFileInputRef} onChange={handleProjectUpload} className="hidden" accept=".zip,application/zip" />
             </header>
             <div className="flex-1 overflow-y-auto p-4 space-y-6 scrollbar-hide">
                 {messages.map(msg => (
