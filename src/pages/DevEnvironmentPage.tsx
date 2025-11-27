@@ -245,7 +245,7 @@ You can receive images for context (e.g., bug screenshots, mockups).`;
     return (
         <>
             <DynamicBackground status="idle" />
-            <div className="fixed inset-0 z-10 flex bg-transparent text-zinc-100 font-sans overflow-hidden">
+            <div className="fixed inset-0 z-10 flex flex-col md:flex-row bg-transparent text-zinc-100 font-sans overflow-hidden">
                 <ChatPanel 
                     messages={messages}
                     isLoading={isLoading}
