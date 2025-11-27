@@ -88,12 +88,12 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ messages, isLoading, onSubmit, on
                 {messages.map(msg => (
                     <div key={msg.id} className={`flex items-start gap-3 ${msg.role === 'user' ? 'justify-end' : ''}`}>
                         {msg.role === 'assistant' && <img src="/quillix-logo.png" className="w-7 h-7 rounded-full" />}
-                        <div className={`max-w-xs md:max-w-md p-3 rounded-2xl prose prose-invert prose-sm max-w-none ${msg.role === 'user' ? 'bg-indigo-600 text-white' : msg.role === 'system' ? 'bg-transparent text-green-400 font-mono' : 'bg-zinc-800'}`}>
+                        <div data-liquid-glass className={`max-w-xs md:max-w-md p-3 rounded-2xl prose prose-invert prose-sm max-w-none ${msg.role === 'user' ? 'light-liquid-glass text-white' : msg.role === 'system' ? 'bg-transparent text-green-400 font-mono' : 'dark-liquid-glass'}`}>
                            <div dangerouslySetInnerHTML={{ __html: msg.text.replace(/\n/g, '<br/>') }} />
                         </div>
                     </div>
                 ))}
-                {isLoading && <div className="flex items-start gap-3"><img src="/quillix-logo.png" className="w-7 h-7 rounded-full" /><div className="p-3 bg-zinc-800 rounded-2xl"><ThinkingProcess isThinking /></div></div>}
+                {isLoading && <div className="flex items-start gap-3"><img src="/quillix-logo.png" className="w-7 h-7 rounded-full" /><div className="p-3 dark-liquid-glass rounded-2xl"><ThinkingProcess isThinking /></div></div>}
                 <div ref={messagesEndRef} />
             </div>
             <div className="p-4 border-t border-white/10">

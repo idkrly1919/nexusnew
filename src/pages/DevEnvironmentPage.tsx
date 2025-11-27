@@ -55,7 +55,15 @@ const DevEnvironmentPage: React.FC = () => {
             if (error) {
                 console.error('Error fetching messages:', error);
             } else {
-                const loadedMessages: Message[] = data.map((msg: { id: string; role: string; content: string; }) => ({ id: msg.id, role: msg.role as Role, text: msg.content }));
+                const loadedMessages: Message[] = data.map((msg: { id: string; role: Role; content: string; }) => {
+                    if (msg.role === 'assistant') {
+                        const separator = '---SUMMARY---';
+                        const parts = msg.content.split(separator);
+                        const summary = parts.length > 1 ? parts[1].trim() : "I've updated the code.";
+                        return { id: msg.id, role: 'assistant', text: summary };
+                    }
+                    return { id: msg.id, role: msg.role, text: msg.content };
+                });
                 setMessages(loadedMessages);
             }
             setIsBuilding(false);
@@ -158,6 +166,23 @@ You can receive images for context (e.g., bug screenshots, mockups).`;
             for await (const update of stream) {
                 if (update.text) {
                     accumulatedText = update.text;
+                    const codePart = accumulatedText.split('---SUMMARY---')[0];
+                    const codeBlockRegex = /```(?:[a-zA-Z0-9]+)?\n\/\/ path: ([\w\/\.-]+)\n([\s\S]*?)(```|$)/g;
+                    const matches = [...codePart.matchAll(codeBlockRegex)];
+                    if (matches.length > 0) {
+                        const streamingFiles = matches.map(m => ({ path: m[1].trim(), content: m[2].trim().replace(/```$/, '') }));
+                        const updatedFiles = [...projectFiles];
+                        streamingFiles.forEach(newFile => {
+                            const existingIndex = updatedFiles.findIndex(f => f.path === newFile.path);
+                            if (existingIndex !== -1) {
+                                updatedFiles[existingIndex] = newFile;
+                            } else {
+                                updatedFiles.push(newFile);
+                            }
+                        });
+                        setProjectFiles(updatedFiles);
+                        setBuildVersion(v => v + 1);
+                    }
                 }
                 if (update.isComplete) {
                     const separator = '---SUMMARY---';
