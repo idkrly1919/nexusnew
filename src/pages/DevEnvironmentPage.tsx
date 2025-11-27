@@ -17,6 +17,7 @@ const DevEnvironmentPage: React.FC = () => {
     const [messages, setMessages] = useState<Message[]>([]);
     const [isLoading, setIsLoading] = useState(false);
     const [isBuilding, setIsBuilding] = useState(false);
+    const [devStatus, setDevStatus] = useState<string | null>(null);
     
     const [projectFiles, setProjectFiles] = useState<{ path: string; content: string }[]>([]);
     const [activePath, setActivePath] = useState<string | null>(null);
@@ -166,6 +167,16 @@ You can receive images for context (e.g., bug screenshots, mockups).`;
             for await (const update of stream) {
                 if (update.text) {
                     accumulatedText = update.text;
+                    
+                    const pathRegex = /\/\/ path: ([\w\/\.-]+)/g;
+                    const pathsFound = [...accumulatedText.matchAll(pathRegex)];
+                    if (pathsFound.length > 0) {
+                        const lastFile = pathsFound[pathsFound.length - 1][1];
+                        setDevStatus(`Generating ${lastFile}...`);
+                    } else if (!devStatus) {
+                        setDevStatus("Thinking...");
+                    }
+
                     const codePart = accumulatedText.split('---SUMMARY---')[0];
                     const codeBlockRegex = /```(?:[a-zA-Z0-9]+)?\n\/\/ path: ([\w\/\.-]+)\n([\s\S]*?)(```|$)/g;
                     const matches = [...codePart.matchAll(codeBlockRegex)];
@@ -227,6 +238,7 @@ You can receive images for context (e.g., bug screenshots, mockups).`;
         } finally {
             setIsLoading(false);
             setIsBuilding(false);
+            setDevStatus(null);
         }
     };
 
@@ -238,7 +250,8 @@ You can receive images for context (e.g., bug screenshots, mockups).`;
                     messages={messages}
                     isLoading={isLoading}
                     onSubmit={handleUserSubmit}
-                    onInitialProject={handleInitialProject} 
+                    onInitialProject={handleInitialProject}
+                    devStatus={devStatus}
                 />
                 <WorkspacePanel 
                     projectFiles={projectFiles}

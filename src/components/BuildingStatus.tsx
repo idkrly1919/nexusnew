@@ -24,7 +24,7 @@ const BuildingStatus: React.FC = () => {
                 <div className={`${blockCommonClass} bottom-0 right-[6.8%] ${animationCommonClass}`} style={{ animationName: 'fly-in-5', animationDelay: '0.4s' }}></div>
             </div>
             <h3 className="text-xl font-bold text-zinc-200">Building...</h3>
-            <p className="text-zinc-400">Preview will appear when the agent is done working</p>
+            <p className="text-zinc-400">Your new preview will appear when ready</p>
         </div>
     );
 };

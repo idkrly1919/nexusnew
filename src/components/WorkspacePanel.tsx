@@ -37,9 +37,8 @@ const WorkspacePanel: React.FC<WorkspacePanelProps> = ({ projectFiles, activePat
                 <span className="font-mono text-sm text-zinc-400">{activePath || 'Workspace'}</span>
                 <div className="flex items-center gap-2 bg-zinc-800/50 p-1 rounded-full border border-zinc-700">
                     <button 
-                        onClick={() => setView('preview')} 
-                        disabled={isBuilding && view === 'code'}
-                        className={`px-3 py-1.5 text-xs font-semibold rounded-full transition-opacity ${view === 'preview' ? 'bg-indigo-600 text-white' : 'text-zinc-400 hover:text-white'} ${isBuilding && view === 'code' ? 'opacity-50 cursor-not-allowed' : ''}`}
+                        onClick={() => !isBuilding && setView('preview')} 
+                        className={`px-3 py-1.5 text-xs font-semibold rounded-full transition-opacity ${view === 'preview' ? 'bg-indigo-600 text-white' : 'text-zinc-400 hover:text-white'} ${isBuilding ? 'opacity-50 cursor-not-allowed' : ''}`}
                     >
                         Preview
                     </button>
@@ -58,7 +57,7 @@ const WorkspacePanel: React.FC<WorkspacePanelProps> = ({ projectFiles, activePat
                     </div>
                 )}
                 <div ref={codeViewRef} className="flex-1 bg-zinc-900/50 overflow-auto relative">
-                    {isBuilding ? (
+                    {isBuilding && view === 'preview' ? (
                         <BuildingStatus />
                     ) : !projectFiles || projectFiles.length === 0 ? (
                         <div className="flex items-center justify-center h-full text-zinc-500 text-center p-4">

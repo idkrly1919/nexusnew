@@ -974,7 +974,7 @@ const ChatView: React.FC = () => {
                             ))}
                             {isLoading && (
                                 <div className="animate-pop-in">
-                                    <ThinkingProcess thought="" isThinking={true} mode={thinkingMode} />
+                                    <ThinkingProcess isThinking={true} mode={thinkingMode} />
                                 </div>
                             )}
                             <div ref={messagesEndRef} className="h-48"></div>

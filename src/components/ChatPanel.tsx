@@ -9,9 +9,10 @@ interface ChatPanelProps {
     isLoading: boolean;
     onSubmit: (prompt: string, files: {id: string, name: string, content: string, type: string}[]) => void;
     onInitialProject: (files: { path: string; content: string }[]) => void;
+    devStatus: string | null;
 }
 
-const ChatPanel: React.FC<ChatPanelProps> = ({ messages, isLoading, onSubmit, onInitialProject }) => {
+const ChatPanel: React.FC<ChatPanelProps> = ({ messages, isLoading, onSubmit, onInitialProject, devStatus }) => {
     const navigate = useNavigate();
     const [inputValue, setInputValue] = useState('');
     const [attachedFiles, setAttachedFiles] = useState<{id: string, name: string, content: string, type: string}[]>([]);
@@ -93,7 +94,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ messages, isLoading, onSubmit, on
                         </div>
                     </div>
                 ))}
-                {isLoading && <div className="flex items-start gap-3"><img src="/quillix-logo.png" className="w-7 h-7 rounded-full" /><div data-liquid-glass className="p-3 dark-liquid-glass rounded-2xl"><ThinkingProcess isThinking /></div></div>}
+                {isLoading && <div className="flex items-start gap-3"><img src="/quillix-logo.png" className="w-7 h-7 rounded-full" /><div data-liquid-glass className="p-3 dark-liquid-glass rounded-2xl"><ThinkingProcess isThinking devStatus={devStatus} /></div></div>}
                 <div ref={messagesEndRef} />
             </div>
             <div className="p-4 border-t border-white/10">
