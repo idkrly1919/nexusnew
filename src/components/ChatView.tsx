@@ -11,6 +11,7 @@ import EmbeddedView from './EmbeddedView';
 import VoiceInputView from './VoiceInputView';
 import FileGenerator from './FileGenerator';
 import FileIcon from './FileIcon';
+import PersonaManager from './PersonaManager';
 
 const NexusIconSmall = () => (
     <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center border border-white/10 shadow-lg">
@@ -842,6 +843,7 @@ const ChatView: React.FC = () => {
                 <div className="flex flex-col h-full p-4 space-y-4">
                     <div className="flex justify-between items-center"><div className="font-bold tracking-wide text-white flex items-center gap-2"><img src="/quillix-logo.png" alt="Quillix Logo" className="w-6 h-6 animate-spin-slow" />Quillix</div><button onClick={() => setIsSidebarOpen(false)} className="text-zinc-400 hover:text-white p-1 rounded-full hover:bg-white/10"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m15 18-6-6 6-6"/></svg></button></div>
                     <button onClick={() => { resetChat(); setIsSidebarOpen(false); }} className="w-full flex items-center justify-center gap-2 px-3 py-2.5 bg-white hover:bg-zinc-200 text-black rounded-full transition-colors duration-300 text-sm font-semibold interactive-lift"><svg width="16" height="16" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5" fill="none"><path d="M12 5v14"/><path d="M5 12h14"/></svg>New Chat</button>
+                    <PersonaManager />
                     {session && (
                         <div className="flex-1 overflow-y-auto space-y-1 pr-2 -mr-2 scrollbar-hide">
                             {isConversationsLoading ? (
@@ -861,8 +863,7 @@ const ChatView: React.FC = () => {
                                                 <div 
                                                     key={chat.id} 
                                                     onClick={() => navigate(chat.type === 'dev' ? `/dev/${chat.id}` : `/chat/${chat.id}`)}
-                                                    data-liquid-glass 
-                                                    className={`liquid-glass p-3 rounded-xl my-1.5 group relative cursor-pointer transition-all duration-300 hover:scale-[1.03] hover:bg-white/10 ${currentConversationId === chat.id ? 'bg-white/10' : ''}`}
+                                                    className={`bg-zinc-800/50 p-3 rounded-xl my-1.5 group relative cursor-pointer transition-all duration-300 hover:scale-[1.03] hover:bg-zinc-700/80 ${currentConversationId === chat.id ? 'bg-zinc-700/80' : ''}`}
                                                 >
                                                     <div className={`w-full text-left text-sm truncate pr-6 ${currentConversationId === chat.id ? 'text-white font-semibold' : 'text-zinc-300'}`}>
                                                         {chat.title || 'New Chat'}
@@ -922,45 +923,49 @@ const ChatView: React.FC = () => {
 
                 <div className="flex-1 overflow-y-auto relative z-10 scrollbar-hide">
                     {messages.length === 0 && !isLoading && !currentConversationId ? (
-                        <div className="h-full flex flex-col items-center justify-center pb-32">
-                            <OrbLogo />
-                            <h1 className="text-2xl font-medium text-white mb-8 tracking-tight">What can I do for you today?</h1>
-                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-4xl w-full px-4">
-                                <button 
-                                    onClick={() => setEmbeddedUrl('https://veoaifree.com')}
-                                    data-liquid-glass
-                                    className="liquid-glass p-4 rounded-2xl text-left interactive-lift space-y-2"
-                                >
-                                    <h3 className="font-semibold text-white">Generate a video</h3>
-                                    <p className="text-sm text-zinc-400">Create a video from a text prompt using an external tool.</p>
-                                </button>
-                                <button 
-                                    onClick={() => navigate('/dev')}
-                                    data-liquid-glass
-                                    className="liquid-glass p-4 rounded-2xl text-left interactive-lift space-y-2"
-                                >
-                                    <h3 className="font-semibold text-white">AI Web Developer</h3>
-                                    <p className="text-sm text-zinc-400">Build and edit code with an AI partner.</p>
-                                </button>
-                                <button 
-                                    onClick={() => {
-                                        setInputValue('Make an image of ');
-                                        textareaRef.current?.focus();
-                                    }}
-                                    data-liquid-glass
-                                    className="liquid-glass p-4 rounded-2xl text-left interactive-lift space-y-2"
-                                >
-                                    <h3 className="font-semibold text-white">Make an image</h3>
-                                    <p className="text-sm text-zinc-400">Generate an image from a descriptive prompt.</p>
-                                </button>
-                                <button 
-                                    onClick={() => navigate('/quiz')}
-                                    data-liquid-glass
-                                    className="liquid-glass p-4 rounded-2xl text-left interactive-lift space-y-2"
-                                >
-                                    <h3 className="font-semibold text-white">Quiz me on...</h3>
-                                    <p className="text-sm text-zinc-400">Test your knowledge on any topic.</p>
-                                </button>
+                        <div className="h-full flex flex-col items-center justify-center">
+                            <div className="flex-1 flex flex-col items-center justify-center text-center">
+                                <OrbLogo />
+                                <h1 className="text-2xl font-medium text-white tracking-tight">What can I do for you today?</h1>
+                            </div>
+                            <div className="w-full max-w-4xl mx-auto px-4 pb-8">
+                                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                    <button 
+                                        onClick={() => setEmbeddedUrl('https://veoaifree.com')}
+                                        data-liquid-glass
+                                        className="liquid-glass p-4 rounded-2xl text-left interactive-lift space-y-2"
+                                    >
+                                        <h3 className="font-semibold text-white">Make a video</h3>
+                                        <p className="text-sm text-zinc-400">Create a video from a text prompt.</p>
+                                    </button>
+                                    <button 
+                                        onClick={() => navigate('/dev')}
+                                        data-liquid-glass
+                                        className="liquid-glass p-4 rounded-2xl text-left interactive-lift space-y-2"
+                                    >
+                                        <h3 className="font-semibold text-white">AI Web Developer</h3>
+                                        <p className="text-sm text-zinc-400">Build and edit code with an AI partner.</p>
+                                    </button>
+                                    <button 
+                                        onClick={() => {
+                                            setInputValue('Make an image of ');
+                                            textareaRef.current?.focus();
+                                        }}
+                                        data-liquid-glass
+                                        className="liquid-glass p-4 rounded-2xl text-left interactive-lift space-y-2"
+                                    >
+                                        <h3 className="font-semibold text-white">Make an image</h3>
+                                        <p className="text-sm text-zinc-400">Generate an image from a prompt.</p>
+                                    </button>
+                                    <button 
+                                        onClick={() => navigate('/quiz')}
+                                        data-liquid-glass
+                                        className="liquid-glass p-4 rounded-2xl text-left interactive-lift space-y-2"
+                                    >
+                                        <h3 className="font-semibold text-white">Quiz me on...</h3>
+                                        <p className="text-sm text-zinc-400">Test your knowledge on any topic.</p>
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     ) : (
