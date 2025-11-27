@@ -93,7 +93,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ messages, isLoading, onSubmit, on
                         </div>
                     </div>
                 ))}
-                {isLoading && <div className="flex items-start gap-3"><img src="/quillix-logo.png" className="w-7 h-7 rounded-full" /><div className="p-3 dark-liquid-glass rounded-2xl"><ThinkingProcess isThinking /></div></div>}
+                {isLoading && <div className="flex items-start gap-3"><img src="/quillix-logo.png" className="w-7 h-7 rounded-full" /><div data-liquid-glass className="p-3 dark-liquid-glass rounded-2xl"><ThinkingProcess isThinking /></div></div>}
                 <div ref={messagesEndRef} />
             </div>
             <div className="p-4 border-t border-white/10">
