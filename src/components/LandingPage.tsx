@@ -1,4 +1,4 @@
-import React, { FormEvent, useState, useEffect } from 'react';
+import React, { FormEvent, useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import DynamicBackground from './DynamicBackground';
 import { supabase } from '../integrations/supabase/client';
@@ -8,51 +8,49 @@ const LandingPage: React.FC = () => {
     const [isFindingSpace, setIsFindingSpace] = useState(false);
     const [spaceStatus, setSpaceStatus] = useState('');
     const [userCount, setUserCount] = useState(2400);
+    const lastFetchedCount = useRef(0);
 
     useEffect(() => {
-        let intervalId: NodeJS.Timeout;
         let animationFrameId: number;
-
-        const fetchUserCount = async () => {
-            const { data, error } = await supabase.rpc('get_daily_new_users_count');
-            
-            if (error) {
-                console.error('Error fetching user count:', error);
-            } else if (data) {
-                const baseCount = 2400;
-                const endCount = baseCount + data;
-                
-                let start = userCount;
-                const duration = 2000;
-                const range = endCount - start;
-                let startTime: number | null = null;
-
-                const animate = (currentTime: number) => {
-                    if (startTime === null) startTime = currentTime;
-                    const elapsedTime = currentTime - startTime;
-                    const progress = Math.min(elapsedTime / duration, 1);
-                    const currentDisplayCount = Math.floor(start + range * progress);
-                    
-                    setUserCount(currentDisplayCount);
-
-                    if (progress < 1) {
-                        animationFrameId = requestAnimationFrame(animate);
-                    } else {
-                        // After animation, start the fake real-time increment
-                        intervalId = setInterval(() => {
-                            setUserCount(prevCount => prevCount + Math.floor(Math.random() * 3) + 1);
-                        }, 5000);
-                    }
-                };
-                animationFrameId = requestAnimationFrame(animate);
+        
+        const animateCount = (start: number, end: number) => {
+            const duration = 2000;
+            const range = end - start;
+            if (range <= 0) return;
+            let startTime: number | null = null;
+    
+            const step = (currentTime: number) => {
+                if (startTime === null) startTime = currentTime;
+                const elapsedTime = currentTime - startTime;
+                const progress = Math.min(elapsedTime / duration, 1);
+                setUserCount(Math.floor(start + range * progress));
+    
+                if (progress < 1) {
+                    animationFrameId = requestAnimationFrame(step);
+                }
+            };
+            animationFrameId = requestAnimationFrame(step);
+        };
+    
+        const fetchCount = async () => {
+            const { data, error } = await supabase.rpc('get_total_users_count');
+            if (!error && data && data > lastFetchedCount.current) {
+                const startCount = lastFetchedCount.current === 0 ? 2400 : userCount;
+                animateCount(startCount, data);
+                lastFetchedCount.current = data;
+            } else if (!error && data && lastFetchedCount.current === 0) {
+                // Initial load, but count hasn't increased since base
+                setUserCount(data);
+                lastFetchedCount.current = data;
             }
         };
-
-        fetchUserCount();
-
+    
+        fetchCount(); // Initial fetch
+        const intervalId = setInterval(fetchCount, 15000); // Poll every 15 seconds
+    
         return () => {
-            cancelAnimationFrame(animationFrameId);
             clearInterval(intervalId);
+            cancelAnimationFrame(animationFrameId);
         };
     }, []);
 
@@ -135,7 +133,7 @@ const LandingPage: React.FC = () => {
                                     Join Waitlist
                                 </button>
                             </form>
-                            <p className="text-xs text-zinc-600 mt-4">No spam. Unsubscribe anytime. <span className="text-zinc-500">{userCount.toLocaleString()}+ joined today.</span></p>
+                            <p className="text-xs text-zinc-600 mt-4">No spam. Unsubscribe anytime. <span className="text-zinc-500">{userCount.toLocaleString()} total users have joined.</span></p>
                         </div>
                     </div>
 
