@@ -925,9 +925,8 @@ const ChatView: React.FC = () => {
                                             ))}
                                         </div>
                                     )
-                                ))
-                            )}
-                        </>
+                                ))}
+                            </>
                         )}
                     </div>
                     <div className="space-y-2">
