@@ -27,6 +27,8 @@ export interface Conversation {
   title: string;
   created_at: string;
   updated_at?: string;
+  type?: 'chat' | 'dev';
+  context?: { file: { path: string; content: string } };
 }
 
 // --- Quiz Feature Types ---

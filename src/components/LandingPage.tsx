@@ -7,7 +7,7 @@ const LandingPage: React.FC = () => {
     const navigate = useNavigate();
     const [isFindingSpace, setIsFindingSpace] = useState(false);
     const [spaceStatus, setSpaceStatus] = useState('');
-    const [userCount, setUserCount] = useState(2400);
+    const [userCount, setUserCount] = useState(0);
     const lastFetchedCount = useRef(0);
 
     useEffect(() => {
@@ -16,7 +16,10 @@ const LandingPage: React.FC = () => {
         const animateCount = (start: number, end: number) => {
             const duration = 2000;
             const range = end - start;
-            if (range <= 0) return;
+            if (range <= 0) {
+                setUserCount(end);
+                return;
+            }
             let startTime: number | null = null;
     
             const step = (currentTime: number) => {
@@ -35,18 +38,21 @@ const LandingPage: React.FC = () => {
         const fetchCount = async () => {
             const { data, error } = await supabase.rpc('get_total_users_count');
             if (!error && data && data > lastFetchedCount.current) {
-                const startCount = lastFetchedCount.current === 0 ? 2400 : userCount;
-                animateCount(startCount, data);
-                lastFetchedCount.current = data;
-            } else if (!error && data && lastFetchedCount.current === 0) {
-                // Initial load, but count hasn't increased since base
-                setUserCount(data);
+                animateCount(lastFetchedCount.current, data);
                 lastFetchedCount.current = data;
             }
         };
     
-        fetchCount(); // Initial fetch
-        const intervalId = setInterval(fetchCount, 15000); // Poll every 15 seconds
+        const initialFetch = async () => {
+            const { data, error } = await supabase.rpc('get_total_users_count');
+            if (!error && data) {
+                setUserCount(data);
+                lastFetchedCount.current = data;
+            }
+        };
+
+        initialFetch();
+        const intervalId = setInterval(fetchCount, 15000);
     
         return () => {
             clearInterval(intervalId);
