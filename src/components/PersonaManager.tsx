@@ -1,27 +1,122 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { supabase } from '../integrations/supabase/client';
+import { useSession } from '../contexts/SessionContext';
+import { Persona } from '../types';
 
-const PersonaManager: React.FC = () => {
-    const [isOpen, setIsOpen] = useState(false);
+interface PersonaManagerProps {
+    isOpen: boolean;
+    onClose: () => void;
+}
+
+const PersonaManager: React.FC<PersonaManagerProps> = ({ isOpen, onClose }) => {
+    const { user } = useSession();
+    const [personas, setPersonas] = useState<Persona[]>([]);
+    const [view, setView] = useState<'list' | 'form'>('list');
+    const [currentPersona, setCurrentPersona] = useState<Partial<Persona> | null>(null);
+    const [isSaving, setIsSaving] = useState(false);
+
+    useEffect(() => {
+        if (isOpen && user) {
+            const fetchPersonas = async () => {
+                const { data, error } = await supabase
+                    .from('personas')
+                    .select('*')
+                    .eq('user_id', user.id)
+                    .order('created_at', { ascending: false });
+                if (error) console.error("Error fetching personas:", error);
+                else setPersonas(data as Persona[]);
+            };
+            fetchPersonas();
+        }
+    }, [isOpen, user]);
+
+    const handleSave = async () => {
+        if (!user || !currentPersona || !currentPersona.name || !currentPersona.instructions) return;
+        setIsSaving(true);
+        
+        const personaData = {
+            user_id: user.id,
+            name: currentPersona.name,
+            description: currentPersona.description,
+            instructions: currentPersona.instructions,
+            updated_at: new Date().toISOString(),
+        };
+
+        let error;
+        if (currentPersona.id) {
+            // @ts-ignore
+            const { error: updateError } = await supabase.from('personas').update(personaData).eq('id', currentPersona.id);
+            error = updateError;
+        } else {
+            // @ts-ignore
+            const { error: insertError } = await supabase.from('personas').insert(personaData);
+            error = insertError;
+        }
+
+        if (error) {
+            console.error("Error saving persona:", error);
+            alert("Could not save persona.");
+        } else {
+            const { data } = await supabase.from('personas').select('*').eq('user_id', user.id).order('created_at', { ascending: false });
+            setPersonas(data as Persona[]);
+            setView('list');
+            setCurrentPersona(null);
+        }
+        setIsSaving(false);
+    };
+
+    const handleDelete = async (personaId: string) => {
+        if (window.confirm("Are you sure you want to delete this persona?")) {
+            const { error } = await supabase.from('personas').delete().eq('id', personaId);
+            if (error) console.error("Error deleting persona:", error);
+            else setPersonas(prev => prev.filter(p => p.id !== personaId));
+        }
+    };
+
+    if (!isOpen) return null;
 
     return (
-        <div className="my-2">
-            <button 
-                onClick={() => setIsOpen(!isOpen)}
-                className="w-full flex items-center justify-between px-3 py-2 text-sm text-zinc-300 hover:text-white hover:bg-white/5 rounded-lg transition-colors"
-            >
-                <div className="flex items-center gap-3">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
-                    <span>My Personas</span>
+        <div className="fixed inset-0 z-[60] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4" onClick={onClose}>
+            <div data-liquid-glass className="liquid-glass w-full max-w-2xl max-h-[80vh] flex flex-col shadow-2xl animate-pop-in" onClick={(e) => e.stopPropagation()}>
+                <div className="p-6 border-b border-white/10 flex justify-between items-center">
+                    <h2 className="text-xl font-bold text-white font-brand">{view === 'list' ? 'My Personas' : (currentPersona?.id ? 'Edit Persona' : 'Create Persona')}</h2>
+                    <button onClick={onClose} className="p-1.5 rounded-full text-zinc-400 hover:text-white hover:bg-white/10 transition-colors"><svg width="20" height="20" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5" fill="none"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
                 </div>
-                <svg className={`w-4 h-4 transition-transform ${isOpen ? 'rotate-180' : ''}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
-            </button>
-            {isOpen && (
-                <div className="pl-4 mt-2 space-y-2 border-l-2 border-zinc-700 ml-4 animate-pop-in">
-                    {/* Persona list will go here */}
-                    <p className="text-xs text-zinc-500 p-2">This feature is in development.</p>
-                    <button className="w-full text-left text-xs text-indigo-400 hover:text-indigo-300 p-2 rounded-lg hover:bg-white/5">+ Create New Persona</button>
+                <div className="flex-1 p-6 overflow-y-auto scrollbar-hide">
+                    {view === 'list' ? (
+                        <div className="space-y-3">
+                            {personas.map(p => (
+                                <div key={p.id} className="bg-white/5 p-4 rounded-xl flex justify-between items-center group">
+                                    <div>
+                                        <h3 className="font-semibold text-white">{p.name}</h3>
+                                        <p className="text-sm text-zinc-400 truncate max-w-md">{p.description || 'No description'}</p>
+                                    </div>
+                                    <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <button onClick={() => { setCurrentPersona(p); setView('form'); }} className="p-2 rounded-full hover:bg-white/10 text-zinc-300 hover:text-white">Edit</button>
+                                        <button onClick={() => handleDelete(p.id)} className="p-2 rounded-full hover:bg-red-500/10 text-zinc-300 hover:text-red-400">Delete</button>
+                                    </div>
+                                </div>
+                            ))}
+                            <button onClick={() => { setCurrentPersona({}); setView('form'); }} className="w-full mt-4 p-4 border-2 border-dashed border-white/20 rounded-xl text-zinc-400 hover:border-white/40 hover:text-white transition-colors">
+                                + Create New Persona
+                            </button>
+                        </div>
+                    ) : (
+                        <div className="space-y-4">
+                            <input type="text" placeholder="Persona Name (e.g., 'Expert Coder')" value={currentPersona?.name || ''} onChange={e => setCurrentPersona(p => ({ ...p, name: e.target.value }))} className="w-full bg-white/5 border border-white/10 rounded-full px-4 py-3 text-white" />
+                            <input type="text" placeholder="Description (e.g., 'Helps with programming questions')" value={currentPersona?.description || ''} onChange={e => setCurrentPersona(p => ({ ...p, description: e.target.value }))} className="w-full bg-white/5 border border-white/10 rounded-full px-4 py-3 text-white" />
+                            <textarea placeholder="Instructions (e.g., 'You are an expert programmer...')" value={currentPersona?.instructions || ''} onChange={e => setCurrentPersona(p => ({ ...p, instructions: e.target.value }))} rows={8} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white resize-none" />
+                            <div className="flex justify-between items-center">
+                                <button onClick={() => setView('list')} className="text-zinc-400 hover:text-white">Cancel</button>
+                                <div className="flex items-center gap-3">
+                                    <button className="bg-white/10 hover:bg-white/20 text-white px-4 py-2 rounded-full text-sm font-medium">Enhance with AI</button>
+                                    <button onClick={handleSave} disabled={isSaving} className="bg-indigo-600 hover:bg-indigo-500 text-white px-6 py-2 rounded-full font-medium">{isSaving ? 'Saving...' : 'Save'}</button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
                 </div>
-            )}
+            </div>
         </div>
     );
 };

@@ -29,6 +29,17 @@ export interface Conversation {
   updated_at?: string;
   type?: 'chat' | 'dev';
   context?: { file: { path: string; content: string } };
+  persona_id?: string | null;
+}
+
+export interface Persona {
+  id: string;
+  user_id: string;
+  name: string;
+  description: string | null;
+  instructions: string;
+  created_at: string;
+  updated_at?: string;
 }
 
 // --- Quiz Feature Types ---
