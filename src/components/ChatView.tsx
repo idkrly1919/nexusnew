@@ -5,6 +5,7 @@ import { Message, ChatHistory, PersonalityMode, Conversation, Role, Persona } fr
 import { streamGemini, summarizeHistory } from '../services/geminiService';
 import { ThinkingProcess } from './ThinkingProcess';
 import { useSession } from '../contexts/SessionContext';
+import { useTheme } from '../contexts/ThemeContext';
 import { supabase } from '../integrations/supabase/client';
 import DynamicBackground from './DynamicBackground';
 import EmbeddedView from './EmbeddedView';
@@ -16,20 +17,21 @@ import StockWidget from './StockWidget';
 import WeatherWidget from './WeatherWidget';
 
 const NexusIconSmall = () => (
-    <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center border border-white/10 shadow-lg">
-        <img src="/quillix-logo.png" alt="Quillix Logo" className="w-5 h-5" />
+    <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center border border-white/10 shadow-lg no-invert">
+        <img src="/quillix-logo.png" alt="Quillix Logo" className="w-5 h-5 no-invert" />
     </div>
 );
 
 const OrbLogo = () => (
-    <div className="relative w-24 h-24 flex items-center justify-center mb-8">
-        <div className="absolute inset-0 rounded-full bg-indigo-500 blur-2xl opacity-30"></div>
-        <img src="/quillix-logo.png" alt="Quillix Logo" className="w-20 h-20 animate-spin-slow" />
+    <div className="relative w-24 h-24 flex items-center justify-center mb-8 no-invert">
+        <div className="absolute inset-0 rounded-full bg-indigo-500 blur-2xl opacity-30 no-invert"></div>
+        <img src="/quillix-logo.png" alt="Quillix Logo" className="w-20 h-20 animate-spin-slow no-invert" />
     </div>
 );
 
 const ChatView: React.FC = () => {
     const { session, profile, refreshProfile } = useSession();
+    const { theme, setTheme } = useTheme();
     const { conversationId: paramConversationId } = useParams<{ conversationId?: string }>();
     const navigate = useNavigate();
 
@@ -670,9 +672,9 @@ const ChatView: React.FC = () => {
             let parsed = str.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, (_, alt, url) => {
                 const downloadIcon = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>`;
                 const fullscreenIcon = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg>`;
-                return `<div class="mt-3 mb-3 block w-full">
-                    <div class="relative group">
-                        <img src="${url}" alt="${alt}" class="rounded-xl shadow-lg border border-white/10 w-full h-auto object-cover" />
+                return `<div class="mt-3 mb-3 block w-full no-invert">
+                    <div class="relative group no-invert">
+                        <img src="${url}" alt="${alt}" class="rounded-xl shadow-lg border border-white/10 w-full h-auto object-cover no-invert" />
                         <div class="absolute top-3 right-3 flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-all duration-300">
                             <a href="${url}" target="_blank" title="View Fullscreen" class="bg-black/60 hover:bg-black/80 backdrop-blur-md text-white w-10 h-10 flex items-center justify-center rounded-full shadow-xl border border-white/10 interactive-lift">
                                 ${fullscreenIcon}
@@ -866,6 +868,20 @@ const ChatView: React.FC = () => {
                         </div>
                         <div className="p-6 space-y-6 max-h-[70vh] overflow-y-auto scrollbar-hide">
                             <div>
+                                <label className="block text-sm font-medium text-zinc-400 mb-3">Theme</label>
+                                <div className="grid grid-cols-3 gap-2">
+                                    <button onClick={() => setTheme('system')} className={`px-4 py-2 rounded-lg border text-sm font-medium transition-all ${theme === 'system' ? 'bg-indigo-500/20 border-indigo-500/50 text-white' : 'bg-white/5 border-white/10 text-zinc-400 hover:text-white'}`}>
+                                        System
+                                    </button>
+                                    <button onClick={() => setTheme('dark')} className={`px-4 py-2 rounded-lg border text-sm font-medium transition-all ${theme === 'dark' ? 'bg-indigo-500/20 border-indigo-500/50 text-white' : 'bg-white/5 border-white/10 text-zinc-400 hover:text-white'}`}>
+                                        Dark
+                                    </button>
+                                    <button onClick={() => setTheme('light')} className={`px-4 py-2 rounded-lg border text-sm font-medium transition-all ${theme === 'light' ? 'bg-indigo-500/20 border-indigo-500/50 text-white' : 'bg-white/5 border-white/10 text-zinc-400 hover:text-white'}`}>
+                                        Light
+                                    </button>
+                                </div>
+                            </div>
+                            <div>
                                 <label className="block text-sm font-medium text-zinc-400 mb-3">Personality Mode</label>
                                 <div className="grid grid-cols-2 gap-2">
                                     {[{ id: 'conversational', name: 'Conversational', desc: 'Friendly and helpful.' }, { id: 'academic', name: 'Academic', desc: 'Formal and technical.' }, { id: 'brainrot', name: 'Brainrot', desc: 'Chaotic Gen Z slang.' }, { id: 'roast-master', name: 'Roast Master', desc: 'Sarcastic and witty.' }, { id: 'formal', name: 'Business Formal', desc: 'Strictly professional.' }, { id: 'zesty', name: 'Zesty', desc: 'Flamboyant and sassy.' }].map((mode) => (
@@ -916,7 +932,7 @@ const ChatView: React.FC = () => {
 
             <div data-liquid-glass className={`fixed inset-y-0 left-0 z-40 w-72 liquid-glass border-l-0 border-t-0 border-b-0 rounded-none rounded-r-2xl transform transition-transform duration-300 ease-in-out ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
                 <div className="flex flex-col h-full p-4 space-y-4">
-                    <div className="flex justify-between items-center"><div className="font-bold tracking-wide text-white flex items-center gap-2"><img src="/quillix-logo.png" alt="Quillix Logo" className="w-6 h-6 animate-spin-slow" />Quillix</div><button onClick={() => setIsSidebarOpen(false)} className="text-zinc-400 hover:text-white p-1 rounded-full hover:bg-white/10"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m15 18-6-6 6-6"/></svg></button></div>
+                    <div className="flex justify-between items-center"><div className="font-bold tracking-wide text-white flex items-center gap-2"><img src="/quillix-logo.png" alt="Quillix Logo" className="w-6 h-6 animate-spin-slow no-invert" />Quillix</div><button onClick={() => setIsSidebarOpen(false)} className="text-zinc-400 hover:text-white p-1 rounded-full hover:bg-white/10"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m15 18-6-6 6-6"/></svg></button></div>
                     <button onClick={() => { resetChat(); setIsSidebarOpen(false); }} className="w-full flex items-center justify-center gap-2 px-3 py-2.5 bg-white hover:bg-zinc-200 text-black rounded-full transition-colors duration-300 text-sm font-semibold interactive-lift"><svg width="16" height="16" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5" fill="none"><path d="M12 5v14"/><path d="M5 12h14"/></svg>New Chat</button>
                     
                     <div className="flex-1 overflow-y-auto space-y-1 p-2 scrollbar-hide">

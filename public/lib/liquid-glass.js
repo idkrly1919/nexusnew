@@ -1,7 +1,11 @@
-document.addEventListener('DOMContentLoaded', () => {
-    const liquidGlassElements = document.querySelectorAll('[data-liquid-glass]');
+const initLiquidGlass = (scope = document) => {
+    // Only select elements that haven't been initialized yet
+    const liquidGlassElements = scope.querySelectorAll('[data-liquid-glass]:not([data-lg-initialized])');
 
     liquidGlassElements.forEach(el => {
+        // Mark as initialized so we don't process it twice
+        el.setAttribute('data-lg-initialized', 'true');
+
         const options = {
             speed: parseFloat(el.dataset.liquidGlassOptionsSpeed) || 1.5,
             shine: el.dataset.liquidGlassOptionsShine !== 'false',
@@ -10,7 +14,7 @@ document.addEventListener('DOMContentLoaded', () => {
         };
 
         el.style.position = 'relative';
-        el.style.overflow = 'hidden';
+        // el.style.overflow = 'hidden'; // Removed to allow popups/tooltips to overflow if needed
         el.style.zIndex = '1';
         el.style.transition = `transform ${options.speed * 0.5}s ease, box-shadow ${options.speed * 0.5}s ease`;
 
@@ -34,6 +38,7 @@ document.addEventListener('DOMContentLoaded', () => {
             shine.style.transition = `opacity ${options.speed * 0.5}s ease`;
             shine.style.pointerEvents = 'none';
             shine.style.zIndex = '2';
+            shine.style.borderRadius = 'inherit'; // Match parent border radius
             el.appendChild(shine);
         }
 
@@ -65,5 +70,28 @@ document.addEventListener('DOMContentLoaded', () => {
                 shine.style.opacity = '0';
             }
         });
+    });
+};
+
+// Run on load
+document.addEventListener('DOMContentLoaded', () => {
+    initLiquidGlass();
+
+    // Watch for changes in the DOM to initialize new elements automatically
+    const observer = new MutationObserver((mutations) => {
+        let shouldInit = false;
+        mutations.forEach((mutation) => {
+            if (mutation.addedNodes.length > 0) {
+                shouldInit = true;
+            }
+        });
+        if (shouldInit) {
+            initLiquidGlass();
+        }
+    });
+
+    observer.observe(document.body, {
+        childList: true,
+        subtree: true
     });
 });
