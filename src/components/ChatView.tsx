@@ -12,6 +12,8 @@ import VoiceInputView from './VoiceInputView';
 import FileGenerator from './FileGenerator';
 import FileIcon from './FileIcon';
 import PersonaManager from './PersonaManager';
+import StockWidget from './StockWidget';
+import WeatherWidget from './WeatherWidget';
 
 const NexusIconSmall = () => (
     <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center border border-white/10 shadow-lg">
@@ -623,6 +625,43 @@ const ChatView: React.FC = () => {
     
     const renderMessageContent = (text: string) => {
         if (!text) return null;
+
+        // Widget Logic
+        const widgetRegex = /```widget\n([\s\S]*?)\n```/;
+        const widgetMatch = text.match(widgetRegex);
+        
+        if (widgetMatch) {
+            const widgetContent = widgetMatch[1];
+            const lines = widgetContent.split('\n');
+            const typeLine = lines.find(l => l.startsWith('type:'));
+            
+            // Remove the widget block from the text to display clean text before/after
+            const parts = text.split(widgetMatch[0]);
+            const beforeText = parts[0].trim();
+            const afterText = parts[1]?.trim() || '';
+
+            let widgetComponent = null;
+
+            if (typeLine?.includes('stock')) {
+                const symbolLine = lines.find(l => l.startsWith('symbol:'));
+                const symbol = symbolLine?.split(':')[1]?.trim();
+                if (symbol) {
+                    widgetComponent = <StockWidget key="stock" symbol={symbol} />;
+                }
+            } else if (typeLine?.includes('weather')) {
+                const locationLine = lines.find(l => l.startsWith('location:'));
+                const location = locationLine?.split(':')[1]?.trim() || 'Current Location';
+                widgetComponent = <WeatherWidget key="weather" locationQuery={location} />;
+            }
+
+            return (
+                <div className="w-full">
+                    {beforeText && <div dangerouslySetInnerHTML={{ __html: beforeText.replace(/\n/g, '<br/>') }} />}
+                    {widgetComponent}
+                    {afterText && <div className="mt-2" dangerouslySetInnerHTML={{ __html: afterText.replace(/\n/g, '<br/>') }} />}
+                </div>
+            );
+        }
     
         const fileBlockRegex = /```(pdf|txt|html)\nfilename:\s*(.*?)\n---\n([\s\S]*)/;
         const match = text.match(fileBlockRegex);

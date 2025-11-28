@@ -16,6 +16,7 @@
     "@types/jszip": "^3.4.0",
     "@types/react-router-dom": "^5.3.3",
     "@types/react-syntax-highlighter": "^15.5.13",
+    "date-fns": "^4.1.0",
     "jspdf": "^3.0.4",
     "jszip": "^3.10.1",
     "openai": "^4.28.0",
@@ -23,7 +24,8 @@
     "react-dom": "^18.2.0",
     "react-dropzone": "^14.3.8",
     "react-router-dom": "^7.9.6",
-    "react-syntax-highlighter": "^16.1.0"
+    "react-syntax-highlighter": "^16.1.0",
+    "recharts": "^3.5.1"
   },
   "devDependencies": {
     "@types/react": "^18.2.15",
