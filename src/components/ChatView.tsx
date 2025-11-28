@@ -1090,7 +1090,9 @@ const ChatView: React.FC = () => {
                                 <div key={msg.id} className={`flex items-start gap-4 animate-pop-in ${msg.role === 'user' ? 'justify-end' : ''}`}>
                                     {msg.role === 'assistant' && <div className="shrink-0 mt-1"><NexusIconSmall /></div>}
                                     <div data-liquid-glass className={`max-w-[85%] leading-relaxed ${msg.role === 'user' ? 'light-liquid-glass text-white px-5 py-3 rounded-3xl rounded-br-lg' : 'dark-liquid-glass px-5 py-3 rounded-3xl rounded-bl-lg'}`}>
-                                        <div className="font-medium text-sm text-zinc-400 mb-2">{activePersona?.name || 'Quillix'}</div>
+                                        <div className="font-medium text-sm text-zinc-400 mb-2">
+                                            {msg.role === 'assistant' ? (activePersona?.name || 'Quillix') : 'You'}
+                                        </div>
                                         <div className={`${msg.role === 'assistant' ? 'text-zinc-100 prose prose-invert prose-sm max-w-none' : ''}`}>
                                             {renderMessageContent(msg.text)}
                                         </div>
