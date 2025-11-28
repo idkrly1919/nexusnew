@@ -12,59 +12,59 @@ import VoiceInputView from './VoiceInputView';
 import FileGenerator from './FileGenerator';
 import FileIcon from './FileIcon';
 import PersonaManager from './PersonaManager';
-import WeatherWidget from './widgets/WeatherWidget';
-import StockWidget from './widgets/StockWidget';
-import Whiteboard from './widgets/Whiteboard';
-import { motion, AnimatePresence } from 'framer-motion';
+
+const NexusIconSmall = () => (
+    <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center border border-white/10 shadow-lg">
+        <img src="/quillix-logo.png" alt="Quillix Logo" className="w-5 h-5" />
+    </div>
+);
+
+const OrbLogo = () => (
+    <div className="relative w-24 h-24 flex items-center justify-center mb-8">
+        <div className="absolute inset-0 rounded-full bg-indigo-500 blur-2xl opacity-30"></div>
+        <img src="/quillix-logo.png" alt="Quillix Logo" className="w-20 h-20 animate-spin-slow" />
+    </div>
+);
 
 const ChatView: React.FC = () => {
     const { session, profile, refreshProfile } = useSession();
     const { conversationId: paramConversationId } = useParams<{ conversationId?: string }>();
     const navigate = useNavigate();
 
-    // State
     const [messages, setMessages] = useState<Message[]>([]);
     const [chatHistory, setChatHistory] = useState<ChatHistory>([]);
     const [inputValue, setInputValue] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [thinkingMode, setThinkingMode] = useState<'reasoning' | 'image'>('reasoning');
     
-    // UI State
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const [showSettings, setShowSettings] = useState(false);
     const [showPersonaManager, setShowPersonaManager] = useState(false);
-    const [showWhiteboard, setShowWhiteboard] = useState(false);
-    
-    // Preferences
     const [personality, setPersonality] = useState<PersonalityMode>('conversational');
     const [imageModelPref, setImageModelPref] = useState(profile?.image_model_preference || 'img4');
     
-    // Files & Attachments
     const [attachedFiles, setAttachedFiles] = useState<{id: string, name: string, content: string, type: string}[]>([]);
     const [isDragging, setIsDragging] = useState(false);
 
-    // Data
     const [conversations, setConversations] = useState<Conversation[]>([]);
     const [personas, setPersonas] = useState<Persona[]>([]);
     const [isDataLoading, setIsDataLoading] = useState(true);
     const [currentConversationId, setCurrentConversationId] = useState<string | null>(null);
     const [activePersona, setActivePersona] = useState<Persona | null>(null);
     const [expandedPersonas, setExpandedPersonas] = useState<Record<string, boolean>>({});
-    
-    // Modes
+    const [backgroundStatus, setBackgroundStatus] = useState<'idle' | 'loading-text' | 'loading-image'>('idle');
+
     const [isVoiceMode, setIsVoiceMode] = useState(false);
     const [embeddedUrl, setEmbeddedUrl] = useState<string | null>(null);
     
     const [personalizationEntries, setPersonalizationEntries] = useState<{id: string, entry: string}[]>([]);
+    const [showMemoryToast, setShowMemoryToast] = useState(false);
 
-    // Refs
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const textareaRef = useRef<HTMLTextAreaElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const avatarFileRef = useRef<HTMLInputElement>(null);
     const abortControllerRef = useRef<AbortController | null>(null);
-
-    // --- Effects & Data Fetching ---
 
     const fetchData = async () => {
         if (!session) {
@@ -72,31 +72,136 @@ const ChatView: React.FC = () => {
             return;
         }
         setIsDataLoading(true);
-        const { data: convos } = await supabase.from('conversations').select('*').order('updated_at', { ascending: false });
-        if (convos) setConversations(convos as Conversation[]);
+        const { data: convos, error: convoError } = await supabase.from('conversations').select('*').order('updated_at', { ascending: false });
+        if (convoError) console.error('Error fetching conversations:', convoError);
+        else setConversations(convoError ? [] : (convos as Conversation[]));
 
-        const { data: personasData } = await supabase.from('personas').select('*').order('created_at', { ascending: false });
-        if (personasData) setPersonas(personasData as Persona[]);
+        const { data: personasData, error: personaError } = await supabase.from('personas').select('*').order('created_at', { ascending: false });
+        if (personaError) console.error('Error fetching personas:', personaError);
+        else setPersonas(personaError ? [] : (personasData as Persona[]));
         
         setIsDataLoading(false);
     };
 
-    useEffect(() => { fetchData(); }, [session]);
+    useEffect(() => {
+        fetchData();
+    }, [session]);
 
     useEffect(() => {
         setCurrentConversationId(paramConversationId || null);
-        if (!paramConversationId) setActivePersona(null);
+        if (!paramConversationId) {
+            setActivePersona(null);
+        }
     }, [paramConversationId]);
 
     useEffect(() => {
-        if (profile?.image_model_preference) setImageModelPref(profile.image_model_preference);
+        if (profile?.image_model_preference) {
+            setImageModelPref(profile.image_model_preference);
+        }
     }, [profile]);
 
-    useEffect(() => {
-        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-    }, [messages, isLoading]);
+    const handleImageModelChange = async (model: string) => {
+        setImageModelPref(model);
+        if (session) {
+            const { error } = await supabase
+                .from('profiles')
+                .update({ image_model_preference: model })
+                .eq('id', session.user.id);
+            if (error) console.error("Error updating image model preference:", error);
+        }
+    };
 
-    // Load Conversation Messages
+    useEffect(() => {
+        if (isLoading) {
+            setBackgroundStatus(thinkingMode === 'image' ? 'loading-image' : 'loading-text');
+        } else {
+            setBackgroundStatus('idle');
+        }
+    }, [isLoading, thinkingMode]);
+
+    const scrollToBottom = () => {
+        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    };
+
+    useEffect(scrollToBottom, [messages, isLoading]);
+
+    useEffect(() => {
+        const handleChatViewClick = async (e: MouseEvent) => {
+            const target = e.target as HTMLElement;
+            const downloadButton = target.closest('.download-image-btn');
+            const betterImageButton = target.closest('.better-image-btn');
+
+            if (downloadButton) {
+                e.preventDefault();
+                const imageUrl = downloadButton.getAttribute('href');
+                if (imageUrl) {
+                    let blobUrl: string | null = null;
+                    try {
+                        const { data, error } = await supabase.functions.invoke('proxy-download', {
+                            body: { url: imageUrl },
+                            // @ts-ignore
+                            responseType: 'blob'
+                        });
+
+                        if (error) throw error;
+                        if (!(data instanceof Blob)) throw new Error('Invalid response');
+
+                        blobUrl = window.URL.createObjectURL(data);
+                        const a = document.createElement('a');
+                        a.style.display = 'none';
+                        a.href = blobUrl;
+                        
+                        const filename = 'quillix-generated-image.png';
+                        a.download = filename;
+                        
+                        document.body.appendChild(a);
+                        a.click();
+                        a.remove();
+                    } catch (error) {
+                        console.error('Proxy download failed, falling back to direct:', error);
+                        window.open(imageUrl, '_blank');
+                    } finally {
+                        if (blobUrl) window.URL.revokeObjectURL(blobUrl);
+                    }
+                }
+            }
+
+            if (betterImageButton) {
+                e.preventDefault();
+                const prompt = betterImageButton.getAttribute('data-prompt');
+                if (prompt) {
+                    navigator.clipboard.writeText(prompt);
+
+                    const originalText = betterImageButton.innerHTML;
+                    betterImageButton.innerHTML = "We've copied the prompt to your clipboard!";
+                    (betterImageButton as HTMLButtonElement).disabled = true;
+
+                    setTimeout(() => {
+                        betterImageButton.innerHTML = "Redirecting in 3...";
+                    }, 1500);
+                    setTimeout(() => {
+                        betterImageButton.innerHTML = "Redirecting in 2...";
+                    }, 2500);
+                    setTimeout(() => {
+                        betterImageButton.innerHTML = "Redirecting in 1...";
+                    }, 3500);
+
+                    setTimeout(() => {
+                        window.open('https://lmarena.ai/?mode=direct&chat-modality=image', '_blank');
+                        betterImageButton.innerHTML = originalText;
+                        (betterImageButton as HTMLButtonElement).disabled = false;
+                    }, 4500);
+                }
+            }
+        };
+
+        const chatView = document.getElementById('chat-view');
+        chatView?.addEventListener('click', handleChatViewClick);
+        return () => {
+            chatView?.removeEventListener('click', handleChatViewClick);
+        };
+    }, []);
+
     useEffect(() => {
         if (!currentConversationId || !session) {
             setMessages([]);
@@ -104,8 +209,10 @@ const ChatView: React.FC = () => {
             return;
         }
         const fetchMessages = async () => {
-            const { data } = await supabase.from('messages').select('*').eq('conversation_id', currentConversationId).order('created_at', { ascending: true });
-            if (data) {
+            const { data, error } = await supabase.from('messages').select('*').eq('conversation_id', currentConversationId).order('created_at', { ascending: true });
+            if (error) {
+                console.error('Error fetching messages:', error);
+            } else {
                 const currentConvo = conversations.find(c => c.id === currentConversationId);
                 if (currentConvo?.persona_id) {
                     const persona = personas.find(p => p.id === currentConvo.persona_id);
@@ -113,354 +220,885 @@ const ChatView: React.FC = () => {
                 } else {
                     setActivePersona(null);
                 }
-                setMessages(data.map((msg: any) => ({ id: msg.id, role: msg.role as Role, text: msg.content })));
-                setChatHistory(data.map((msg: any) => ({ role: msg.role, content: msg.content })));
+                const loadedMessages: Message[] = data.map((msg: { id: string; role: string; content: string; }) => ({ id: msg.id, role: msg.role as Role, text: msg.content }));
+                setMessages(loadedMessages);
+                const history: ChatHistory = data.map((msg: { role: 'user' | 'assistant'; content: string; }) => ({ role: msg.role as 'user' | 'assistant', content: msg.content }));
+                setChatHistory(history);
             }
         };
         fetchMessages();
     }, [currentConversationId, session, conversations, personas]);
 
+    const processFiles = (files: FileList) => {
+        if (!files) return;
+        const newFiles = Array.from(files).slice(0, 10 - attachedFiles.length);
 
-    // --- Handlers ---
+        newFiles.forEach((file, index) => {
+            const reader = new FileReader();
+            const fileId = `${Date.now()}-${index}`;
+
+            reader.onload = (event) => {
+                const content = event.target?.result as string;
+                if (content) {
+                    setAttachedFiles(prev => [...prev, { id: fileId, name: file.name, content, type: file.type }]);
+                }
+            };
+
+            if (file.type.startsWith('image/')) {
+                reader.readAsDataURL(file);
+            } else {
+                reader.readAsText(file);
+            }
+        });
+    };
+
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files) {
+            processFiles(e.target.files);
+        }
+    };
+
+    useEffect(() => {
+        const chatViewElement = document.getElementById('chat-view');
+        if (!chatViewElement) return;
+    
+        const handleDragOver = (e: DragEvent) => {
+            e.preventDefault();
+            e.stopPropagation();
+            setIsDragging(true);
+        };
+    
+        const handleDragLeave = (e: DragEvent) => {
+            e.preventDefault();
+            e.stopPropagation();
+            setIsDragging(false);
+        };
+    
+        const handleDrop = (e: DragEvent) => {
+            e.preventDefault();
+            e.stopPropagation();
+            setIsDragging(false);
+            if (e.dataTransfer?.files) {
+                processFiles(e.dataTransfer.files);
+                e.dataTransfer.clearData();
+            }
+        };
+    
+        const handlePaste = (e: ClipboardEvent) => {
+            if (e.clipboardData?.files) {
+                e.preventDefault();
+                processFiles(e.clipboardData.files);
+            }
+        };
+    
+        chatViewElement.addEventListener('dragover', handleDragOver);
+        chatViewElement.addEventListener('dragleave', handleDragLeave);
+        chatViewElement.addEventListener('drop', handleDrop);
+        document.addEventListener('paste', handlePaste);
+    
+        return () => {
+            chatViewElement.removeEventListener('dragover', handleDragOver);
+            chatViewElement.removeEventListener('dragleave', handleDragLeave);
+            chatViewElement.removeEventListener('drop', handleDrop);
+            document.removeEventListener('paste', handlePaste);
+        };
+    }, [attachedFiles]);
+
+    const triggerFileSelect = () => fileInputRef.current?.click();
+    const removeFile = (fileId: string) => {
+        setAttachedFiles(prev => prev.filter(f => f.id !== fileId));
+    };
+    
+    const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
+    useEffect(() => {
+        const synth = window.speechSynthesis;
+        if (synth) {
+            const loadVoices = () => setVoices(synth.getVoices());
+            synth.onvoiceschanged = loadVoices;
+            loadVoices();
+            return () => { synth.onvoiceschanged = null; };
+        }
+    }, []);
+    const handleTTS = (text: string) => {
+        if ('speechSynthesis' in window) {
+            window.speechSynthesis.cancel();
+            const utterance = new SpeechSynthesisUtterance(text);
+            const preferredVoiceNames = ['Daniel', 'Microsoft David - English (United States)', 'Google UK English Male', 'Alex'];
+            let selectedVoice = null;
+            for (const name of preferredVoiceNames) { selectedVoice = voices.find(v => v.name === name); if (selectedVoice) break; }
+            if (!selectedVoice) { selectedVoice = voices.find(v => v.lang === 'en-US' && v.name.toLowerCase().includes('male')); }
+            if (!selectedVoice) { selectedVoice = voices.find(v => v.lang === 'en-US'); }
+            if (selectedVoice) { utterance.voice = selectedVoice; }
+            utterance.rate = 1.0;
+            utterance.pitch = 1.0;
+            window.speechSynthesis.speak(utterance);
+        }
+    };
+    const handleStop = () => {
+        if (abortControllerRef.current) {
+            abortControllerRef.current.abort();
+            abortControllerRef.current = null;
+        }
+        setIsLoading(false);
+    };
+
+    const generateTitleOnClient = async (userMessage: string, conversationId: string) => {
+        // @ts-ignore
+        const apiKey = process.env.API_KEY;
+        if (!apiKey) {
+            console.error("API Key for title generation is missing.");
+            return;
+        }
+        const textClient = new OpenAI({
+            baseURL: "https://openrouter.ai/api/v1",
+            apiKey: apiKey,
+            dangerouslyAllowBrowser: true
+        });
+    
+        const systemPrompt = "You are a title generation expert. Based on the user's first message, create a concise and relevant title for the conversation. The title must be 4 words or less. Respond ONLY with the generated title, nothing else.";
+    
+        try {
+            const response = await textClient.chat.completions.create({
+                model: 'mistralai/mistral-7b-instruct-v0.2',
+                messages: [
+                    { role: 'system', content: systemPrompt },
+                    { role: 'user', content: userMessage }
+                ],
+                max_tokens: 20,
+                temperature: 0.5,
+            });
+    
+            let title = response.choices[0].message.content?.trim() || "New Chat";
+            // Clean up potential model prefixes like "Title:" or "Title Suggestion:"
+            title = title.replace(/^(title suggestion:|title:)\s*/i, '').replace(/["']/g, "");
+            if (!title) {
+                title = "New Chat"; // Fallback if cleaning results in an empty string
+            }
+            
+            await supabase
+                .from('conversations')
+                .update({ title: title })
+                .eq('id', conversationId);
+            
+            setConversations(prev =>
+                prev.map(c => (c.id === conversationId ? { ...c, title: title } : c))
+            );
+    
+        } catch (error) {
+            console.error("Failed to generate title on client:", error);
+            // Revert to a default title on failure
+            await supabase
+                .from('conversations')
+                .update({ title: "New Chat" })
+                .eq('id', conversationId);
+            setConversations(prev =>
+                prev.map(c => (c.id === conversationId ? { ...c, title: "New Chat" } : c))
+            );
+        }
+    };
+
+    const handleAutoSavePersonalization = async (fact: string) => {
+        if (!session) return;
+        const { data, error } = await supabase
+            .from('user_personalization')
+            .insert({ user_id: session.user.id, entry: fact })
+            .select()
+            .single();
+        if (error) {
+            console.error("Error auto-saving personalization", error);
+        } else if (data) {
+            setPersonalizationEntries(prev => [...prev, { id: data.id, entry: data.entry }]);
+            setShowMemoryToast(true);
+            setTimeout(() => setShowMemoryToast(false), 5000);
+        }
+    };
 
     const processSubmission = async (userText: string) => {
         if (isLoading || (!userText.trim() && attachedFiles.length === 0)) return;
 
-        // Special Command: Weather
-        if (userText.toLowerCase().includes('weather')) {
-             const userMsg: Message = { id: `user-${Date.now()}`, role: 'user', text: userText };
-             const aiMsg: Message = { id: `ai-${Date.now()}`, role: 'assistant', text: '<WIDGET_WEATHER />' };
-             setMessages(prev => [...prev, userMsg, aiMsg]);
-             setInputValue('');
-             return;
+        // --- Context Management ---
+        let currentChatHistory = [...chatHistory];
+        const historyText = currentChatHistory.map(m => m.content).join('\n');
+        const CONTEXT_THRESHOLD = 1900000;
+        const SUMMARIZE_THRESHOLD = 900000;
+
+        if (historyText.length > CONTEXT_THRESHOLD) {
+            setIsLoading(true);
+            const summaryMessageId = `sys-summary-${Date.now()}`;
+            setMessages(prev => [...prev, { id: summaryMessageId, role: 'system', text: 'Compressing conversation history to save space...' }]);
+            
+            let charCount = 0;
+            let splitIndex = 0;
+            for (let i = 0; i < currentChatHistory.length; i++) {
+                charCount += currentChatHistory[i].content.length;
+                if (charCount > SUMMARIZE_THRESHOLD) {
+                    splitIndex = i;
+                    break;
+                }
+            }
+
+            if (splitIndex === 0 && currentChatHistory.length > 1) {
+                splitIndex = 1;
+            }
+
+            const toSummarize = currentChatHistory.slice(0, splitIndex);
+            const toKeep = currentChatHistory.slice(splitIndex);
+
+            try {
+                const summary = await summarizeHistory(toSummarize);
+                currentChatHistory = [
+                    { role: 'system', content: `This is a summary of the beginning of the conversation: ${summary}` },
+                    ...toKeep
+                ];
+                setChatHistory(currentChatHistory);
+                setMessages(prev => prev.map(m => m.id === summaryMessageId ? { ...m, text: 'History compressed successfully.' } : m));
+            } catch (e) {
+                setMessages(prev => prev.map(m => m.id === summaryMessageId ? { ...m, text: 'Could not compress history. Proceeding with full context.' } : m));
+            }
+        }
+        // --- End Context Management ---
+
+        const videoKeywords = ['make a video', 'generate a video', 'create a video', 'video of'];
+        const isVideoRequest = videoKeywords.some(k => userText.toLowerCase().includes(k));
+
+        if (isVideoRequest) {
+            setEmbeddedUrl('https://veoaifree.com');
+            const userMessage: Message = { id: `user-${Date.now()}`, role: 'user', text: userText };
+            const assistantMessage: Message = { id: `ai-${Date.now()}`, role: 'assistant', text: "Of course! Opening the video generation tool for you now." };
+            setMessages(prev => [...prev, userMessage, assistantMessage]);
+            setInputValue('');
+            if (textareaRef.current) textareaRef.current.style.height = '52px';
+            return;
         }
         
-        // Special Command: Stock
-        if (userText.toLowerCase().includes('stock') || userText.toLowerCase().includes('price of')) {
-             const userMsg: Message = { id: `user-${Date.now()}`, role: 'user', text: userText };
-             const symbol = userText.toUpperCase().match(/(?:NVDA|AAPL|TSLA|MSFT|GOOGL|AMZN|BTC|ETH)/)?.[0] || 'NVDA';
-             const aiMsg: Message = { id: `ai-${Date.now()}`, role: 'assistant', text: `<WIDGET_STOCK symbol="${symbol}" />` };
-             setMessages(prev => [...prev, userMsg, aiMsg]);
-             setInputValue('');
-             return;
-        }
-
+        const imageKeywords = ['draw', 'paint', 'generate image', 'create an image', 'visualize', 'edit image', 'modify image', 'make an image'];
+        const isImage = imageKeywords.some(k => userText.toLowerCase().includes(k));
+        setThinkingMode(isImage ? 'image' : 'reasoning');
         setIsLoading(true);
         setInputValue('');
-        if (textareaRef.current) textareaRef.current.style.height = '52px';
 
-        // Prepare User Message
+        if (textareaRef.current) textareaRef.current.style.height = '52px';
+        
         let userDisplay = userText;
         if (attachedFiles.length > 0) {
-            userDisplay += `\n[Attached ${attachedFiles.length} file(s)]`;
+            const filePreviews = attachedFiles.map(file => {
+                const isImg = file.type.startsWith('image/');
+                return isImg ? `<img src="${file.content}" class="w-8 h-8 rounded object-cover border border-white/20" />` : `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>`;
+            }).join('');
+            userDisplay = `${userText} <br/><div class="flex items-center gap-2 mt-2">${filePreviews}</div>`;
         }
+
         const userMessage: Message = { id: `user-${Date.now()}`, role: 'user', text: userDisplay };
         setMessages(prev => [...prev, userMessage]);
-
-        // Conversation Logic
+        
         let conversationId = currentConversationId;
+        let isNewConversation = false;
+
         if (session && !conversationId) {
-            const { data: newConvo } = await supabase.from('conversations').insert({ 
-                user_id: session.user.id, 
-                title: "New Conversation",
-                persona_id: activePersona?.id || null,
-            }).select().single();
-            if (newConvo) {
-                conversationId = newConvo.id;
-                setConversations(prev => [newConvo as Conversation, ...prev]);
-                navigate(`/chat/${conversationId}`, { replace: true });
+            isNewConversation = true;
+            const { data: newConversation, error: createError } = await supabase
+                .from('conversations')
+                .insert({ 
+                    user_id: session.user.id, 
+                    title: "Generating title...",
+                    persona_id: activePersona?.id || null,
+                })
+                .select()
+                .single();
+
+            if (createError) {
+                console.error("Error creating conversation", createError);
+                setIsLoading(false);
+                return;
+            }
+            
+            conversationId = newConversation.id;
+            setConversations(prev => [newConversation as Conversation, ...prev]);
+            navigate(`/chat/${conversationId}`, { replace: true });
+        }
+
+        const userContentForDb = attachedFiles.length > 0 ? `[User attached ${attachedFiles.length} file(s): ${attachedFiles.map(f => f.name).join(', ')}]\n${userText}` : userText;
+        if (session && conversationId) {
+            await supabase.from('messages').insert({ conversation_id: conversationId, user_id: session.user.id, role: 'user', content: userContentForDb });
+        }
+        
+        const filesToProcess = [...attachedFiles];
+        setAttachedFiles([]);
+        const controller = new AbortController();
+        abortControllerRef.current = controller;
+        
+        let personalizationData: string[] = [];
+        if (session) {
+            const { data, error } = await supabase.from('user_personalization').select('entry').eq('user_id', session.user.id);
+            if (!error && data) {
+                personalizationData = data.map(item => item.entry);
             }
         }
 
-        if (session && conversationId) {
-            await supabase.from('messages').insert({ conversation_id: conversationId, user_id: session.user.id, role: 'user', content: userText });
-        }
-
-        // Streaming
-        const controller = new AbortController();
-        abortControllerRef.current = controller;
-        const filesToProcess = [...attachedFiles];
-        setAttachedFiles([]);
-
         try {
-            const stream = streamGemini(userText, chatHistory, true, personality, imageModelPref, filesToProcess, controller.signal, profile?.first_name, [], activePersona?.instructions || null);
-            let aiMsgId = `ai-${Date.now()}`;
-            let hasStarted = false;
-            let accText = "";
-
+            const stream = streamGemini(userText, currentChatHistory, true, personality, imageModelPref, filesToProcess, controller.signal, profile?.first_name, personalizationData, activePersona?.instructions || null);
+            let assistantMessageExists = false;
+            let accumulatedText = "";
+            const aiMsgId = `ai-${Date.now()}`;
             for await (const update of stream) {
-                if (update.mode) setThinkingMode(update.mode);
-                if (!hasStarted) {
-                    setMessages(prev => [...prev, { id: aiMsgId, role: 'assistant', text: '' }]);
-                    hasStarted = true;
-                }
+                if (update.mode) { setThinkingMode(update.mode); }
+                if (!assistantMessageExists) { setMessages(prev => [...prev, { id: aiMsgId, role: 'assistant', text: '' }]); assistantMessageExists = true; }
                 if (update.text) {
-                    accText = update.text;
-                    setMessages(prev => prev.map(m => m.id === aiMsgId ? { ...m, text: accText } : m));
+                    accumulatedText = update.text;
+                    setMessages(prev => prev.map(msg => msg.id === aiMsgId ? { ...msg, text: accumulatedText } : msg));
                 }
                 if (update.isComplete) {
-                     if (session && conversationId) {
-                        await supabase.from('messages').insert({ conversation_id: conversationId, user_id: session.user.id, role: 'assistant', content: accText });
+                    const saveRegex = /<SAVE_PERSONALIZATION>(.*?)<\/SAVE_PERSONALIZATION>/s;
+                    const match = accumulatedText.match(saveRegex);
+                    let cleanedText = accumulatedText;
+
+                    if (match && match[1]) {
+                        const factToSave = match[1].trim();
+                        handleAutoSavePersonalization(factToSave);
+                        cleanedText = accumulatedText.replace(saveRegex, '').trim();
+                        setMessages(prev => prev.map(msg => msg.id === aiMsgId ? { ...msg, text: cleanedText } : msg));
+                    }
+
+                    if (session && conversationId) {
+                        await supabase.from('messages').insert({ conversation_id: conversationId, user_id: session.user.id, role: 'assistant', content: cleanedText });
+                    }
+                    if (update.newHistoryEntry) { 
+                        const newEntry = { ...update.newHistoryEntry, content: cleanedText };
+                        setChatHistory(prev => [...prev, { role: 'user', content: userContentForDb }, newEntry]); 
+                    }
+                    
+                    if (isNewConversation && conversationId) {
+                        generateTitleOnClient(userText, conversationId);
                     }
                 }
             }
-        } catch (error: any) {
-            if (error.name !== 'AbortError') {
-                setMessages(prev => [...prev, { id: `err-${Date.now()}`, role: 'assistant', text: `Error: ${error.message}` }]);
+        } catch (err: any) {
+            if (err.name === 'AbortError') {
+                console.log("Stream stopped by user.");
+                setMessages(prev => {
+                    const newMessages = [...prev];
+                    const lastMsg = newMessages[newMessages.length - 1];
+                    if (lastMsg && lastMsg.role === 'assistant' && lastMsg.text) { lastMsg.text += "\n\n*(Response stopped by user.)*"; }
+                    return newMessages;
+                });
+            } else {
+                console.error("Streaming error", err);
+                setMessages(prev => [...prev, { id: `error-${Date.now()}`, role: 'assistant', text: `**System Error:** ${err.message || "An unexpected error occurred."}` }]);
             }
         } finally {
             setIsLoading(false);
             abortControllerRef.current = null;
         }
     };
-
-    // --- Render Helpers ---
-
-    const renderMessageContent = (text: string) => {
-        if (text.includes('<WIDGET_WEATHER />')) return <WeatherWidget />;
-        if (text.includes('<WIDGET_STOCK')) {
-            const match = text.match(/symbol="([^"]+)"/);
-            return <StockWidget symbol={match ? match[1] : undefined} />;
+    const handleChatSubmit = (e: FormEvent) => { e.preventDefault(); processSubmission(inputValue.trim()); };
+    useEffect(() => {
+        if (textareaRef.current) {
+            textareaRef.current.style.height = 'auto';
+            const scrollHeight = textareaRef.current.scrollHeight;
+            textareaRef.current.style.height = `${Math.min(scrollHeight, 200)}px`;
         }
-        
-        // Simple file block parser
-        const parts = text.split(/(```[\s\S]*?```)/g);
-        return parts.map((part, i) => {
-            if (part.startsWith('```')) {
-                const match = part.match(/```(\w+)\n([\s\S]*?)```/);
-                if (match) {
-                     // Check if it's our file generation format
-                     const content = match[2];
-                     const fileMatch = content.match(/filename:\s*(.*?)\n---\n([\s\S]*)/);
-                     if (fileMatch) {
-                         return <FileGenerator key={i} fileType={match[1]} filename={fileMatch[1]} content={fileMatch[2]} />;
-                     }
-                     return <pre key={i} className="bg-black/40 p-4 rounded-xl overflow-x-auto text-sm font-mono my-4 border border-white/5"><code className="text-zinc-300">{match[2]}</code></pre>;
-                }
-            }
-            // Image handling
-            if (part.match(/!\[.*?\]\(.*?\)/)) {
-                 const imgMatch = part.match(/!\[(.*?)\]\((.*?)\)/);
-                 if (imgMatch) {
-                     return (
-                         <div key={i} className="my-4 rounded-2xl overflow-hidden border border-white/10 shadow-2xl relative group">
-                             <img src={imgMatch[2]} alt={imgMatch[1]} className="w-full h-auto" />
-                             <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-4">
-                                 <a href={imgMatch[2]} download className="p-3 bg-white text-black rounded-full hover:scale-110 transition-transform">
-                                     <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-                                 </a>
-                             </div>
-                         </div>
-                     );
-                 }
-            }
-            return <div key={i} className="whitespace-pre-wrap leading-relaxed text-zinc-300" dangerouslySetInnerHTML={{ __html: part.replace(/\*\*(.*?)\*\*/g, '<strong class="text-white">$1</strong>').replace(/\n/g, '<br/>') }} />;
-        });
+    }, [inputValue]);
+    
+    const startNewPersonaChat = (persona: Persona) => {
+        setActivePersona(persona);
+        navigate('/chat');
+        setIsSidebarOpen(false);
     };
 
-    // --- Components ---
+    const resetChat = () => { 
+        setActivePersona(null);
+        navigate('/chat');
+    };
+
+    const handleDeleteConversation = async (conversationId: string) => {
+        if (window.confirm('Are you sure you want to delete this chat?')) {
+            await supabase.from('messages').delete().eq('conversation_id', conversationId);
+            await supabase.from('conversations').delete().eq('id', conversationId);
+            setConversations(prev => prev.filter(c => c.id !== conversationId));
+            if (currentConversationId === conversationId) { 
+                resetChat();
+            }
+        }
+    };
+    
+    const renderMessageContent = (text: string) => {
+        if (!text) return null;
+    
+        const fileBlockRegex = /```(pdf|txt|html)\nfilename:\s*(.*?)\n---\n([\s\S]*)/;
+        const match = text.match(fileBlockRegex);
+    
+        const simpleParse = (str: string) => {
+            let parsed = str.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, (_, alt, url) => {
+                const downloadIcon = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>`;
+                const fullscreenIcon = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg>`;
+                return `<div class="mt-3 mb-3 block w-full">
+                    <div class="relative group">
+                        <img src="${url}" alt="${alt}" class="rounded-xl shadow-lg border border-white/10 w-full h-auto object-cover" />
+                        <div class="absolute top-3 right-3 flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-all duration-300">
+                            <a href="${url}" target="_blank" title="View Fullscreen" class="bg-black/60 hover:bg-black/80 backdrop-blur-md text-white w-10 h-10 flex items-center justify-center rounded-full shadow-xl border border-white/10 interactive-lift">
+                                ${fullscreenIcon}
+                            </a>
+                            <a href="${url}" title="Download Image" class="download-image-btn bg-black/60 hover:bg-black/80 backdrop-blur-md text-white w-10 h-10 flex items-center justify-center rounded-full shadow-xl border border-white/10 interactive-lift">
+                                ${downloadIcon}
+                            </a>
+                        </div>
+                    </div>
+                </div>`;
+            });
+            parsed = parsed.replace(/\*\*(.*?)\*\*/g, '<strong class="text-white font-semibold">$1</strong>').replace(/`([^`]+)`/g, '<code class="bg-black/20 px-1.5 py-0.5 rounded text-sm font-mono text-cyan-300 border border-white/10">$1</code>').replace(/\n/g, '<br />');
+            return parsed;
+        };
+    
+        if (match) {
+            const [_, fileType, filename, content] = match;
+            const startIndex = match.index!;
+            const confirmationText = text.substring(0, startIndex).trim();
+            const parts = [];
+    
+            if (confirmationText) {
+                parts.push(<div key="text-part" dangerouslySetInnerHTML={{ __html: simpleParse(confirmationText) }} />);
+            }
+    
+            if (text.trim().endsWith('```')) {
+                const finalContent = content.trim().slice(0, -3).trim();
+                parts.push(<FileGenerator key="file-part" fileType={fileType.trim()} filename={filename.trim()} content={finalContent} />);
+            } else {
+                parts.push(
+                    <div key="file-loading" className="my-2 flex items-center gap-3 p-3 rounded-lg bg-zinc-800 border border-zinc-700 animate-pulse">
+                        <FileIcon fileType={fileType} />
+                        <div className="flex-1">
+                            <div className="font-medium text-zinc-300">Generating {filename.trim() || 'file'}...</div>
+                            <div className="text-sm text-zinc-500">Receiving content...</div>
+                        </div>
+                    </div>
+                );
+            }
+            return parts;
+        }
+    
+        return <div dangerouslySetInnerHTML={{ __html: simpleParse(text) }} />;
+    };
+
+    const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (!session) return;
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        try {
+            const fileExt = file.name.split('.').pop();
+            const filePath = `${session.user.id}/${Date.now()}.${fileExt}`;
+
+            const { error: uploadError } = await supabase.storage
+                .from('avatars')
+                .upload(filePath, file);
+            if (uploadError) throw uploadError;
+
+            const { data } = supabase.storage
+                .from('avatars')
+                .getPublicUrl(filePath);
+            if (!data.publicUrl) throw new Error("Could not get public URL for avatar.");
+
+            const { error: updateError } = await supabase
+                .from('profiles')
+                .update({ avatar_url: data.publicUrl })
+                .eq('id', session.user.id);
+            if (updateError) throw updateError;
+
+            await refreshProfile();
+
+        } catch (error: any) {
+            console.error("Error uploading avatar:", error);
+            alert(`Error: ${error.message}`);
+        }
+    };
+
+    const handleDeleteAllConversations = async () => {
+        if (!session) return;
+        const isConfirmed = window.confirm("Are you sure you want to delete all conversations? This action cannot be undone.");
+        if (isConfirmed) {
+            try {
+                const { error } = await supabase.rpc('delete_all_user_data');
+                if (error) throw error;
+                setConversations([]);
+                navigate('/chat');
+            } catch (error: any) {
+                console.error("Error deleting all conversations:", error);
+                alert(`Error: ${error.message}`);
+            }
+        }
+    };
+
+    const openSettings = async () => {
+        if (session) {
+            const { data, error } = await supabase
+                .from('user_personalization')
+                .select('id, entry')
+                .eq('user_id', session.user.id)
+                .order('created_at', { ascending: true });
+            if (error) {
+                console.error("Error fetching personalization", error);
+            } else {
+                setPersonalizationEntries(data);
+            }
+        }
+        setShowSettings(true);
+    };
+
+    const handleDeletePersonalization = async (id: string) => {
+        const { error } = await supabase.from('user_personalization').delete().eq('id', id);
+        if (error) {
+            console.error("Error deleting personalization entry", error);
+        } else {
+            setPersonalizationEntries(prev => prev.filter(entry => entry.id !== id));
+        }
+    };
+
+    const groupConversations = (conversations: Conversation[]) => {
+        const groups: { [key: string]: Conversation[] } = {
+            'Today': [],
+            'Yesterday': [],
+            'This Week': [],
+            'This Month': [],
+            'Longer Ago': [],
+        };
+
+        const now = new Date();
+        const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        const yesterday = new Date(today);
+        yesterday.setDate(yesterday.getDate() - 1);
+        const startOfWeek = new Date(today);
+        startOfWeek.setDate(startOfWeek.getDate() - now.getDay());
+        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+
+        conversations.forEach(convo => {
+            const convoDate = new Date(convo.updated_at || convo.created_at);
+            if (convoDate >= today) {
+                groups['Today'].push(convo);
+            } else if (convoDate >= yesterday) {
+                groups['Yesterday'].push(convo);
+            } else if (convoDate >= startOfWeek) {
+                groups['This Week'].push(convo);
+            } else if (convoDate >= startOfMonth) {
+                groups['This Month'].push(convo);
+            } else {
+                groups['Longer Ago'].push(convo);
+            }
+        });
+
+        return groups;
+    };
+
+    const generalConversations = conversations.filter(c => !c.persona_id);
+    const groupedConversations = groupConversations(generalConversations);
 
     return (
-        <div id="chat-view" className="fixed inset-0 z-50 flex bg-[#09090b] text-zinc-100 font-sans overflow-hidden">
-            {/* Background */}
-            <div className="absolute inset-0 pointer-events-none z-0">
-                 <div className="absolute top-[-10%] right-[-10%] w-[50%] h-[50%] rounded-full bg-indigo-900/10 blur-[120px]" />
-                 <div className="absolute bottom-[-10%] left-[-10%] w-[50%] h-[50%] rounded-full bg-blue-900/10 blur-[120px]" />
-            </div>
+        <div id="chat-view" className="fixed inset-0 z-50 flex flex-col bg-transparent text-zinc-100 font-sans overflow-hidden">
+            <DynamicBackground status={backgroundStatus} />
+            
+            {showMemoryToast && (
+                <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-50">
+                    <div data-liquid-glass className="liquid-glass flex items-center gap-3 py-2 px-5 rounded-full animate-pop-in">
+                        <svg className="w-5 h-5 text-indigo-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 20h9"/><path d="M4 20h2"/><path d="M4 12h16"/><path d="M4 4h10"/><path d="M18 8h2"/><path d="M16 4v16"/></svg>
+                        <span className="text-sm font-medium text-white">Memory Updated</span>
+                    </div>
+                </div>
+            )}
 
-            {showWhiteboard && <Whiteboard onClose={() => setShowWhiteboard(false)} />}
+            {isDragging && (
+                <div className="absolute inset-0 z-[101] bg-black/70 backdrop-blur-md flex items-center justify-center border-4 border-dashed border-indigo-500 rounded-3xl m-4 pointer-events-none">
+                    <div className="text-center">
+                        <svg className="w-16 h-16 text-indigo-400 mx-auto mb-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                        <h2 className="text-2xl font-bold text-white">Drop file to attach</h2>
+                        <p className="text-zinc-400">You can attach images, text files, and more.</p>
+                    </div>
+                </div>
+            )}
+
+            {embeddedUrl && <EmbeddedView url={embeddedUrl} onClose={() => setEmbeddedUrl(null)} />}
+            
             <PersonaManager isOpen={showPersonaManager} onClose={() => setShowPersonaManager(false)} onPersonaUpdate={fetchData} />
 
-            {/* Sidebar */}
-            <motion.div 
-                initial={false}
-                animate={{ width: isSidebarOpen ? 280 : 0, opacity: isSidebarOpen ? 1 : 0 }}
-                className="h-full border-r border-white/5 bg-[#0c0c0e] flex-shrink-0 overflow-hidden relative z-20"
-            >
-                <div className="w-[280px] h-full flex flex-col">
-                    <div className="h-16 flex items-center px-4 border-b border-white/5">
-                        <div className="font-brand font-bold text-lg tracking-tight flex items-center gap-2">
-                             <div className="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center">
-                                 <img src="/quillix-logo.png" className="w-5 h-5" />
-                             </div>
-                             Quillix
+            {showSettings && (
+                <div className="fixed inset-0 z-[60] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4" onClick={() => setShowSettings(false)}>
+                    <div data-liquid-glass className="liquid-glass w-full max-w-md shadow-2xl animate-pop-in" onClick={(e) => e.stopPropagation()}>
+                        <div className="p-6 border-b border-white/10 flex justify-between items-center">
+                            <h2 className="text-xl font-bold text-white font-brand">Settings</h2>
+                            <button onClick={() => setShowSettings(false)} className="p-1.5 rounded-full text-zinc-400 hover:text-white hover:bg-white/10 transition-colors"><svg width="20" height="20" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5" fill="none"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
                         </div>
-                    </div>
-                    
-                    <div className="p-4 space-y-2">
-                        <button onClick={() => { navigate('/chat'); setCurrentConversationId(null); setMessages([]); if(window.innerWidth < 768) setIsSidebarOpen(false); }} className="w-full flex items-center gap-3 px-4 py-3 bg-white text-black rounded-xl font-medium hover:bg-zinc-200 transition-colors shadow-lg shadow-white/5">
-                            <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 5v14M5 12h14"/></svg>
-                            New Chat
-                        </button>
-                    </div>
-
-                    <div className="flex-1 overflow-y-auto px-2 py-2 space-y-4">
-                        {/* Personas Section */}
-                        <div>
-                             <div className="flex items-center justify-between px-4 mb-2">
-                                 <span className="text-xs font-semibold text-zinc-500 uppercase tracking-wider">Personas</span>
-                                 <button onClick={() => setShowPersonaManager(true)} className="text-zinc-500 hover:text-white transition-colors text-xs">+</button>
-                             </div>
-                             <div className="space-y-1">
-                                 {personas.map(p => (
-                                     <button key={p.id} onClick={() => { setActivePersona(p); navigate('/chat'); setIsSidebarOpen(false); }} className="w-full flex items-center gap-3 px-4 py-2 rounded-lg hover:bg-white/5 text-zinc-400 hover:text-white text-sm transition-colors text-left">
-                                         <div className="w-6 h-6 rounded-full bg-gradient-to-br from-indigo-500/20 to-purple-500/20 flex items-center justify-center text-xs font-bold text-indigo-400">
-                                             {p.name[0]}
-                                         </div>
-                                         {p.name}
-                                     </button>
-                                 ))}
-                             </div>
-                        </div>
-
-                        {/* Recent Chats */}
-                        <div>
-                             <div className="px-4 mb-2 text-xs font-semibold text-zinc-500 uppercase tracking-wider">Recent</div>
-                             <div className="space-y-1">
-                                 {conversations.map(c => (
-                                     <button key={c.id} onClick={() => { navigate(`/chat/${c.id}`); if(window.innerWidth < 768) setIsSidebarOpen(false); }} className={`w-full text-left px-4 py-2.5 rounded-lg text-sm transition-colors truncate ${currentConversationId === c.id ? 'bg-white/10 text-white' : 'text-zinc-400 hover:bg-white/5 hover:text-zinc-200'}`}>
-                                         {c.title}
-                                     </button>
-                                 ))}
-                             </div>
-                        </div>
-                    </div>
-                    
-                    {/* User Profile */}
-                    {session && (
-                        <div className="p-4 border-t border-white/5">
-                            <div className="flex items-center gap-3 p-2 rounded-xl hover:bg-white/5 transition-colors cursor-pointer group" onClick={() => setShowSettings(true)}>
-                                <img src={profile?.avatar_url || "https://api.dicebear.com/7.x/avataaars/svg?seed=Felix"} className="w-9 h-9 rounded-full bg-zinc-800" />
-                                <div className="flex-1 min-w-0">
-                                    <div className="text-sm font-medium text-white truncate">{profile?.first_name || 'User'}</div>
-                                    <div className="text-xs text-zinc-500">Free Plan</div>
-                                </div>
-                                <svg className="w-4 h-4 text-zinc-500 group-hover:text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-                            </div>
-                        </div>
-                    )}
-                </div>
-            </motion.div>
-
-            {/* Main Content */}
-            <div className="flex-1 flex flex-col relative z-10 h-full">
-                
-                {/* Header */}
-                <header className="h-16 flex items-center justify-between px-6 shrink-0 z-20">
-                    <div className="flex items-center gap-3">
-                        <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="p-2 rounded-xl hover:bg-white/10 text-zinc-400 hover:text-white transition-colors">
-                            <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><line x1="9" y1="3" x2="9" y2="21"/></svg>
-                        </button>
-                        <span className="font-medium text-zinc-200">{activePersona ? activePersona.name : (currentConversationId ? conversations.find(c => c.id === currentConversationId)?.title : 'New Chat')}</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                        <button onClick={() => setShowWhiteboard(true)} className="flex items-center gap-2 px-3 py-1.5 bg-white/5 hover:bg-white/10 border border-white/5 rounded-full text-xs font-medium text-zinc-300 transition-colors">
-                            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
-                            Whiteboard
-                        </button>
-                    </div>
-                </header>
-
-                {/* Chat Area */}
-                <div className="flex-1 overflow-y-auto px-4 py-6 scrollbar-hide">
-                    <div className="max-w-3xl mx-auto space-y-8">
-                        {messages.length === 0 ? (
-                            <div className="mt-20 text-center space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
-                                <div className="inline-flex items-center justify-center w-20 h-20 rounded-[2rem] bg-gradient-to-br from-indigo-500 to-purple-600 shadow-2xl shadow-indigo-500/20 mb-4">
-                                    <img src="/quillix-logo.png" className="w-10 h-10 invert brightness-0" />
-                                </div>
-                                <h1 className="text-3xl font-bold text-white tracking-tight">How can I help you create?</h1>
-                                
-                                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-2xl mx-auto">
-                                    {[
-                                        { l: 'Weather', i: '☀️', a: () => processSubmission('Check the weather') },
-                                        { l: 'Stock', i: '📈', a: () => processSubmission('Show me stock price of NVDA') },
-                                        { l: 'Image', i: '🎨', a: () => { setInputValue('Generate an image of '); textareaRef.current?.focus(); } },
-                                        { l: 'Code', i: '💻', a: () => navigate('/dev') },
-                                    ].map((action, i) => (
-                                        <button key={i} onClick={action.a} className="group p-4 rounded-3xl bg-white/5 border border-white/5 hover:bg-white/10 hover:border-white/10 transition-all text-left">
-                                            <div className="text-2xl mb-2 group-hover:scale-110 transition-transform duration-300">{action.i}</div>
-                                            <div className="text-sm font-medium text-zinc-300 group-hover:text-white">{action.l}</div>
+                        <div className="p-6 space-y-6 max-h-[70vh] overflow-y-auto scrollbar-hide">
+                            <div>
+                                <label className="block text-sm font-medium text-zinc-400 mb-3">Personality Mode</label>
+                                <div className="grid grid-cols-2 gap-2">
+                                    {[{ id: 'conversational', name: 'Conversational', desc: 'Friendly and helpful.' }, { id: 'academic', name: 'Academic', desc: 'Formal and technical.' }, { id: 'brainrot', name: 'Brainrot', desc: 'Chaotic Gen Z slang.' }, { id: 'roast-master', name: 'Roast Master', desc: 'Sarcastic and witty.' }, { id: 'formal', name: 'Business Formal', desc: 'Strictly professional.' }, { id: 'zesty', name: 'Zesty', desc: 'Flamboyant and sassy.' }].map((mode) => (
+                                        <button key={mode.id} onClick={() => setPersonality(mode.id as PersonalityMode)} className={`text-left px-4 py-3 rounded-xl border transition-all duration-300 ${personality === mode.id ? 'bg-indigo-500/20 border-indigo-500/50 text-white shadow-lg' : 'bg-white/5 border-white/10 text-zinc-300 hover:border-white/20 hover:bg-white/10'}`}>
+                                            <div className="font-medium text-sm">{mode.name}</div>
+                                            <div className="text-xs opacity-60">{mode.desc}</div>
                                         </button>
                                     ))}
                                 </div>
                             </div>
-                        ) : (
-                            messages.map((msg, idx) => (
-                                <motion.div 
-                                    initial={{ opacity: 0, y: 10 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    key={msg.id} 
-                                    className={`flex gap-4 ${msg.role === 'user' ? 'justify-end' : ''}`}
-                                >
-                                    {msg.role === 'assistant' && (
-                                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex-shrink-0 flex items-center justify-center text-xs font-bold text-white shadow-lg shadow-indigo-500/20">
-                                            Q
-                                        </div>
-                                    )}
-                                    
-                                    <div className={`max-w-[85%] ${msg.role === 'user' ? 'bg-zinc-800 text-white rounded-[20px] rounded-tr-sm px-5 py-3' : 'space-y-2'}`}>
-                                        {renderMessageContent(msg.text)}
-                                    </div>
-                                </motion.div>
-                            ))
-                        )}
-                        {isLoading && (
-                            <div className="flex gap-4">
-                                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex-shrink-0 flex items-center justify-center text-xs font-bold text-white">Q</div>
-                                <ThinkingProcess isThinking={true} mode={thinkingMode} />
+                             <div>
+                                <label className="block text-sm font-medium text-zinc-400 mb-3">Image Model Preference</label>
+                                <div className="grid grid-cols-2 gap-2">
+                                    <button onClick={() => handleImageModelChange('img3')} className={`text-left px-4 py-3 rounded-xl border transition-all duration-300 ${imageModelPref === 'img3' ? 'bg-indigo-500/20 border-indigo-500/50 text-white shadow-lg' : 'bg-white/5 border-white/10 text-zinc-300 hover:border-white/20 hover:bg-white/10'}`}>
+                                        <div className="font-medium text-sm">Quillix K3</div>
+                                        <div className="text-xs opacity-60">Fast generation (~15s).</div>
+                                    </button>
+                                    <button onClick={() => handleImageModelChange('img4')} className={`text-left px-4 py-3 rounded-xl border transition-all duration-300 relative overflow-hidden ${imageModelPref === 'img4' ? 'bg-indigo-500/20 border-indigo-500/50 text-white shadow-lg' : 'bg-white/5 border-white/10 text-zinc-300 hover:border-white/20 hover:bg-white/10'}`}>
+                                        <span className="absolute top-2 right-2 bg-indigo-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">Recommended</span>
+                                        <div className="font-medium text-sm">Quillix K4</div>
+                                        <div className="text-xs opacity-60">Highest quality (~20s).</div>
+                                    </button>
+                                </div>
                             </div>
-                        )}
-                        <div ref={messagesEndRef} className="h-24" />
+                            {session && (
+                                <div>
+                                    <label className="block text-sm font-medium text-zinc-400 mb-3">Personalization</label>
+                                    <div className="space-y-2">
+                                        {personalizationEntries.length > 0 ? (
+                                            personalizationEntries.map(entry => (
+                                                <div key={entry.id} className="flex items-center justify-between bg-white/5 p-2.5 rounded-lg animate-pop-in">
+                                                    <p className="text-sm text-zinc-300">{entry.entry}</p>
+                                                    <button onClick={() => handleDeletePersonalization(entry.id)} className="p-1.5 text-zinc-500 hover:text-red-400 rounded-full hover:bg-red-500/10 transition-colors" title="Delete Entry">
+                                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                                                    </button>
+                                                </div>
+                                            ))
+                                        ) : (
+                                            <p className="text-sm text-zinc-500 text-center py-4">No personalization entries saved yet. The AI will suggest facts to save as you chat.</p>
+                                        )}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
                     </div>
                 </div>
+            )}
 
-                {/* Input Area */}
-                <div className="w-full max-w-3xl mx-auto px-4 pb-6 z-20">
-                     <div className="relative rounded-[2rem] bg-[#18181b] border border-white/10 shadow-2xl shadow-black/50 transition-all focus-within:border-indigo-500/50 focus-within:shadow-indigo-500/10">
-                         {attachedFiles.length > 0 && (
-                             <div className="px-4 pt-4 flex gap-2 overflow-x-auto scrollbar-hide">
-                                 {attachedFiles.map(f => (
-                                     <div key={f.id} className="relative group shrink-0">
-                                         <div className="w-16 h-16 rounded-xl bg-zinc-800 border border-white/10 flex items-center justify-center overflow-hidden">
-                                             {f.type.startsWith('image') ? <img src={f.content} className="w-full h-full object-cover" /> : <FileIcon fileType={f.type} />}
-                                         </div>
-                                         <button onClick={() => setAttachedFiles(prev => prev.filter(x => x.id !== f.id))} className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"><svg className="w-3 h-3" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
-                                     </div>
-                                 ))}
-                             </div>
-                         )}
-                         <div className="flex items-end gap-2 p-2">
-                             <button onClick={() => fileInputRef.current?.click()} className="p-3 text-zinc-400 hover:text-white hover:bg-white/5 rounded-full transition-colors">
-                                 <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 5v14M5 12h14"/></svg>
-                             </button>
-                             <textarea 
-                                 ref={textareaRef}
-                                 value={inputValue}
-                                 onChange={e => setInputValue(e.target.value)}
-                                 onKeyDown={e => { if(e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); processSubmission(inputValue); } }}
-                                 placeholder="Ask anything..."
-                                 rows={1}
-                                 className="flex-1 bg-transparent border-none focus:ring-0 text-white placeholder-zinc-500 py-3 resize-none max-h-32"
-                             />
-                             {isLoading ? (
-                                 <button onClick={() => abortControllerRef.current?.abort()} className="p-3 bg-zinc-800 text-white rounded-full hover:bg-zinc-700">
-                                     <div className="w-3 h-3 bg-white rounded-sm" />
-                                 </button>
-                             ) : (
-                                 <button 
-                                     onClick={() => processSubmission(inputValue)}
-                                     disabled={!inputValue.trim() && attachedFiles.length === 0}
-                                     className="p-3 bg-white text-black rounded-full hover:bg-zinc-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                                 >
-                                     <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-                                 </button>
-                             )}
-                         </div>
-                     </div>
-                     <input type="file" ref={fileInputRef} className="hidden" multiple onChange={(e) => e.target.files && Array.from(e.target.files).forEach(f => { const r = new FileReader(); r.onload = (ev) => setAttachedFiles(p => [...p, { id: Math.random().toString(), name: f.name, content: ev.target?.result as string, type: f.type }]); r.readAsDataURL(f); })} />
+            <div data-liquid-glass className={`fixed inset-y-0 left-0 z-40 w-72 liquid-glass border-l-0 border-t-0 border-b-0 rounded-none rounded-r-2xl transform transition-transform duration-300 ease-in-out ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+                <div className="flex flex-col h-full p-4 space-y-4">
+                    <div className="flex justify-between items-center"><div className="font-bold tracking-wide text-white flex items-center gap-2"><img src="/quillix-logo.png" alt="Quillix Logo" className="w-6 h-6 animate-spin-slow" />Quillix</div><button onClick={() => setIsSidebarOpen(false)} className="text-zinc-400 hover:text-white p-1 rounded-full hover:bg-white/10"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m15 18-6-6 6-6"/></svg></button></div>
+                    <button onClick={() => { resetChat(); setIsSidebarOpen(false); }} className="w-full flex items-center justify-center gap-2 px-3 py-2.5 bg-white hover:bg-zinc-200 text-black rounded-full transition-colors duration-300 text-sm font-semibold interactive-lift"><svg width="16" height="16" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5" fill="none"><path d="M12 5v14"/><path d="M5 12h14"/></svg>New Chat</button>
+                    
+                    <div className="flex-1 overflow-y-auto space-y-1 p-2 scrollbar-hide">
+                        {isDataLoading ? (
+                            <div className="flex items-center justify-center gap-2 p-2 text-sm text-zinc-400">
+                                <svg className="animate-spin h-4 w-4 text-zinc-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                                Loading...
+                            </div>
+                        ) : (
+                            <>
+                                <div className="border-b border-white/10 pb-2 mb-2">
+                                    <div className="flex items-center justify-between px-2">
+                                        <h3 className="text-sm font-semibold text-zinc-300">My Personas</h3>
+                                        <button onClick={() => setShowPersonaManager(true)} className="p-1.5 text-zinc-400 hover:text-white hover:bg-white/10 rounded-full" title="Create New Persona">+</button>
+                                    </div>
+                                    {personas.map(persona => (
+                                        <div key={persona.id}>
+                                            <button onClick={() => setExpandedPersonas(prev => ({...prev, [persona.id]: !prev[persona.id]}))} className="w-full flex items-center justify-between text-left p-2 rounded-lg hover:bg-white/5">
+                                                <span className="text-sm text-zinc-200">{persona.name}</span>
+                                                <svg className={`w-4 h-4 text-zinc-500 transition-transform ${expandedPersonas[persona.id] ? 'rotate-180' : ''}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                                            </button>
+                                            {expandedPersonas[persona.id] && (
+                                                <div className="pl-4 ml-2 border-l border-zinc-700 space-y-1 py-1">
+                                                    <button onClick={() => startNewPersonaChat(persona)} className="w-full text-left text-xs text-indigo-400 hover:text-indigo-300 p-2 rounded-lg hover:bg-white/5">+ New Chat</button>
+                                                    {conversations.filter(c => c.persona_id === persona.id).map(chat => (
+                                                        <div key={chat.id} onClick={() => navigate(`/chat/${chat.id}`)} className={`p-2 rounded-lg group relative cursor-pointer ${currentConversationId === chat.id ? 'bg-white/10' : 'hover:bg-white/5'}`}>
+                                                            <p className="text-xs text-zinc-400 truncate pr-6">{chat.title || 'New Chat'}</p>
+                                                            <button onClick={(e) => { e.stopPropagation(); handleDeleteConversation(chat.id); }} className="absolute right-1 top-1/2 -translate-y-1/2 p-1 text-zinc-500 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity" title="Delete Chat"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg></button>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+                                {Object.entries(groupedConversations).map(([groupName, groupConversations]) => (
+                                    groupConversations.length > 0 && (
+                                        <div key={groupName} className="mb-3">
+                                            <div className="text-xs font-semibold text-zinc-500 px-2 py-1 uppercase tracking-wider mb-1">{groupName}</div>
+                                            {groupConversations.map(chat => (
+                                                <div key={chat.id} onClick={() => navigate(`/chat/${chat.id}`)} data-liquid-glass className={`liquid-glass p-3 rounded-xl my-1.5 group relative cursor-pointer transition-all duration-300 hover:scale-[1.03] hover:bg-white/10 ${currentConversationId === chat.id ? 'bg-white/10' : ''}`}>
+                                                    <div className={`w-full text-left text-sm truncate pr-6 ${currentConversationId === chat.id ? 'text-white font-semibold' : 'text-zinc-300'}`}>{chat.title || 'New Chat'}</div>
+                                                    <button onClick={(e) => { e.stopPropagation(); handleDeleteConversation(chat.id); }} className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-zinc-500 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity" title="Delete Chat"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg></button>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )
+                                ))}
+                            </>
+                        )}
+                    </div>
+                    <div className="space-y-2">
+                        <button onClick={openSettings} className="w-full flex items-center gap-3 px-3 py-2 text-sm text-zinc-300 hover:text-white hover:bg-white/5 rounded-lg transition-colors"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l-.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.47a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.35a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>Settings</button>
+                        {session && (
+                            <div className="flex items-center justify-between gap-3 px-3 py-2 bg-white/5 rounded-lg">
+                                <div className="flex items-center gap-3 min-w-0">
+                                    <input type="file" ref={avatarFileRef} onChange={handleAvatarUpload} className="hidden" accept="image/png, image/jpeg" />
+                                    <button onClick={() => avatarFileRef.current?.click()} className="shrink-0 group relative" title="Change profile picture">
+                                        {profile?.avatar_url ? (
+                                            <img src={profile.avatar_url} alt="User Avatar" className="w-8 h-8 rounded-full object-cover group-hover:opacity-80 transition-opacity" />
+                                        ) : (
+                                            <div className="w-8 h-8 rounded-full liquid-glass flex items-center justify-center border border-white/10 group-hover:border-white/20 transition-colors">
+                                                <svg className="w-5 h-5 text-zinc-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                                            </div>
+                                        )}
+                                    </button>
+                                    <div className="text-sm text-zinc-200 truncate">
+                                        {profile?.first_name && profile?.last_name 
+                                            ? `${profile.first_name} ${profile.last_name}` 
+                                            : session.user.email}
+                                    </div>
+                                </div>
+                                <button onClick={() => supabase.auth.signOut()} className="text-zinc-300 hover:text-white p-1.5 hover:bg-white/10 rounded-md" title="Log Out"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg></button>
+                            </div>
+                        )}
+                        {session && (
+                            <button onClick={handleDeleteAllConversations} className="w-full flex items-center gap-3 px-3 py-2 text-sm text-zinc-400 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
+                                Clear all chats
+                            </button>
+                        )}
+                    </div>
                 </div>
             </div>
+
+            {isSidebarOpen && <div className="fixed inset-0 bg-black/50 z-30" onClick={() => setIsSidebarOpen(false)}></div>}
+
+            <main className="flex-1 relative flex flex-col overflow-hidden">
+                <header className="h-16 flex items-center justify-between px-6 shrink-0 border-b border-white/10 backdrop-blur-md bg-black/10">
+                    <div className="flex items-center gap-3">
+                        <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="p-2 hover:bg-white/5 rounded-full text-zinc-400 hover:text-white transition-colors" title="Menu"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><line x1="9" y1="3" x2="9" y2="21"/></svg></button>
+                        <span className="font-semibold text-sm tracking-wide text-zinc-300">{activePersona ? activePersona.name : (currentConversationId && session ? conversations.find(c => c.id === currentConversationId)?.title : 'Quillix')}</span>
+                    </div>
+                </header>
+
+                <div className="flex-1 overflow-y-auto relative z-10 scrollbar-hide">
+                    {messages.length === 0 && !isLoading && !currentConversationId ? (
+                        <div className="h-full flex flex-col items-center justify-center">
+                            <div className="flex-1 flex flex-col items-center justify-center text-center">
+                                <OrbLogo />
+                                <h1 className="text-2xl font-medium text-white tracking-tight">
+                                    {activePersona ? `Chatting with ${activePersona.name}` : "What can I do for you today?"}
+                                </h1>
+                                {activePersona && <p className="text-zinc-400 mt-2 max-w-md">{activePersona.description}</p>}
+                            </div>
+                            <div className="w-full max-w-4xl mx-auto px-4 pb-8">
+                                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                    <button 
+                                        onClick={() => setEmbeddedUrl('https://veoaifree.com')}
+                                        data-liquid-glass
+                                        className="liquid-glass p-4 rounded-2xl text-left interactive-lift space-y-2"
+                                    >
+                                        <h3 className="font-semibold text-white">Make a video</h3>
+                                        <p className="text-sm text-zinc-400">Create a video from a text prompt.</p>
+                                    </button>
+                                    <button 
+                                        onClick={() => navigate('/dev')}
+                                        data-liquid-glass
+                                        className="liquid-glass p-4 rounded-2xl text-left interactive-lift space-y-2"
+                                    >
+                                        <h3 className="font-semibold text-white">AI Web Developer</h3>
+                                        <p className="text-sm text-zinc-400">Build and edit code with an AI partner.</p>
+                                    </button>
+                                    <button 
+                                        onClick={() => {
+                                            setInputValue('Make an image of ');
+                                            textareaRef.current?.focus();
+                                        }}
+                                        data-liquid-glass
+                                        className="liquid-glass p-4 rounded-2xl text-left interactive-lift space-y-2"
+                                    >
+                                        <h3 className="font-semibold text-white">Make an image</h3>
+                                        <p className="text-sm text-zinc-400">Generate an image from a prompt.</p>
+                                    </button>
+                                    <button 
+                                        onClick={() => navigate('/quiz')}
+                                        data-liquid-glass
+                                        className="liquid-glass p-4 rounded-2xl text-left interactive-lift space-y-2"
+                                    >
+                                        <h3 className="font-semibold text-white">Quiz me on...</h3>
+                                        <p className="text-sm text-zinc-400">Test your knowledge on any topic.</p>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="max-w-3xl mx-auto px-4 py-8 space-y-8">
+                            {messages.map((msg) => (
+                                <div key={msg.id} className={`flex items-start gap-4 animate-pop-in ${msg.role === 'user' ? 'justify-end' : ''}`}>
+                                    {msg.role === 'assistant' && <div className="shrink-0 mt-1"><NexusIconSmall /></div>}
+                                    <div data-liquid-glass className={`max-w-[85%] leading-relaxed ${msg.role === 'user' ? 'light-liquid-glass text-white px-5 py-3 rounded-3xl rounded-br-lg' : 'dark-liquid-glass px-5 py-3 rounded-3xl rounded-bl-lg'}`}>
+                                        <div className="font-medium text-sm text-zinc-400 mb-2">{activePersona?.name || 'Quillix'}</div>
+                                        <div className={`${msg.role === 'assistant' ? 'text-zinc-100 prose prose-invert prose-sm max-w-none' : ''}`}>
+                                            {renderMessageContent(msg.text)}
+                                        </div>
+                                        {msg.role === 'assistant' && !isLoading && (<div className="flex items-center gap-2 mt-3"><button onClick={() => handleTTS(msg.text)} className="p-1.5 text-zinc-500 hover:text-zinc-300 hover:bg-white/5 rounded-md transition-colors" title="Read Aloud"><svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path></svg></button></div>)}
+                                    </div>
+                                </div>
+                            ))}
+                            {isLoading && (
+                                <div className="animate-pop-in">
+                                    <ThinkingProcess isThinking={true} mode={thinkingMode} />
+                                </div>
+                            )}
+                            <div ref={messagesEndRef} className="h-48"></div>
+                        </div>
+                    )}
+                </div>
+
+                <div className="w-full max-w-3xl mx-auto p-4 z-20">
+                    {isLoading ? (
+                        <div className="flex flex-col items-center gap-3">
+                            <button onClick={handleStop} className="bg-white/10 hover:bg-white/20 border border-white/20 text-white px-5 py-2.5 rounded-full font-medium transition-all shadow-lg flex items-center gap-2 text-sm interactive-lift">
+                                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M6 6h12v12H6z"></path></svg>
+                                Stop Generating
+                            </button>
+                        </div>
+                    ) : isVoiceMode ? (
+                        <VoiceInputView
+                            onClose={() => setIsVoiceMode(false)}
+                            onFinalTranscript={(transcript) => {
+                                processSubmission(transcript);
+                                setIsVoiceMode(false);
+                            }}
+                        />
+                    ) : (
+                        <div className="relative">
+                            <form onSubmit={handleChatSubmit} className="relative">
+                                <div data-liquid-glass className="liquid-glass rounded-full flex items-center p-2 transition-all duration-300 focus-within:shadow-2xl focus-within:shadow-indigo-500/20">
+                                    <button type="button" onClick={triggerFileSelect} className="p-2 rounded-full text-zinc-300 hover:text-white hover:bg-white/10 transition-colors ml-1" title="Attach File"><svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg></button>
+                                    <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" accept="image/*,application/pdf,text/plain,text/code,application/json" multiple />
+                                    <textarea ref={textareaRef} value={inputValue} onChange={(e) => setInputValue(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleChatSubmit(e); } }} rows={1} placeholder="Message Quillix..." className="flex-1 bg-transparent border-none text-white placeholder-zinc-500 focus:ring-0 focus:outline-none resize-none py-3 px-3 max-h-[120px] overflow-y-auto scrollbar-hide"></textarea>
+                                    <button type="button" onClick={() => setIsVoiceMode(true)} className="p-2 rounded-full text-zinc-300 hover:text-white hover:bg-white/10 transition-colors"><svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/></svg></button>
+                                    <button type="submit" disabled={isLoading || (!inputValue.trim() && attachedFiles.length === 0)} className={`w-9 h-9 flex items-center justify-center rounded-full transition-all duration-200 ml-1 ${(inputValue.trim() || attachedFiles.length > 0) && !isLoading ? 'bg-white text-black hover:bg-zinc-200 shadow-lg' : 'bg-white/10 text-zinc-500 cursor-not-allowed'}`}><svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg></button>
+                                </div>
+                                {attachedFiles.length > 0 && (
+                                    <div className="absolute bottom-full w-full left-0 mb-2 px-2">
+                                        <div className="flex gap-3 flex-wrap p-2 bg-black/30 backdrop-blur-md rounded-xl border border-white/10">
+                                            {attachedFiles.map(file => (
+                                                <div key={file.id} className="relative w-20 h-20 bg-black/50 rounded-lg border border-white/10 group animate-pop-in">
+                                                    {file.type.startsWith('image/') ? (
+                                                        <img src={file.content} alt={file.name} className="w-full h-full object-cover rounded-lg" />
+                                                    ) : (
+                                                        <div className="w-full h-full flex flex-col items-center justify-center p-2 text-center">
+                                                            <svg className="w-6 h-6 text-zinc-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/></svg>
+                                                            <span className="text-xs text-zinc-300 mt-1 truncate w-full">{file.name}</span>
+                                                        </div>
+                                                    )}
+                                                    <button type="button" onClick={() => removeFile(file.id)} className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-zinc-800 hover:bg-red-500 border border-white/20 rounded-full flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-all" title={`Remove ${file.name}`}>
+                                                        <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                                                    </button>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+                            </form>
+                        </div>
+                    )}
+                </div>
+            </main>
         </div>
     );
 };
