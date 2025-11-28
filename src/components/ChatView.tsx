@@ -832,6 +832,8 @@ const ChatView: React.FC = () => {
     const generalConversations = conversations.filter(c => !c.persona_id);
     const groupedConversations = groupConversations(generalConversations);
 
+    const isNewChat = messages.length === 0 && !isLoading && !currentConversationId;
+
     return (
         <div id="chat-view" className="fixed inset-0 z-50 flex flex-col bg-transparent text-zinc-100 font-sans overflow-hidden">
             <DynamicBackground status={backgroundStatus} />
@@ -1021,10 +1023,12 @@ const ChatView: React.FC = () => {
             {isSidebarOpen && <div className="fixed inset-0 bg-black/50 z-30" onClick={() => setIsSidebarOpen(false)}></div>}
 
             <main className="flex-1 relative flex flex-col overflow-hidden">
-                <header className="h-16 flex items-center justify-between px-6 shrink-0 border-b border-white/10 backdrop-blur-md bg-black/10">
+                <header className={`h-16 flex items-center justify-between px-6 shrink-0 transition-all duration-300 ${isNewChat ? 'bg-transparent border-transparent' : 'border-b border-white/10 backdrop-blur-md bg-black/10'}`}>
                     <div className="flex items-center gap-3">
                         <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="p-2 hover:bg-white/5 rounded-full text-zinc-400 hover:text-white transition-colors" title="Menu"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><line x1="9" y1="3" x2="9" y2="21"/></svg></button>
-                        <span className="font-semibold text-sm tracking-wide text-zinc-300">{activePersona ? activePersona.name : (currentConversationId && session ? conversations.find(c => c.id === currentConversationId)?.title : 'Quillix')}</span>
+                        <span className={`font-semibold text-sm tracking-wide text-zinc-300 transition-opacity duration-300 ${isNewChat ? 'opacity-0' : 'opacity-100'}`}>
+                            {activePersona ? activePersona.name : (currentConversationId && session ? conversations.find(c => c.id === currentConversationId)?.title : 'Quillix')}
+                        </span>
                     </div>
                 </header>
 
