@@ -17,23 +17,9 @@
             background-color: #000000; /* Set base to black */
             overflow-x: hidden;
             color: white;
-            transition: filter 0.3s ease;
         }
         body.chat-active {
             overflow: hidden;
-        }
-
-        /* Light Mode Inversion Logic */
-        html.theme-light {
-            filter: invert(1) hue-rotate(180deg);
-        }
-
-        /* Prevent double inversion on images, videos, and specific marked elements */
-        html.theme-light img, 
-        html.theme-light video, 
-        html.theme-light iframe,
-        html.theme-light .no-invert {
-            filter: invert(1) hue-rotate(180deg);
         }
 
         h1, h2, h3, .brand-font, .font-brand {
