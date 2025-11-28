@@ -40,6 +40,7 @@ const ChatView: React.FC = () => {
     const [inputValue, setInputValue] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [thinkingMode, setThinkingMode] = useState<'reasoning' | 'image'>('reasoning');
+    const [isThinkingEnabled, setIsThinkingEnabled] = useState(false);
     
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const [showSettings, setShowSettings] = useState(false);
@@ -540,7 +541,7 @@ const ChatView: React.FC = () => {
         }
 
         try {
-            const stream = streamGemini(userText, currentChatHistory, true, personality, imageModelPref, filesToProcess, controller.signal, profile?.first_name, personalizationData, activePersona?.instructions || null);
+            const stream = streamGemini(userText, currentChatHistory, true, personality, imageModelPref, filesToProcess, controller.signal, profile?.first_name, personalizationData, activePersona?.instructions || null, isThinkingEnabled);
             let assistantMessageExists = false;
             let accumulatedText = "";
             const aiMsgId = `ai-${Date.now()}`;
@@ -1133,6 +1134,16 @@ const ChatView: React.FC = () => {
                                     <button type="button" onClick={triggerFileSelect} className="p-2 rounded-full text-zinc-300 hover:text-white hover:bg-white/10 transition-colors ml-1" title="Attach File"><svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg></button>
                                     <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" accept="image/*,application/pdf,text/plain,text/code,application/json" multiple />
                                     <textarea ref={textareaRef} value={inputValue} onChange={(e) => setInputValue(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleChatSubmit(e); } }} rows={1} placeholder="Message Quillix..." className="flex-1 bg-transparent border-none text-white placeholder-zinc-500 focus:ring-0 focus:outline-none resize-none py-3 px-3 max-h-[120px] overflow-y-auto scrollbar-hide"></textarea>
+                                    
+                                    <button 
+                                        type="button" 
+                                        onClick={() => setIsThinkingEnabled(!isThinkingEnabled)} 
+                                        className={`p-2 rounded-full transition-colors mr-1 ${isThinkingEnabled ? 'text-indigo-400 bg-indigo-500/20 shadow-[0_0_10px_rgba(129,140,248,0.3)]' : 'text-zinc-300 hover:text-white hover:bg-white/10'}`} 
+                                        title={isThinkingEnabled ? "Disable Deep Thinking" : "Enable Deep Thinking"}
+                                    >
+                                        <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 5a3 3 0 1 0-5.997.125 4 4 0 0 0-2.526 5.77 4 4 0 0 0 .556 6.588A4 4 0 1 0 12 18Z"/><path d="M12 5a3 3 0 1 1 5.997.125 4 4 0 0 1 2.526 5.77 4 4 0 0 1-.556 6.588A4 4 0 1 1 12 18Z"/><path d="M15 13a4.5 4.5 0 0 1-3-4 4.5 4.5 0 0 1-3 4"/><path d="M17.599 6.5a3 3 0 0 0 .399-1.375"/><path d="M6.003 5.125A3 3 0 0 0 6.401 6.5"/><path d="M3.477 10.896a4 4 0 0 1 .585-.396"/><path d="M19.938 10.5a4 4 0 0 1 .585.396"/><path d="M6 18a4 4 0 0 1-1.97-3.284"/><path d="M17.97 14.716A4 4 0 0 1 18 18"/></svg>
+                                    </button>
+
                                     <button type="button" onClick={() => setIsVoiceMode(true)} className="p-2 rounded-full text-zinc-300 hover:text-white hover:bg-white/10 transition-colors"><svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/></svg></button>
                                     <button type="submit" disabled={isLoading || (!inputValue.trim() && attachedFiles.length === 0)} className={`w-9 h-9 flex items-center justify-center rounded-full transition-all duration-200 ml-1 ${(inputValue.trim() || attachedFiles.length > 0) && !isLoading ? 'bg-white text-black hover:bg-zinc-200 shadow-lg' : 'bg-white/10 text-zinc-500 cursor-not-allowed'}`}><svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg></button>
                                 </div>

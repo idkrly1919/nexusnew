@@ -39,7 +39,7 @@ export async function enhancePersonaInstructions(instructions: string): Promise<
     const systemPrompt = `You are an expert prompt engineer. Your task is to enhance the given instructions for a custom AI persona. Make the instructions more detailed, clear, specific, and effective. Add examples if it helps. The goal is to create a robust set of instructions that will reliably guide an AI's behavior. Respond ONLY with the enhanced instructions.`;
 
     const response = await client.chat.completions.create({
-        model: 'x-ai/grok-4.1-fast',
+        model: 'google/gemini-2.0-flash-001',
         messages: [
             { role: 'system', content: systemPrompt },
             { role: 'user', content: `Here are the current instructions:\n\n${instructions}` }
@@ -55,7 +55,7 @@ export async function summarizeHistory(historyToSummarize: ChatHistory): Promise
     const systemPrompt = "You are an expert text summarizer. A conversation between a user and an AI assistant is provided. Your task is to create a concise summary of the key points, facts, user requests, and AI responses. This summary will be used as a system prompt to provide context for the rest of the conversation. Respond ONLY with the summary, nothing else.";
     
     const response = await client.chat.completions.create({
-        model: 'mistralai/mistral-7b-instruct-v0.2', // A fast and efficient model for summarization
+        model: 'google/gemini-2.0-flash-001', // Fast and efficient
         messages: [
             { role: 'system', content: systemPrompt },
             ...historyToSummarize
@@ -76,7 +76,8 @@ export async function* streamGemini(
     signal: AbortSignal,
     firstName: string | null | undefined,
     personalizationEntries: string[],
-    personaInstructions: string | null = null
+    personaInstructions: string | null = null,
+    enableThinking: boolean = false
 ): AsyncGenerator<StreamUpdate> {
     
     const textClient = getClient();
@@ -121,7 +122,7 @@ Refined JSON: { "is_image_request": true, "refined_prompt": "Cinematic, ultra-de
 
             try {
                 const intentResponse = await textClient.chat.completions.create({
-                    model: 'x-ai/grok-4.1-fast',
+                    model: 'google/gemini-2.0-flash-001',
                     messages: [
                         { role: 'system', content: intentSystemPrompt },
                         ...history.slice(-4),
@@ -261,7 +262,11 @@ Supported filetypes are: pdf, html, txt.
 - You can still use Markdown for headings (e.g., # Title, ## Subtitle).`;
 
             let messages: any[] = [{ role: 'system', content: systemInstruction }, ...history];
-            let activeModel = 'x-ai/grok-4.1-fast'; 
+            
+            // Model Selection
+            // Default fast model (search enabled): google/gemini-2.0-flash-001
+            // Thinking model: google/gemini-2.0-flash-thinking-exp:free
+            let activeModel = enableThinking ? 'google/gemini-2.0-flash-thinking-exp:free' : 'google/gemini-2.0-flash-001';
 
             const userMessageContent: any[] = [{ type: 'text', text: prompt }];
             let nonImageFileContent = '';
@@ -278,7 +283,8 @@ Supported filetypes are: pdf, html, txt.
                 });
 
                 if (hasImage) {
-                    activeModel = 'google/gemini-2.0-flash-001';
+                    // Flash supports images natively
+                    activeModel = 'google/gemini-2.0-flash-001'; 
                 }
                 
                 if (nonImageFileContent) {
@@ -297,7 +303,9 @@ Supported filetypes are: pdf, html, txt.
                     messages: messages,
                     stream: true,
                     max_tokens: null,
-                    ...((activeModel === 'x-ai/grok-4.1-fast' && useSearch) ? { include_search_results: true } : {}) 
+                    // Enable search only if NOT thinking (for speed/compatibility) or if the model supports it.
+                    // Gemini Flash 001 supports search via provider flags.
+                    ...((!enableThinking && useSearch) ? { include_search_results: true } : {}) 
                 }, { signal }) as any;
 
                 let fullText = '';
@@ -356,7 +364,7 @@ export async function generateQuiz(topic: string, numQuestions: number, fileCont
     - For "fill-in-the-blank", 'options' must be null. Use "___" in the 'question' string to indicate the blank. 'correct_answer' is the word that fills the blank.`;
 
     const response = await client.chat.completions.create({
-        model: 'x-ai/grok-4.1-fast',
+        model: 'google/gemini-2.0-flash-001',
         messages: [
             { role: 'system', content: systemPrompt },
             { role: 'user', content: `Topic: ${topic}` }
@@ -376,7 +384,7 @@ export async function evaluateAnswer(question: QuizQuestion, userAnswer: string)
     Respond ONLY with a JSON object: { "score": number, "is_correct": boolean }.`;
 
     const response = await client.chat.completions.create({
-        model: 'x-ai/grok-4.1-fast',
+        model: 'google/gemini-2.0-flash-001',
         messages: [
             { role: 'system', content: systemPrompt },
             { role: 'user', content: `Question: "${question.question}"\nIdeal Answer: "${question.correct_answer}"\nUser's Answer: "${userAnswer}"` }
@@ -392,7 +400,7 @@ export async function getExplanation(question: QuizQuestion, userAnswer: string,
     const systemPrompt = "You are a helpful tutor. The user answered a question incorrectly. Explain why their answer is wrong and what the correct answer is. Be clear, concise, and encouraging.";
     
     const response = await client.chat.completions.create({
-        model: 'x-ai/grok-4.1-fast',
+        model: 'google/gemini-2.0-flash-001',
         messages: [
             { role: 'system', content: systemPrompt },
             { role: 'user', content: `Question: "${question.question}"\nUser's incorrect answer: "${userAnswer}"\nCorrect answer: "${correctAnswer}"` }
@@ -416,7 +424,7 @@ export async function getImprovementTips(topic: string, userAnswers: UserAnswer[
     }
 
     const response = await client.chat.completions.create({
-        model: 'x-ai/grok-4.1-fast',
+        model: 'google/gemini-2.0-flash-001',
         messages: [
             { role: 'system', content: systemPrompt },
             { role: 'user', content: `Topic: ${topic}\n\nHere are the questions the user got wrong:\n${incorrectAnswers}` }
