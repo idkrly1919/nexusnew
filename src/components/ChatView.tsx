@@ -5,6 +5,7 @@ import { Message, ChatHistory, PersonalityMode, Conversation, Role, Persona } fr
 import { streamGemini, summarizeHistory } from '../services/geminiService';
 import { ThinkingProcess } from './ThinkingProcess';
 import { useSession } from '../contexts/SessionContext';
+import { useTheme, Theme } from '../contexts/ThemeContext';
 import { supabase } from '../integrations/supabase/client';
 import DynamicBackground from './DynamicBackground';
 import EmbeddedView from './EmbeddedView';
@@ -30,6 +31,7 @@ const OrbLogo = () => (
 
 const ChatView: React.FC = () => {
     const { session, profile, refreshProfile } = useSession();
+    const { theme, setTheme } = useTheme();
     const { conversationId: paramConversationId } = useParams<{ conversationId?: string }>();
     const navigate = useNavigate();
 
@@ -865,6 +867,20 @@ const ChatView: React.FC = () => {
                             <button onClick={() => setShowSettings(false)} className="p-1.5 rounded-full text-zinc-400 hover:text-white hover:bg-white/10 transition-colors"><svg width="20" height="20" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5" fill="none"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
                         </div>
                         <div className="p-6 space-y-6 max-h-[70vh] overflow-y-auto scrollbar-hide">
+                            <div>
+                                <label className="block text-sm font-medium text-zinc-400 mb-3">Theme</label>
+                                <div className="grid grid-cols-3 gap-2">
+                                    {['system', 'dark', 'light'].map((t) => (
+                                        <button 
+                                            key={t} 
+                                            onClick={() => setTheme(t as Theme)} 
+                                            className={`px-4 py-2.5 rounded-xl border transition-all duration-300 capitalize text-sm font-medium ${theme === t ? 'bg-indigo-500/20 border-indigo-500/50 text-white shadow-lg' : 'bg-white/5 border-white/10 text-zinc-300 hover:border-white/20 hover:bg-white/10'}`}
+                                        >
+                                            {t}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
                             <div>
                                 <label className="block text-sm font-medium text-zinc-400 mb-3">Personality Mode</label>
                                 <div className="grid grid-cols-2 gap-2">

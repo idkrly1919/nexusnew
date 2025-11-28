@@ -26,6 +26,19 @@
             font-family: 'Space+Grotesk', sans-serif;
         }
         
+        /* Light Mode Inversion Logic */
+        html.light-mode {
+            filter: invert(1) hue-rotate(180deg);
+        }
+        
+        /* Re-invert media and brand elements to restore original look */
+        html.light-mode img,
+        html.light-mode video,
+        html.light-mode iframe,
+        html.light-mode .no-invert {
+            filter: invert(1) hue-rotate(180deg);
+        }
+
         .liquid-glass {
             background: linear-gradient(135deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.02));
             backdrop-filter: blur(24px) saturate(150%);
