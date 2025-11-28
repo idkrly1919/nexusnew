@@ -76,6 +76,13 @@ const LandingPage: React.FC = () => {
         }, 3000);
     };
 
+    const scrollToSection = (id: string) => {
+        const element = document.getElementById(id);
+        if (element) {
+            element.scrollIntoView({ behavior: 'smooth' });
+        }
+    };
+
     return (
         <>
             <DynamicBackground status="loading-text" />
@@ -92,18 +99,18 @@ const LandingPage: React.FC = () => {
                 </div>
             )}
             <div id="landing-view" className="relative z-10">
-                <nav className="fixed w-full z-50 top-0">
+                <nav className="fixed w-full z-50 top-0 bg-black/10 backdrop-blur-md border-b border-white/5">
                     <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
-                        <div className="flex items-center gap-2 interactive-lift cursor-pointer">
+                        <div className="flex items-center gap-2 interactive-lift cursor-pointer" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
                             <img src="/quillix-logo.png" alt="Quillix Logo" className="w-8 h-8" />
                             <span className="text-xl font-bold tracking-tight brand-font">Quillix</span>
                         </div>
                         
                         <div className="hidden md:flex items-center gap-8 text-sm font-medium text-zinc-300">
-                            <a href="#" className="hover:text-white transition-colors duration-300">Features</a>
-                            <a href="#" className="hover:text-white transition-colors duration-300">Research</a>
-                            <a href="#" className="hover:text-white transition-colors duration-300">Pricing</a>
-                            <a href="#" className="hover:text-white transition-colors duration-300">Docs</a>
+                            <button onClick={() => scrollToSection('features')} className="hover:text-white transition-colors duration-300">Features</button>
+                            <button onClick={() => scrollToSection('research')} className="hover:text-white transition-colors duration-300">Research</button>
+                            <button onClick={() => scrollToSection('pricing')} className="hover:text-white transition-colors duration-300">Pricing</button>
+                            <button onClick={() => scrollToSection('docs')} className="hover:text-white transition-colors duration-300">Docs</button>
                         </div>
 
                         <div className="flex items-center gap-4">
@@ -116,7 +123,8 @@ const LandingPage: React.FC = () => {
                 </nav>
 
                 <main className="pt-32 pb-20">
-                    <div className="max-w-5xl mx-auto px-6 text-center space-y-8">
+                    {/* Hero Section */}
+                    <div className="max-w-5xl mx-auto px-6 text-center space-y-8 mb-32">
                         <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-indigo-500/30 bg-indigo-500/10 text-indigo-300 text-xs font-medium interactive-lift">
                             <span className="w-2 h-2 rounded-full bg-indigo-400 animate-pulse"></span>
                             Quillix v2.0 is now live
@@ -143,7 +151,9 @@ const LandingPage: React.FC = () => {
                         </div>
                     </div>
 
-                    <div className="max-w-6xl mx-auto px-6 mt-32">
+                    {/* Features Section */}
+                    <div id="features" className="max-w-6xl mx-auto px-6 py-20">
+                        <h2 className="text-3xl font-bold text-center mb-16">Advanced Capabilities</h2>
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                             <div data-liquid-glass className="liquid-glass p-8 interactive-lift group bw-to-color-hover rounded-3xl">
                                 <div className="w-12 h-12 bg-zinc-900 rounded-xl flex items-center justify-center mb-6 border border-zinc-800 group-hover:border-indigo-500/50 transition-colors duration-300">
@@ -175,9 +185,92 @@ const LandingPage: React.FC = () => {
                         </div>
                     </div>
 
-                    <div className="max-w-5xl mx-auto px-6 mt-32">
+                    {/* Research Section */}
+                    <div id="research" className="max-w-5xl mx-auto px-6 py-20 border-t border-white/5">
                         <div className="flex flex-col md:flex-row gap-12 items-center">
                             <div className="flex-1 space-y-6">
+                                <h2 className="text-3xl md:text-4xl font-bold">Research & Architecture</h2>
+                                <p className="text-zinc-400 text-lg">
+                                    Built on the proprietary Quillix-7B architecture, our model introduces a novel attention mechanism specifically designed for multi-step reasoning tasks.
+                                </p>
+                                <div className="space-y-4">
+                                    <div className="flex items-start gap-4">
+                                        <div className="mt-1 bg-indigo-500/20 p-2 rounded-lg text-indigo-400">
+                                            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                                        </div>
+                                        <div>
+                                            <h4 className="font-semibold text-white">Zero-Shot Chain of Thought</h4>
+                                            <p className="text-sm text-zinc-500">Achieves 89% accuracy on MATH benchmark without fine-tuning.</p>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-start gap-4">
+                                        <div className="mt-1 bg-purple-500/20 p-2 rounded-lg text-purple-400">
+                                            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+                                        </div>
+                                        <div>
+                                            <h4 className="font-semibold text-white">Hybrid Symbolic Engine</h4>
+                                            <p className="text-sm text-zinc-500">Combines neural networks with formal logic verifiers.</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="flex-1 w-full flex justify-center">
+                                <div className="relative w-full max-w-sm aspect-square bg-gradient-to-tr from-indigo-500/20 via-purple-500/20 to-pink-500/20 rounded-full blur-3xl opacity-50 animate-pulse"></div>
+                                <div data-liquid-glass className="absolute liquid-glass p-8 rounded-2xl max-w-sm border border-white/10">
+                                    <div className="space-y-4 font-mono text-xs">
+                                        <div className="flex justify-between text-zinc-400"><span>Parameters</span><span className="text-white">7.2B</span></div>
+                                        <div className="w-full bg-zinc-800 h-1 rounded-full overflow-hidden"><div className="bg-indigo-500 w-3/4 h-full"></div></div>
+                                        <div className="flex justify-between text-zinc-400"><span>Context Window</span><span className="text-white">128k</span></div>
+                                        <div className="w-full bg-zinc-800 h-1 rounded-full overflow-hidden"><div className="bg-purple-500 w-full h-full"></div></div>
+                                        <div className="flex justify-between text-zinc-400"><span>Latency</span><span className="text-white">12ms</span></div>
+                                        <div className="w-full bg-zinc-800 h-1 rounded-full overflow-hidden"><div className="bg-green-500 w-1/4 h-full"></div></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Pricing Section */}
+                    <div id="pricing" className="max-w-4xl mx-auto px-6 py-20 text-center border-t border-white/5">
+                        <h2 className="text-3xl font-bold mb-4">Simple, Transparent Pricing</h2>
+                        <p className="text-zinc-400 mb-12">Powerful tools shouldn't be locked behind a paywall.</p>
+                        
+                        <div className="relative group">
+                            <div className="absolute inset-0 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 rounded-3xl blur opacity-25 group-hover:opacity-50 transition duration-1000"></div>
+                            <div data-liquid-glass className="relative liquid-glass p-10 rounded-3xl border border-white/10">
+                                <h3 className="text-2xl font-bold text-white mb-2">Researcher Edition</h3>
+                                <div className="text-5xl font-bold text-white mb-6">$0<span className="text-lg text-zinc-400 font-normal">/forever</span></div>
+                                <p className="text-zinc-300 mb-8 max-w-lg mx-auto">
+                                    Full access to the Quillix reasoning engine, chat history, and visualization tools. No credit card required.
+                                </p>
+                                <ul className="text-left max-w-xs mx-auto space-y-4 mb-8 text-zinc-400">
+                                    <li className="flex items-center gap-3"><svg className="text-green-400 w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg> Unlimited Queries</li>
+                                    <li className="flex items-center gap-3"><svg className="text-green-400 w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg> Long-term Memory</li>
+                                    <li className="flex items-center gap-3"><svg className="text-green-400 w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg> API Access (Beta)</li>
+                                    <li className="flex items-center gap-3"><svg className="text-green-400 w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg> Community Support</li>
+                                </ul>
+                                <button onClick={() => navigate('/auth')} className="bg-white text-black px-8 py-3 rounded-full font-bold hover:bg-zinc-200 transition-colors w-full md:w-auto">Start Building for Free</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Docs / Integration Section */}
+                    <div id="docs" className="max-w-5xl mx-auto px-6 py-20 border-t border-white/5">
+                        <div className="flex flex-col md:flex-row gap-12 items-center">
+                            <div className="flex-1 w-full order-2 md:order-1">
+                                <div data-liquid-glass className="liquid-glass rounded-2xl overflow-hidden interactive-lift">
+                                    <div className="flex items-center gap-2 px-4 py-3 bg-black/20 border-b border-white/10">
+                                        <div className="w-3 h-3 rounded-full bg-red-500"></div>
+                                        <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
+                                        <div className="w-3 h-3 rounded-full bg-green-500"></div>
+                                        <div className="ml-2 text-xs text-zinc-500 font-mono">main.py</div>
+                                    </div>
+                                    <div className="p-4 overflow-x-auto bg-black/10">
+                                        <pre className="text-sm font-mono leading-relaxed" dangerouslySetInnerHTML={{__html: `<span class="text-purple-400">import</span> <span class="text-white">quillix_sdk</span> <span class="text-purple-400">as</span> <span class="text-white">qx</span>\n\n<span class="text-zinc-500"># Initialize the solver</span>\n<span class="text-white">client</span> = <span class="text-white">qx.Client</span>(<span class="text-green-400">"api_key_..."</span>)\n\n<span class="text-zinc-500"># Define a complex query</span>\n<span class="text-white">response</span> = <span class="text-white">client.solve</span>(\n    <span class="text-orange-300">problem</span>=<span class="text-green-400">"Calculate the trajectory of..."</span>,\n    <span class="text-orange-300">model</span>=<span class="text-green-400">"quillix-math-v2"</span>,\n    <span class="text-orange-300">precision</span>=<span class="text-blue-400">64</span>\n)\n\n<span class="text-purple-400">print</span>(<span class="text-white">response.solution</span>)`}}></pre>
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="flex-1 space-y-6 order-1 md:order-2">
                                 <h2 className="text-3xl md:text-4xl font-bold">Seamless Integration</h2>
                                 <p className="text-zinc-400 text-lg">
                                     Connect Quillix to your existing workflow with our robust API. Python, Node, and Rust SDKs available.
@@ -196,19 +289,7 @@ const LandingPage: React.FC = () => {
                                         99.99% uptime SLA
                                     </li>
                                 </ul>
-                            </div>
-                            <div className="flex-1 w-full">
-                                <div data-liquid-glass className="liquid-glass rounded-2xl overflow-hidden interactive-lift">
-                                    <div className="flex items-center gap-2 px-4 py-3 bg-black/20 border-b border-white/10">
-                                        <div className="w-3 h-3 rounded-full bg-red-500"></div>
-                                        <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
-                                        <div className="w-3 h-3 rounded-full bg-green-500"></div>
-                                        <div className="ml-2 text-xs text-zinc-500 font-mono">main.py</div>
-                                    </div>
-                                    <div className="p-4 overflow-x-auto bg-black/10">
-                                        <pre className="text-sm font-mono leading-relaxed" dangerouslySetInnerHTML={{__html: `<span class="text-purple-400">import</span> <span class="text-white">quillix_sdk</span> <span class="text-purple-400">as</span> <span class="text-white">qx</span>\n\n<span class="text-zinc-500"># Initialize the solver</span>\n<span class="text-white">client</span> = <span class="text-white">qx.Client</span>(<span class="text-green-400">"api_key_..."</span>)\n\n<span class="text-zinc-500"># Define a complex query</span>\n<span class="text-white">response</span> = <span class="text-white">client.solve</span>(\n    <span class="text-orange-300">problem</span>=<span class="text-green-400">"Calculate the trajectory of..."</span>,\n    <span class="text-orange-300">model</span>=<span class="text-green-400">"quillix-math-v2"</span>,\n    <span class="text-orange-300">precision</span>=<span class="text-blue-400">64</span>\n)\n\n<span class="text-purple-400">print</span>(<span class="text-white">response.solution</span>)`}}></pre>
-                                    </div>
-                                </div>
+                                <button className="text-indigo-400 font-medium hover:text-indigo-300 flex items-center gap-2">Read Documentation <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg></button>
                             </div>
                         </div>
                     </div>
@@ -222,7 +303,7 @@ const LandingPage: React.FC = () => {
                             <div className="trusted-logo text-xl font-bold text-white flex items-center gap-2"><div className="w-6 h-6 rounded-full border-2 border-white border-dashed"></div> Massive</div>
                         </div>
                         <div className="mt-20 text-zinc-600 text-sm">
-                            © 2024 Quillix Intelligence Inc. All rights reserved.
+                            © 2025 Quillix Intelligence Inc. All rights reserved.
                         </div>
                     </div>
 
