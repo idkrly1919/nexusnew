@@ -8,6 +8,7 @@ import AuthPage from './pages/AuthPage';
 import SupabaseKeepAlive from './components/SupabaseKeepAlive';
 import QuizPage from './pages/QuizPage';
 import DevEnvironmentPage from './pages/DevEnvironmentPage';
+import ResetPasswordPage from './pages/ResetPasswordPage';
 
 const AppContent: React.FC = () => {
     const { session, profile, isLoading } = useSession();
@@ -44,6 +45,10 @@ const AppContent: React.FC = () => {
                 <Route 
                     path="/auth" 
                     element={session ? <Navigate to="/chat" replace /> : <AuthPage />} 
+                />
+                <Route 
+                    path="/reset-password" 
+                    element={<ResetPasswordPage />} 
                 />
                 <Route 
                     path="/chat" 

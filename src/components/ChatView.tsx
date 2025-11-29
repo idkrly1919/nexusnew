@@ -64,6 +64,11 @@ const ChatView: React.FC = () => {
     const [personalizationEntries, setPersonalizationEntries] = useState<{id: string, entry: string}[]>([]);
     const [showMemoryToast, setShowMemoryToast] = useState(false);
 
+    // Account Deletion State
+    const [showDeleteAccountModal, setShowDeleteAccountModal] = useState(false);
+    const [deletePassword, setDeletePassword] = useState('');
+    const [isDeletingAccount, setIsDeletingAccount] = useState(false);
+
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const textareaRef = useRef<HTMLTextAreaElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -226,7 +231,7 @@ const ChatView: React.FC = () => {
                 }
                 const loadedMessages: Message[] = data.map((msg: { id: string; role: string; content: string; }) => ({ id: msg.id, role: msg.role as Role, text: msg.content }));
                 setMessages(loadedMessages);
-                const history: ChatHistory = data.map((msg: { role: 'user' | 'assistant'; content: string; }) => ({ role: msg.role as 'user' | 'assistant', content: msg.content }));
+                const history: ChatHistory = data.map((msg: { role: 'user' | 'assistant'; content: string; }) => ({ role: msg.role as 'user' | 'assistant'; content: msg.content }));
                 setChatHistory(history);
             }
         };
@@ -373,10 +378,9 @@ const ChatView: React.FC = () => {
             });
     
             let title = response.choices[0].message.content?.trim() || "New Chat";
-            // Clean up potential model prefixes like "Title:" or "Title Suggestion:"
             title = title.replace(/^(title suggestion:|title:)\s*/i, '').replace(/["']/g, "");
             if (!title) {
-                title = "New Chat"; // Fallback if cleaning results in an empty string
+                title = "New Chat"; 
             }
             
             await supabase
@@ -390,7 +394,6 @@ const ChatView: React.FC = () => {
     
         } catch (error) {
             console.error("Failed to generate title on client:", error);
-            // Revert to a default title on failure
             await supabase
                 .from('conversations')
                 .update({ title: "New Chat" })
@@ -637,7 +640,6 @@ const ChatView: React.FC = () => {
             const lines = widgetContent.split('\n');
             const typeLine = lines.find(l => l.startsWith('type:'));
             
-            // Remove the widget block from the text to display clean text before/after
             const parts = text.split(widgetMatch[0]);
             const beforeText = parts[0].trim();
             const afterText = parts[1]?.trim() || '';
@@ -687,8 +689,6 @@ const ChatView: React.FC = () => {
                 </div>`;
             });
             
-            // Emoji protection: Wrap common emoji ranges in a span with no-invert class
-            // This regex covers many common emoji ranges but is not exhaustive
             const emojiRegex = /([\u2700-\u27BF]|[\uE000-\uF8FF]|\uD83C[\uDC00-\uDFFF]|\uD83D[\uDC00-\uDFFF]|[\u2011-\u26FF]|\uD83E[\uDD10-\uDDFF])/g;
             parsed = parsed.replace(emojiRegex, '<span class="no-invert inline-block">$1</span>');
 
@@ -775,6 +775,44 @@ const ChatView: React.FC = () => {
         }
     };
 
+    // Account Deletion Logic
+    const handleAccountDeletion = async (e: FormEvent) => {
+        e.preventDefault();
+        if (!session || !deletePassword) return;
+
+        setIsDeletingAccount(true);
+        try {
+            // 1. Verify password by attempting to sign in
+            const { error: signInError } = await supabase.auth.signInWithPassword({
+                email: session.user.email!,
+                password: deletePassword,
+            });
+
+            if (signInError) {
+                alert("Incorrect password. Please try again.");
+                setIsDeletingAccount(false);
+                return;
+            }
+
+            // 2. Call secure edge function to delete user
+            const { error: functionError } = await supabase.functions.invoke('delete-account');
+
+            if (functionError) throw functionError;
+
+            // 3. Clean up client state
+            await supabase.auth.signOut();
+            window.location.href = '/';
+            
+        } catch (error: any) {
+            console.error("Error deleting account:", error);
+            alert("Failed to delete account. Please try again later.");
+        } finally {
+            setIsDeletingAccount(false);
+            setDeletePassword('');
+        }
+    };
+
+
     const openSettings = async () => {
         if (session) {
             const { data, error } = await supabase
@@ -847,6 +885,34 @@ const ChatView: React.FC = () => {
                     <div data-liquid-glass className="liquid-glass flex items-center gap-3 py-2 px-5 rounded-full animate-pop-in">
                         <svg className="w-5 h-5 text-indigo-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 20h9"/><path d="M4 20h2"/><path d="M4 12h16"/><path d="M4 4h10"/><path d="M18 8h2"/><path d="M16 4v16"/></svg>
                         <span className="text-sm font-medium text-white">Memory Updated</span>
+                    </div>
+                </div>
+            )}
+
+            {showDeleteAccountModal && (
+                <div className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+                    <div data-liquid-glass className="liquid-glass w-full max-w-sm p-6 rounded-2xl animate-pop-in shadow-2xl border border-red-500/30">
+                        <h2 className="text-xl font-bold text-white mb-2">Delete Account</h2>
+                        <p className="text-zinc-400 mb-6 text-sm">
+                            This action is permanent and cannot be undone. All your data will be wiped.
+                            Please enter your password to confirm.
+                        </p>
+                        <form onSubmit={handleAccountDeletion}>
+                            <input
+                                type="password"
+                                placeholder="Enter password to confirm"
+                                value={deletePassword}
+                                onChange={(e) => setDeletePassword(e.target.value)}
+                                className="w-full bg-black/30 border border-white/10 rounded-xl px-4 py-3 text-white mb-4 focus:border-red-500/50 focus:ring-1 focus:ring-red-500/50 focus:outline-none"
+                                required
+                            />
+                            <div className="flex justify-end gap-3">
+                                <button type="button" onClick={() => { setShowDeleteAccountModal(false); setDeletePassword(''); }} className="px-4 py-2 text-zinc-300 hover:text-white hover:bg-white/10 rounded-lg transition-colors">Cancel</button>
+                                <button type="submit" disabled={isDeletingAccount} className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors disabled:opacity-50 font-medium">
+                                    {isDeletingAccount ? 'Deleting...' : 'Delete Forever'}
+                                </button>
+                            </div>
+                        </form>
                     </div>
                 </div>
             )}
@@ -1005,11 +1071,15 @@ const ChatView: React.FC = () => {
                                             </div>
                                         )}
                                     </button>
-                                    <div className="text-sm text-zinc-200 truncate">
+                                    <button 
+                                        onClick={() => setShowDeleteAccountModal(true)} 
+                                        className="text-sm text-zinc-200 truncate hover:text-red-400 transition-colors text-left"
+                                        title="Click to delete account"
+                                    >
                                         {profile?.first_name && profile?.last_name 
                                             ? `${profile.first_name} ${profile.last_name}` 
                                             : session.user.email}
-                                    </div>
+                                    </button>
                                 </div>
                                 <button onClick={() => supabase.auth.signOut()} className="text-zinc-300 hover:text-white p-1.5 hover:bg-white/10 rounded-md" title="Log Out"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg></button>
                             </div>

@@ -6,9 +6,10 @@ import LegalModal from '../components/LegalModal';
 import { termsOfService, privacyPolicy } from '../legal';
 
 const AuthPage: React.FC = () => {
-    const [step, setStep] = useState<'email' | 'login' | 'signup' | 'verify'>('email');
+    const [step, setStep] = useState<'email' | 'login' | 'signup' | 'verify' | 'forgot-password'>('email');
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [infoMessage, setInfoMessage] = useState<string | null>(null);
 
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
@@ -25,17 +26,12 @@ const AuthPage: React.FC = () => {
         
         try {
             const checkUserPromise = supabase.rpc('user_exists', { user_email: email });
-            
-            const timeoutPromise = new Promise((_, reject) => 
-                setTimeout(() => reject(new Error('Request timed out. Please check your connection and try again.')), 5000)
-            );
+            const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('Request timed out.')), 5000));
 
             // @ts-ignore
             const { data, error: rpcError } = await Promise.race([checkUserPromise, timeoutPromise]);
 
-            if (rpcError) {
-                throw rpcError;
-            }
+            if (rpcError) throw rpcError;
 
             if (data) {
                 setStep('login');
@@ -43,7 +39,7 @@ const AuthPage: React.FC = () => {
                 setStep('signup');
             }
         } catch (err: any) {
-            setError(err.message || 'Could not verify email. Please try again.');
+            setError(err.message || 'Could not verify email.');
         } finally {
             setIsLoading(false);
         }
@@ -69,12 +65,7 @@ const AuthPage: React.FC = () => {
         const { error } = await supabase.auth.signUp({
             email,
             password,
-            options: {
-                data: {
-                    first_name: firstName,
-                    last_name: lastName,
-                }
-            }
+            options: { data: { first_name: firstName, last_name: lastName } }
         });
         if (error) {
             setError(error.message);
@@ -84,20 +75,35 @@ const AuthPage: React.FC = () => {
         setIsLoading(false);
     };
 
+    const handleForgotPassword = async (e: FormEvent) => {
+        e.preventDefault();
+        setIsLoading(true);
+        setError(null);
+        setInfoMessage(null);
+
+        const { error } = await supabase.auth.resetPasswordForEmail(email, {
+            redirectTo: `${window.location.origin}/reset-password`,
+        });
+
+        if (error) {
+            setError(error.message);
+        } else {
+            setInfoMessage("If an account exists, a password reset link has been sent.");
+        }
+        setIsLoading(false);
+    };
+
     const handleGoogleLogin = async () => {
         setIsLoading(true);
         setError(null);
         const { error } = await supabase.auth.signInWithOAuth({
             provider: 'google',
-            options: {
-                redirectTo: `${window.location.origin}/chat`
-            }
+            options: { redirectTo: `${window.location.origin}/chat` }
         });
         if (error) {
             setError(error.message);
             setIsLoading(false);
         }
-        // Redirect handled automatically by Supabase
     };
 
     const renderForm = () => {
@@ -118,12 +124,8 @@ const AuthPage: React.FC = () => {
                         </form>
                         
                         <div className="relative">
-                            <div className="absolute inset-0 flex items-center">
-                                <div className="w-full border-t border-white/10"></div>
-                            </div>
-                            <div className="relative flex justify-center text-sm">
-                                <span className="px-2 bg-[#18181b] text-zinc-500 rounded-full">Or continue with</span>
-                            </div>
+                            <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-white/10"></div></div>
+                            <div className="relative flex justify-center text-sm"><span className="px-2 bg-[#18181b] text-zinc-500 rounded-full">Or continue with</span></div>
                         </div>
 
                         <button onClick={handleGoogleLogin} disabled={isLoading} className="w-full flex items-center justify-center gap-3 py-3 px-4 border border-white/10 bg-white text-black hover:bg-zinc-200 rounded-full shadow-sm text-sm font-medium transition-colors disabled:opacity-50">
@@ -141,11 +143,31 @@ const AuthPage: React.FC = () => {
                             <div className="mt-1">
                                 <input id="password" name="password" type="password" value={password} onChange={e => setPassword(e.target.value)} required className="w-full bg-white/5 border border-white/10 rounded-full px-4 py-3 text-white placeholder-zinc-500 focus:outline-none focus:border-indigo-500/50 focus:ring-2 focus:ring-indigo-500/30 transition-all duration-300" />
                             </div>
+                             <div className="text-right">
+                                <button type="button" onClick={() => setStep('forgot-password')} className="text-xs text-indigo-400 hover:text-indigo-300">Forgot Password?</button>
+                            </div>
                         </div>
                         <button type="submit" disabled={isLoading} className="w-full flex justify-center py-3 px-4 border border-transparent rounded-full shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:bg-zinc-700">
                             {isLoading ? 'Signing In...' : 'Sign In'}
                         </button>
                         <button onClick={() => setStep('email')} className="w-full text-center text-sm text-zinc-400 hover:text-white">Use a different email</button>
+                    </form>
+                );
+            case 'forgot-password':
+                return (
+                    <form onSubmit={handleForgotPassword} className="space-y-6 animate-pop-in">
+                        <div className="text-center">
+                            <h3 className="text-lg font-medium text-white">Reset Password</h3>
+                            <p className="text-sm text-zinc-400 mt-2">Enter your email and we'll send you a link to reset your password.</p>
+                        </div>
+                        <input type="email" value={email} onChange={e => setEmail(e.target.value)} required placeholder="Enter your email" className="w-full bg-white/5 border border-white/10 rounded-full px-4 py-3 text-white placeholder-zinc-500 focus:outline-none focus:border-indigo-500/50 focus:ring-2 focus:ring-indigo-500/30" />
+                        
+                        {infoMessage && <div className="p-3 bg-indigo-500/20 text-indigo-200 text-sm rounded-lg text-center">{infoMessage}</div>}
+                        
+                        <button type="submit" disabled={isLoading} className="w-full flex justify-center py-3 px-4 border border-transparent rounded-full shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 disabled:bg-zinc-700">
+                            {isLoading ? 'Sending...' : 'Send Reset Link'}
+                        </button>
+                         <button type="button" onClick={() => setStep('login')} className="w-full text-center text-sm text-zinc-400 hover:text-white">Back to Login</button>
                     </form>
                 );
             case 'signup':
@@ -203,10 +225,10 @@ const AuthPage: React.FC = () => {
                             <span className="text-3xl font-bold tracking-tight brand-font">Quillix</span>
                         </div>
                         <h1 className="text-2xl font-bold text-white">
-                            {step === 'login' ? 'Welcome Back' : step === 'signup' ? 'Create your Account' : step === 'verify' ? 'One Last Step' : 'Welcome to Quillix'}
+                            {step === 'login' ? 'Welcome Back' : step === 'signup' ? 'Create your Account' : step === 'verify' ? 'One Last Step' : step === 'forgot-password' ? 'Recover Account' : 'Welcome to Quillix'}
                         </h1>
                         <p className="text-zinc-400">
-                            {step === 'login' ? 'Sign in to continue' : step === 'signup' ? 'Just a few details to get started' : step === 'verify' ? 'Verify your email to continue' : 'Sign in or create an account'}
+                            {step === 'login' ? 'Sign in to continue' : step === 'signup' ? 'Just a few details to get started' : step === 'verify' ? 'Verify your email to continue' : step === 'forgot-password' ? 'Get back into your account' : 'Sign in or create an account'}
                         </p>
                     </div>
                     <div data-liquid-glass className="liquid-glass p-8 rounded-2xl animate-pop-in" style={{ animationDelay: '100ms' }}>
