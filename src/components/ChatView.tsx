@@ -231,7 +231,7 @@ const ChatView: React.FC = () => {
                 }
                 const loadedMessages: Message[] = data.map((msg: { id: string; role: string; content: string; }) => ({ id: msg.id, role: msg.role as Role, text: msg.content }));
                 setMessages(loadedMessages);
-                const history: ChatHistory = data.map((msg: { role: 'user' | 'assistant'; content: string; }) => ({ role: msg.role as 'user' | 'assistant'; content: msg.content }));
+                const history: ChatHistory = data.map((msg: { role: 'user' | 'assistant'; content: string; }) => ({ role: msg.role as 'user' | 'assistant', content: msg.content }));
                 setChatHistory(history);
             }
         };
