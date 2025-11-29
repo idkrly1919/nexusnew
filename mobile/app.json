@@ -9,11 +9,7 @@
       "supportsTablet": true
     },
     "android": {
-      "package": "com.quillix.mobile",
-      "permissions": [
-        "android.permission.RECORD_AUDIO",
-        "android.permission.INTERNET"
-      ]
+      "backgroundColor": "#111014"
     }
   }
 }
