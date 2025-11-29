@@ -301,7 +301,7 @@ const ChatView: React.FC = () => {
         };
     
         const handlePaste = (e: ClipboardEvent) => {
-            if (e.clipboardData?.files) {
+            if (e.clipboardData?.files && e.clipboardData.files.length > 0) {
                 e.preventDefault();
                 processFiles(e.clipboardData.files);
             }

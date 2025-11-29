@@ -85,7 +85,7 @@ const QuizPage: React.FC = () => {
 
     useEffect(() => {
         const handlePaste = (e: ClipboardEvent) => {
-            if (e.clipboardData?.files) {
+            if (e.clipboardData?.files && e.clipboardData.files.length > 0) {
                 e.preventDefault();
                 const files = Array.from(e.clipboardData.files);
                 setAttachedFiles(prev => [...prev, ...files].slice(0, 10));
