@@ -60,6 +60,7 @@ const ChatView: React.FC = () => {
     const [isDataLoading, setIsDataLoading] = useState(true);
     const [currentConversationId, setCurrentConversationId] = useState<string | null>(null);
     const [activePersona, setActivePersona] = useState<Persona | null>(null);
+    const [activePersonaFile, setActivePersonaFile] = useState<{ name: string, content: string, type: string } | null>(null);
     const [isPersonaListOpen, setIsPersonaListOpen] = useState(true);
     const [backgroundStatus, setBackgroundStatus] = useState<'idle' | 'loading-text' | 'loading-image'>('idle');
 
@@ -102,8 +103,38 @@ const ChatView: React.FC = () => {
         setCurrentConversationId(paramConversationId || null);
         if (!paramConversationId) {
             setActivePersona(null);
+            setActivePersonaFile(null);
         }
     }, [paramConversationId]);
+
+    // Effect to load persona file when active persona changes
+    useEffect(() => {
+        const loadPersonaFile = async () => {
+            if (activePersona && activePersona.file_path) {
+                try {
+                    const { data, error } = await supabase.storage.from('persona_files').download(activePersona.file_path);
+                    if (error) throw error;
+                    
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        const content = e.target?.result as string;
+                        setActivePersonaFile({
+                            name: activePersona.file_name || 'attached_file',
+                            type: activePersona.file_type || data.type,
+                            content: content
+                        });
+                    };
+                    reader.readAsDataURL(data);
+                } catch (error) {
+                    console.error("Error loading persona file:", error);
+                    setActivePersonaFile(null);
+                }
+            } else {
+                setActivePersonaFile(null);
+            }
+        };
+        loadPersonaFile();
+    }, [activePersona]);
 
     useEffect(() => {
         if (profile?.image_model_preference) {
@@ -255,12 +286,7 @@ const ChatView: React.FC = () => {
                 }
             };
 
-            if (file.type.startsWith('image/')) {
-                reader.readAsDataURL(file);
-            } else {
-                // For all other files, try to read as text to allow code/text analysis
-                reader.readAsText(file);
-            }
+            reader.readAsDataURL(file);
         });
     };
 
@@ -321,6 +347,7 @@ const ChatView: React.FC = () => {
         setAttachedFiles(prev => prev.filter(f => f.id !== fileId));
     };
     
+    // ... (Keep existing TTS logic) ...
     const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
     useEffect(() => {
         const synth = window.speechSynthesis;
@@ -346,6 +373,7 @@ const ChatView: React.FC = () => {
             window.speechSynthesis.speak(utterance);
         }
     };
+
     const handleStop = () => {
         if (abortControllerRef.current) {
             abortControllerRef.current.abort();
@@ -355,6 +383,7 @@ const ChatView: React.FC = () => {
     };
 
     const generateTitleOnClient = async (userMessage: string, conversationId: string) => {
+        // ... (Keep existing title generation logic) ...
         // @ts-ignore
         const apiKey = process.env.API_KEY;
         if (!apiKey) {
@@ -466,7 +495,6 @@ const ChatView: React.FC = () => {
                 setMessages(prev => prev.map(m => m.id === summaryMessageId ? { ...m, text: 'Could not compress history. Proceeding with full context.' } : m));
             }
         }
-        // --- End Context Management ---
 
         const videoKeywords = ['make a video', 'generate a video', 'create a video', 'video of'];
         const isVideoRequest = videoKeywords.some(k => userText.toLowerCase().includes(k));
@@ -561,7 +589,7 @@ const ChatView: React.FC = () => {
                 profile?.first_name, 
                 personalizationData, 
                 activePersona?.instructions || null,
-                activePersona?.file_context || null
+                activePersonaFile // Passing the persistent file
             );
             let assistantMessageExists = false;
             let accumulatedText = "";
@@ -625,6 +653,7 @@ const ChatView: React.FC = () => {
         }
     }, [inputValue]);
     
+    // ... (Keep remaining functions: startNewPersonaChat, resetChat, handleDeleteConversation, renderMessageContent, handleDeleteAllConversations, openSettings, handleDeletePersonalization, groupConversations, generalConversations, groupedConversations) ...
     const startNewPersonaChat = (persona: Persona) => {
         setActivePersona(persona);
         navigate('/chat');
@@ -926,6 +955,7 @@ const ChatView: React.FC = () => {
                 </div>
             )}
 
+            {/* Sidebar code */}
             <div data-liquid-glass className={`fixed inset-y-0 left-0 z-40 w-72 liquid-glass border-l-0 border-t-0 border-b-0 rounded-none rounded-r-2xl transform transition-transform duration-300 ease-in-out ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
                 <div className="flex flex-col h-full p-4 space-y-4">
                     <div className="flex justify-between items-center"><div className="font-bold tracking-wide text-white flex items-center gap-2"><img src="/quillix-logo.png" alt="Quillix Logo" className="w-6 h-6 animate-spin-slow" />Quillix</div><button onClick={() => setIsSidebarOpen(false)} className="text-zinc-400 hover:text-white p-1 rounded-full hover:bg-white/10"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m15 18-6-6 6-6"/></svg></button></div>

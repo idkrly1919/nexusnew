@@ -17,6 +17,7 @@ const PersonaManager: React.FC<PersonaManagerProps> = ({ isOpen, onClose, onPers
     const [currentPersona, setCurrentPersona] = useState<Partial<Persona> | null>(null);
     const [isSaving, setIsSaving] = useState(false);
     const [isEnhancing, setIsEnhancing] = useState(false);
+    const [selectedFile, setSelectedFile] = useState<File | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     const fetchPersonas = async () => {
@@ -39,33 +40,60 @@ const PersonaManager: React.FC<PersonaManagerProps> = ({ isOpen, onClose, onPers
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file) {
-            const reader = new FileReader();
-            reader.onload = (event) => {
-                const content = event.target?.result as string;
-                setCurrentPersona(p => ({ ...p, file_context: content, file_name: file.name }));
-            };
-            reader.readAsText(file);
+            setSelectedFile(file);
+            setCurrentPersona(p => ({ ...p, file_name: file.name }));
         }
     };
 
     const removeFile = () => {
-        setCurrentPersona(p => ({ ...p, file_context: undefined, file_name: undefined }));
+        setSelectedFile(null);
+        setCurrentPersona(p => ({ ...p, file_path: null, file_type: null, file_name: null }));
         if (fileInputRef.current) {
             fileInputRef.current.value = "";
         }
     };
 
     const handleSave = async () => {
-        if (!user || !currentPersona || !currentPersona.name || !currentPersona.instructions) return;
+        if (!user || !currentPersona || !currentPersona.name || !currentPersona.instructions) {
+            alert("Name and Instructions are required.");
+            return;
+        }
         setIsSaving(true);
+
+        let filePath = currentPersona.file_path;
+        let fileType = currentPersona.file_type;
+
+        // Handle File Upload
+        if (selectedFile) {
+            try {
+                const fileExt = selectedFile.name.split('.').pop();
+                const fileName = `${user.id}/${Date.now()}_${fileExt}`;
+                const { error: uploadError } = await supabase.storage
+                    .from('persona_files')
+                    .upload(fileName, selectedFile, {
+                        upsert: true
+                    });
+                
+                if (uploadError) throw uploadError;
+                
+                filePath = fileName;
+                fileType = selectedFile.type;
+            } catch (error: any) {
+                console.error("File upload failed:", error);
+                alert("Failed to upload file: " + error.message);
+                setIsSaving(false);
+                return;
+            }
+        }
         
         const personaData = {
             user_id: user.id,
             name: currentPersona.name,
             description: currentPersona.description,
             instructions: currentPersona.instructions,
-            file_context: currentPersona.file_context,
             file_name: currentPersona.file_name,
+            file_path: filePath,
+            file_type: fileType,
             updated_at: new Date().toISOString(),
         };
 
@@ -88,6 +116,7 @@ const PersonaManager: React.FC<PersonaManagerProps> = ({ isOpen, onClose, onPers
             onPersonaUpdate();
             setView('list');
             setCurrentPersona(null);
+            setSelectedFile(null);
         }
         setIsSaving(false);
     };
@@ -137,12 +166,12 @@ const PersonaManager: React.FC<PersonaManagerProps> = ({ isOpen, onClose, onPers
                                         <p className="text-sm text-zinc-400 truncate max-w-md">{p.description || 'No description'}</p>
                                     </div>
                                     <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                        <button onClick={() => { setCurrentPersona(p); setView('form'); }} className="p-2 rounded-full hover:bg-white/10 text-zinc-300 hover:text-white">Edit</button>
+                                        <button onClick={() => { setCurrentPersona(p); setSelectedFile(null); setView('form'); }} className="p-2 rounded-full hover:bg-white/10 text-zinc-300 hover:text-white">Edit</button>
                                         <button onClick={() => handleDelete(p.id)} className="p-2 rounded-full hover:bg-red-500/10 text-zinc-300 hover:text-red-400">Delete</button>
                                     </div>
                                 </div>
                             ))}
-                            <button onClick={() => { setCurrentPersona({}); setView('form'); }} className="w-full mt-4 p-4 border-2 border-dashed border-white/20 rounded-xl text-zinc-400 hover:border-white/40 hover:text-white transition-colors">
+                            <button onClick={() => { setCurrentPersona({}); setSelectedFile(null); setView('form'); }} className="w-full mt-4 p-4 border-2 border-dashed border-white/20 rounded-xl text-zinc-400 hover:border-white/40 hover:text-white transition-colors">
                                 + Create New Persona
                             </button>
                         </div>
@@ -152,18 +181,22 @@ const PersonaManager: React.FC<PersonaManagerProps> = ({ isOpen, onClose, onPers
                             <input type="text" placeholder="Description (e.g., 'Helps with programming questions')" value={currentPersona?.description || ''} onChange={e => setCurrentPersona(p => ({ ...p, description: e.target.value }))} className="w-full bg-white/5 border border-white/10 rounded-full px-4 py-3 text-white" />
                             <textarea placeholder="Instructions (e.g., 'You are an expert programmer...')" value={currentPersona?.instructions || ''} onChange={e => setCurrentPersona(p => ({ ...p, instructions: e.target.value }))} rows={8} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white resize-none" />
                             <div>
-                                <label className="block text-sm font-medium text-zinc-400 mb-2">Context File (Optional)</label>
+                                <label className="block text-sm font-medium text-zinc-400 mb-2">Persistent Attachment (Image, Video, Text, etc.)</label>
+                                <p className="text-xs text-zinc-500 mb-2">This file will be visible to the AI in every chat with this persona.</p>
                                 {currentPersona?.file_name ? (
                                     <div className="flex items-center justify-between bg-white/5 p-2.5 rounded-lg">
-                                        <p className="text-sm text-zinc-300 truncate">{currentPersona.file_name}</p>
+                                        <div className="flex items-center gap-2 overflow-hidden">
+                                            <svg className="w-4 h-4 text-indigo-400 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                                            <p className="text-sm text-zinc-300 truncate">{currentPersona.file_name}</p>
+                                        </div>
                                         <button onClick={removeFile} className="text-xs text-red-400 hover:text-red-300">Remove</button>
                                     </div>
                                 ) : (
                                     <button onClick={() => fileInputRef.current?.click()} className="w-full p-3 border-2 border-dashed border-white/20 rounded-xl text-zinc-400 hover:border-white/40 hover:text-white transition-colors text-sm">
-                                        Upload Context File (.txt, .md, .json, etc.)
+                                        Upload File
                                     </button>
                                 )}
-                                <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" accept=".txt,.md,.json,.csv" />
+                                <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" />
                             </div>
                             <div className="flex justify-between items-center pt-2">
                                 <button onClick={() => setView('list')} className="text-zinc-400 hover:text-white">Cancel</button>
