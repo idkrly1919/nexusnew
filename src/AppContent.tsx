@@ -44,7 +44,7 @@ const AppContent: React.FC = () => {
                 />
                 <Route 
                     path="/auth" 
-                    element={session ? <Navigate to="/chat" replace /> : <AuthPage />} 
+                    element={session ? <Navigate to="/chat" replace /> : <><ChatView /><AuthPage /></>} 
                 />
                 <Route 
                     path="/reset-password" 
