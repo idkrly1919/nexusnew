@@ -160,10 +160,10 @@ const PersonaManager: React.FC<PersonaManagerProps> = ({ isOpen, onClose, onPers
                                     </div>
                                 ) : (
                                     <button onClick={() => fileInputRef.current?.click()} className="w-full p-3 border-2 border-dashed border-white/20 rounded-xl text-zinc-400 hover:border-white/40 hover:text-white transition-colors text-sm">
-                                        Upload Context File (.txt, .md, .json)
+                                        Upload Context File (.txt, .md, .json, etc.)
                                     </button>
                                 )}
-                                <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" accept=".txt, .md, .json, .csv" />
+                                <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" accept=".txt,.md,.json,.csv" />
                             </div>
                             <div className="flex justify-between items-center pt-2">
                                 <button onClick={() => setView('list')} className="text-zinc-400 hover:text-white">Cancel</button>
