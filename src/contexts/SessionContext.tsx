@@ -42,6 +42,34 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
         }
     };
 
+    // New function to fetch profile with retries
+    const fetchProfileWithRetry = async (userId: string, retries = 3, delay = 500): Promise<{ data: Profile | null, error: any }> => {
+        for (let i = 0; i < retries; i++) {
+            const { data, error } = await supabase
+                .from('profiles')
+                .select('*')
+                .eq('id', userId)
+                .single();
+
+            if (data) {
+                return { data, error: null };
+            }
+
+            // PGRST116: "The result contains 0 rows" - this is the error for not found
+            if (error && error.code !== 'PGRST116') {
+                // It's a real error, not just "not found", so we return it immediately.
+                return { data: null, error };
+            }
+
+            // If profile not found, wait and retry. This handles the race condition on new sign-ups.
+            if (i < retries - 1) {
+                await new Promise(res => setTimeout(res, delay));
+                delay *= 2; // Exponential backoff
+            }
+        }
+        return { data: null, error: { message: 'Profile not found after multiple retries.' } };
+    };
+
     useEffect(() => {
         const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
             try {
@@ -49,29 +77,14 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
                     setSession(session);
                     setUser(session.user);
 
-                    try {
-                        const profilePromise = supabase
-                            .from('profiles')
-                            .select('*')
-                            .eq('id', session.user.id)
-                            .single();
-                        
-                        const timeoutPromise = new Promise((_, reject) => 
-                            setTimeout(() => reject(new Error('Profile fetch timed out after 3 seconds.')), 3000)
-                        );
+                    // Use the new retry logic
+                    const { data: profileData, error } = await fetchProfileWithRetry(session.user.id);
 
-                        // @ts-ignore
-                        const { data: profileData, error } = await Promise.race([profilePromise, timeoutPromise]);
-
-                        if (error) {
-                            console.error("Error fetching profile:", error.message);
-                            setProfile(null);
-                        } else {
-                            setProfile(profileData);
-                        }
-                    } catch (profileError: any) {
-                        console.error("Caught error during profile fetch:", profileError.message);
+                    if (error) {
+                        console.error("Error fetching profile:", error.message);
                         setProfile(null);
+                    } else {
+                        setProfile(profileData as Profile);
                     }
 
                 } else if (event === 'SIGNED_OUT') {
