@@ -136,7 +136,7 @@ const LandingPage: React.FC = () => {
                         </h1>
 
                         <p className="text-lg md:text-xl text-zinc-400 max-w-3xl mx-auto leading-relaxed">
-                            The next generation reasoning engine. Solves complex logic, proofs, and data analysis with a fluid, intuitive interface.
+                            Quillix is the best free <span className="text-white font-medium">ChatGPT / Claude Pro alternative</span>. Access the smartest models, enjoy <span className="text-white font-medium">unlimited uploads</span>, take AI quizzes, and more—completely free. Solves complex logic, proofs, and data analysis with a fluid, intuitive interface.
                         </p>
 
                         <div className="max-w-md mx-auto mt-10">
