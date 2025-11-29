@@ -152,7 +152,7 @@ const PersonaManager: React.FC<PersonaManagerProps> = ({ isOpen, onClose, onPers
                             <input type="text" placeholder="Description (e.g., 'Helps with programming questions')" value={currentPersona?.description || ''} onChange={e => setCurrentPersona(p => ({ ...p, description: e.target.value }))} className="w-full bg-white/5 border border-white/10 rounded-full px-4 py-3 text-white" />
                             <textarea placeholder="Instructions (e.g., 'You are an expert programmer...')" value={currentPersona?.instructions || ''} onChange={e => setCurrentPersona(p => ({ ...p, instructions: e.target.value }))} rows={8} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white resize-none" />
                             <div>
-                                <label className="block text-sm font-medium text-zinc-400 mb-2">Knowledge File (Optional)</label>
+                                <label className="block text-sm font-medium text-zinc-400 mb-2">Context File (Optional)</label>
                                 {currentPersona?.file_name ? (
                                     <div className="flex items-center justify-between bg-white/5 p-2.5 rounded-lg">
                                         <p className="text-sm text-zinc-300 truncate">{currentPersona.file_name}</p>
@@ -160,11 +160,10 @@ const PersonaManager: React.FC<PersonaManagerProps> = ({ isOpen, onClose, onPers
                                     </div>
                                 ) : (
                                     <button onClick={() => fileInputRef.current?.click()} className="w-full p-3 border-2 border-dashed border-white/20 rounded-xl text-zinc-400 hover:border-white/40 hover:text-white transition-colors text-sm">
-                                        Upload Knowledge File
+                                        Upload Context File (.txt, .md, .json, etc.)
                                     </button>
                                 )}
-                                <p className="text-xs text-zinc-500 mt-2">Note: Only text-based files (e.g., .txt, .md, .js) can be fully understood by the AI. The contents of this file will be available to the persona in all its chats.</p>
-                                <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" />
+                                <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" accept=".txt,.md,.json,.csv" />
                             </div>
                             <div className="flex justify-between items-center pt-2">
                                 <button onClick={() => setView('list')} className="text-zinc-400 hover:text-white">Cancel</button>

@@ -42,6 +42,7 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
         }
     };
 
+    // New function to fetch profile with retries
     const fetchProfileWithRetry = async (userId: string, retries = 3, delay = 500): Promise<{ data: Profile | null, error: any }> => {
         for (let i = 0; i < retries; i++) {
             const { data, error } = await supabase
@@ -54,43 +55,50 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
                 return { data, error: null };
             }
 
+            // PGRST116: "The result contains 0 rows" - this is the error for not found
             if (error && error.code !== 'PGRST116') {
+                // It's a real error, not just "not found", so we return it immediately.
                 return { data: null, error };
             }
 
+            // If profile not found, wait and retry. This handles the race condition on new sign-ups.
             if (i < retries - 1) {
                 await new Promise(res => setTimeout(res, delay));
-                delay *= 2;
+                delay *= 2; // Exponential backoff
             }
         }
         return { data: null, error: { message: 'Profile not found after multiple retries.' } };
     };
 
     useEffect(() => {
-        const fetchInitialSession = async () => {
-            setIsLoading(true);
-            const { data: { session } } = await supabase.auth.getSession();
-            
-            setSession(session);
-            setUser(session?.user ?? null);
+        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+            try {
+                if (session?.user) {
+                    setSession(session);
+                    setUser(session.user);
 
-            if (session?.user) {
-                const { data: profileData } = await fetchProfileWithRetry(session.user.id);
-                setProfile(profileData as Profile | null);
-            }
-            setIsLoading(false);
-        };
+                    // Use the new retry logic
+                    const { data: profileData, error } = await fetchProfileWithRetry(session.user.id);
 
-        fetchInitialSession();
+                    if (error) {
+                        console.error("Error fetching profile:", error.message);
+                        setProfile(null);
+                    } else {
+                        setProfile(profileData as Profile);
+                    }
 
-        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
-            setSession(session);
-            setUser(session?.user ?? null);
-            if (session?.user) {
-                const { data: profileData } = await fetchProfileWithRetry(session.user.id);
-                setProfile(profileData as Profile | null);
-            } else {
+                } else if (event === 'SIGNED_OUT') {
+                    setSession(null);
+                    setUser(null);
+                    setProfile(null);
+                }
+            } catch (e: any) {
+                console.error("A critical error occurred during the authentication process:", e.message);
+                setSession(null);
+                setUser(null);
                 setProfile(null);
+            } finally {
+                setIsLoading(false);
             }
         });
 
@@ -101,6 +109,9 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
     useEffect(() => {
         const handleVisibilityChange = () => {
+            // This helps refresh the session if the user was away for a long time.
+            // The Supabase client handles background token refreshing automatically,
+            // but this ensures the session state is synced on tab focus.
             if (document.visibilityState === 'visible') {
                 supabase.auth.getSession();
             }
