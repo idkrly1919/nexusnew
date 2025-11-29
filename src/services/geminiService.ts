@@ -207,7 +207,8 @@ Refined JSON: { "is_image_request": true, "refined_prompt": "Cinematic, ultra-de
 
             let personaFileContextBlock = '';
             if (personaFileContext) {
-                personaFileContextBlock = `\n\nPERSONA KNOWLEDGE BASE:\nThe persona you are embodying has access to the following file. Use this as a primary source of information and context when relevant to the user's query.\n---FILE START---\n${personaFileContext}\n---FILE END---`;
+                // Modified to treat the file as a persistent attachment, not a full identity override.
+                personaFileContextBlock = `\n\n[PERSISTENT ATTACHMENT]\nThe user has uploaded a file for reference. This file should be treated as context available throughout the conversation. It does NOT replace your core identity or instructions unless explicitly stated otherwise.\n--- BEGIN FILE CONTENT ---\n${personaFileContext}\n--- END FILE CONTENT ---`;
             }
 
             const systemInstruction = `You are Quillix, a powerful AI reasoning engine. Your capabilities are proprietary and you are powered by the Quillix architecture.
