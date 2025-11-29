@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, FormEvent } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import OpenAI from 'openai';
+import katex from 'katex';
 import { Message, ChatHistory, PersonalityMode, Conversation, Role, Persona } from '../types';
 import { streamGemini, summarizeHistory } from '../services/geminiService';
 import { ThinkingProcess } from './ThinkingProcess';
@@ -107,7 +108,6 @@ const ChatView: React.FC = () => {
         }
     }, [paramConversationId]);
 
-    // Effect to load persona file when active persona changes
     useEffect(() => {
         const loadPersonaFile = async () => {
             if (activePersona && activePersona.file_path) {
@@ -166,6 +166,132 @@ const ChatView: React.FC = () => {
     };
 
     useEffect(scrollToBottom, [messages, isLoading]);
+
+    // Handle regenerating the last response
+    const handleRegenerate = async () => {
+        if (messages.length < 2 || isLoading) return;
+
+        // Find the last user message
+        const lastUserMsgIndex = messages.findLastIndex(m => m.role === 'user');
+        if (lastUserMsgIndex === -1) return;
+
+        const lastUserMsg = messages[lastUserMsgIndex];
+        
+        // Remove everything after the last user message from UI
+        setMessages(prev => prev.slice(0, lastUserMsgIndex + 1));
+        
+        // Remove the last AI response from chat history to avoid context duplication
+        // We assume chat history is synced. We'll pop the last item if it's an assistant message.
+        setChatHistory(prev => {
+            const newHistory = [...prev];
+            if (newHistory.length > 0 && newHistory[newHistory.length - 1].role === 'assistant') {
+                newHistory.pop();
+            }
+            return newHistory;
+        });
+
+        // Trigger generation with the text of the last user message
+        // Note: we pass the text directly but we rely on the trimmed history for context
+        // We strip any HTML/image tags from the display text to get the raw prompt if possible,
+        // but since we don't store raw prompt separately, we use the display text. 
+        // Ideally we'd store raw prompt, but for now this works for text-only regenerations.
+        // For file attachments, since we cleared attachedFiles state, this might just send text.
+        // A full robust solution would need to re-hydrate attachedFiles from the message history.
+        // For now, we'll re-run the text portion.
+        
+        // Extract plain text from the message if it contains HTML (like images)
+        const div = document.createElement("div");
+        div.innerHTML = lastUserMsg.text;
+        const rawText = div.textContent || lastUserMsg.text; // Simple extraction
+        
+        // Remove the user message we just found from the UI so processSubmission can re-add it? 
+        // No, processSubmission adds a NEW user message.
+        // We need a special logic to NOT add a new user message but just generate.
+        // For simplicity: We will delete the last Assistant message, and then call a specialized generation function
+        // that doesn't add a user message.
+        
+        reGenerateResponse(rawText);
+    };
+
+    const reGenerateResponse = async (userText: string) => {
+        setIsLoading(true);
+        setThinkingMode('reasoning');
+        
+        if (textareaRef.current) textareaRef.current.style.height = '52px';
+
+        const controller = new AbortController();
+        abortControllerRef.current = controller;
+        
+        // Load personalization
+        let personalizationData: string[] = [];
+        if (session) {
+            const { data, error } = await supabase.from('user_personalization').select('entry').eq('user_id', session.user.id);
+            if (!error && data) {
+                personalizationData = data.map(item => item.entry);
+            }
+        }
+
+        try {
+            // We pass the CURRENT chat history (which we just trimmed)
+            const stream = streamGemini(
+                userText, 
+                chatHistory, // This should be the trimmed history
+                true, 
+                personality, 
+                imageModelPref, 
+                [], // No new files for regen
+                controller.signal, 
+                profile?.first_name, 
+                personalizationData, 
+                activePersona?.instructions || null,
+                activePersonaFile
+            );
+            
+            let assistantMessageExists = false;
+            let accumulatedText = "";
+            const aiMsgId = `ai-${Date.now()}`;
+            
+            for await (const update of stream) {
+                if (update.mode) { setThinkingMode(update.mode); }
+                if (!assistantMessageExists) { 
+                    setMessages(prev => [...prev, { id: aiMsgId, role: 'assistant', text: '' }]); 
+                    assistantMessageExists = true; 
+                }
+                if (update.text) {
+                    accumulatedText = update.text;
+                    setMessages(prev => prev.map(msg => msg.id === aiMsgId ? { ...msg, text: accumulatedText } : msg));
+                }
+                if (update.isComplete) {
+                    const saveRegex = /<SAVE_PERSONALIZATION>(.*?)<\/SAVE_PERSONALIZATION>/s;
+                    const match = accumulatedText.match(saveRegex);
+                    let cleanedText = accumulatedText;
+
+                    if (match && match[1]) {
+                        const factToSave = match[1].trim();
+                        handleAutoSavePersonalization(factToSave);
+                        cleanedText = accumulatedText.replace(saveRegex, '').trim();
+                        setMessages(prev => prev.map(msg => msg.id === aiMsgId ? { ...msg, text: cleanedText } : msg));
+                    }
+
+                    if (session && currentConversationId) {
+                        await supabase.from('messages').insert({ conversation_id: currentConversationId, user_id: session.user.id, role: 'assistant', content: cleanedText });
+                    }
+                    if (update.newHistoryEntry) { 
+                        const newEntry = { ...update.newHistoryEntry, content: cleanedText };
+                        // We don't add the user message to history here because it's already there from the previous turn
+                        setChatHistory(prev => [...prev, newEntry]); 
+                    }
+                }
+            }
+        } catch (err: any) {
+            if (err.name !== 'AbortError') {
+                 setMessages(prev => [...prev, { id: `error-${Date.now()}`, role: 'assistant', text: `**System Error:** ${err.message || "An unexpected error occurred."}` }]);
+            }
+        } finally {
+            setIsLoading(false);
+            abortControllerRef.current = null;
+        }
+    };
 
     useEffect(() => {
         const handleChatViewClick = async (e: MouseEvent) => {
@@ -719,7 +845,35 @@ const ChatView: React.FC = () => {
         const match = text.match(fileBlockRegex);
     
         const simpleParse = (str: string) => {
-            let parsed = str.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, (_, alt, url) => {
+            let parsed = str;
+
+            // --- Math Rendering (LaTeX) ---
+            // 1. Block Math: $$...$$
+            parsed = parsed.replace(/\$\$([\s\S]*?)\$\$/g, (_, equation) => {
+                try {
+                    return `<div class="my-4 text-center overflow-x-auto">${katex.renderToString(equation, { displayMode: true, throwOnError: false })}</div>`;
+                } catch (e) {
+                    return `$$${equation}$$`;
+                }
+            });
+
+            // 2. Inline Math: \(...\) or $...$ (careful with $)
+            // Using a simpler regex for inline math that avoids matching normal currency like $10
+            // We match $...$ where ... doesn't start with space or digit
+            parsed = parsed.replace(/\\\[(.*?)\\\]/g, (_, equation) => {
+                try {
+                     return katex.renderToString(equation, { displayMode: true, throwOnError: false });
+                } catch(e) { return `\\[${equation}\\]`; }
+            });
+
+            parsed = parsed.replace(/\\\((.*?)\\\)/g, (_, equation) => {
+                try {
+                     return katex.renderToString(equation, { displayMode: false, throwOnError: false });
+                } catch(e) { return `\\(${equation}\\)`; }
+            });
+            
+            // Standard Image Parsing
+            parsed = parsed.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, (_, alt, url) => {
                 const downloadIcon = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>`;
                 const fullscreenIcon = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg>`;
                 return `<div class="mt-3 mb-3 block w-full">
@@ -1132,17 +1286,29 @@ const ChatView: React.FC = () => {
                         </div>
                     ) : (
                         <div className="max-w-5xl mx-auto px-4 py-8 space-y-8">
-                            {messages.map((msg) => (
-                                <div key={msg.id} className={`flex items-start gap-4 animate-pop-in ${msg.role === 'user' ? 'justify-end' : ''}`}>
+                            {messages.map((msg, index) => (
+                                <div key={msg.id} className={`flex items-start gap-4 animate-pop-in ${msg.role === 'user' ? 'justify-end' : ''} group`}>
                                     {msg.role === 'assistant' && <div className="shrink-0 mt-1"><NexusIconSmall /></div>}
-                                    <div data-liquid-glass className={`max-w-[85%] leading-relaxed ${msg.role === 'user' ? 'light-liquid-glass text-white px-5 py-3 rounded-3xl rounded-br-lg' : 'dark-liquid-glass px-5 py-3 rounded-3xl rounded-bl-lg'}`}>
+                                    <div data-liquid-glass className={`relative max-w-[85%] leading-relaxed ${msg.role === 'user' ? 'light-liquid-glass text-white px-5 py-3 rounded-3xl rounded-br-lg' : 'dark-liquid-glass px-5 py-3 rounded-3xl rounded-bl-lg'}`}>
                                         <div className="font-medium text-sm text-zinc-400 mb-2">
                                             {msg.role === 'assistant' ? (activePersona?.name || 'Quillix') : 'You'}
                                         </div>
                                         <div className={`${msg.role === 'assistant' ? 'text-zinc-100 prose prose-invert prose-sm max-w-none' : ''}`}>
                                             {renderMessageContent(msg.text)}
                                         </div>
-                                        {msg.role === 'assistant' && !isLoading && (<div className="flex items-center gap-2 mt-3"><button onClick={() => handleTTS(msg.text)} className="p-1.5 text-zinc-500 hover:text-zinc-300 hover:bg-white/5 rounded-md transition-colors" title="Read Aloud"><svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path></svg></button></div>)}
+                                        {msg.role === 'assistant' && !isLoading && (
+                                            <div className="flex items-center gap-2 mt-3 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                <button onClick={() => handleTTS(msg.text)} className="p-1.5 text-zinc-500 hover:text-zinc-300 hover:bg-white/5 rounded-md transition-colors" title="Read Aloud">
+                                                    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path></svg>
+                                                </button>
+                                                {/* Only show Regenerate for the LAST assistant message */}
+                                                {index === messages.length - 1 && (
+                                                    <button onClick={handleRegenerate} className="p-1.5 text-zinc-500 hover:text-indigo-400 hover:bg-white/5 rounded-md transition-colors" title="Regenerate Response">
+                                                        <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M16 21h5v-5"/></svg>
+                                                    </button>
+                                                )}
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
                             ))}
