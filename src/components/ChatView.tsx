@@ -17,6 +17,7 @@ import StockWidget from './StockWidget';
 import WeatherWidget from './WeatherWidget';
 import LegalModal from './LegalModal';
 import SupportModal from './SupportModal';
+import AccountSettingsModal from './AccountSettingsModal';
 import { termsOfService, privacyPolicy } from '../legal';
 
 const NexusIconSmall = () => (
@@ -33,7 +34,7 @@ const OrbLogo = () => (
 );
 
 const ChatView: React.FC = () => {
-    const { session, profile, refreshProfile } = useSession();
+    const { session, profile } = useSession();
     const { theme, setTheme } = useTheme();
     const { conversationId: paramConversationId } = useParams<{ conversationId?: string }>();
     const navigate = useNavigate();
@@ -46,6 +47,7 @@ const ChatView: React.FC = () => {
     
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const [showSettings, setShowSettings] = useState(false);
+    const [showAccountSettings, setShowAccountSettings] = useState(false);
     const [showPersonaManager, setShowPersonaManager] = useState(false);
     const [personality, setPersonality] = useState<PersonalityMode>('conversational');
     const [imageModelPref, setImageModelPref] = useState(profile?.image_model_preference || 'img4');
@@ -70,15 +72,9 @@ const ChatView: React.FC = () => {
     const [legalModal, setLegalModal] = useState<{ title: string, content: string } | null>(null);
     const [supportModal, setSupportModal] = useState<'support' | 'suggestion' | null>(null);
 
-    // Account Deletion State
-    const [showDeleteAccountModal, setShowDeleteAccountModal] = useState(false);
-    const [deletePassword, setDeletePassword] = useState('');
-    const [isDeletingAccount, setIsDeletingAccount] = useState(false);
-
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const textareaRef = useRef<HTMLTextAreaElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
-    const avatarFileRef = useRef<HTMLInputElement>(null);
     const abortControllerRef = useRef<AbortController | null>(null);
 
     const fetchData = async () => {
@@ -749,39 +745,6 @@ const ChatView: React.FC = () => {
         return <div dangerouslySetInnerHTML={{ __html: simpleParse(text) }} />;
     };
 
-    const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        if (!session) return;
-        const file = e.target.files?.[0];
-        if (!file) return;
-
-        try {
-            const fileExt = file.name.split('.').pop();
-            const filePath = `${session.user.id}/${Date.now()}.${fileExt}`;
-
-            const { error: uploadError } = await supabase.storage
-                .from('avatars')
-                .upload(filePath, file);
-            if (uploadError) throw uploadError;
-
-            const { data } = supabase.storage
-                .from('avatars')
-                .getPublicUrl(filePath);
-            if (!data.publicUrl) throw new Error("Could not get public URL for avatar.");
-
-            const { error: updateError } = await supabase
-                .from('profiles')
-                .update({ avatar_url: data.publicUrl })
-                .eq('id', session.user.id);
-            if (updateError) throw updateError;
-
-            await refreshProfile();
-
-        } catch (error: any) {
-            console.error("Error uploading avatar:", error);
-            alert(`Error: ${error.message}`);
-        }
-    };
-
     const handleDeleteAllConversations = async () => {
         if (!session) return;
         const isConfirmed = window.confirm("Are you sure you want to delete all conversations? This action cannot be undone.");
@@ -797,44 +760,6 @@ const ChatView: React.FC = () => {
             }
         }
     };
-
-    // Account Deletion Logic
-    const handleAccountDeletion = async (e: FormEvent) => {
-        e.preventDefault();
-        if (!session || !deletePassword) return;
-
-        setIsDeletingAccount(true);
-        try {
-            // 1. Verify password by attempting to sign in
-            const { error: signInError } = await supabase.auth.signInWithPassword({
-                email: session.user.email!,
-                password: deletePassword,
-            });
-
-            if (signInError) {
-                alert("Incorrect password. Please try again.");
-                setIsDeletingAccount(false);
-                return;
-            }
-
-            // 2. Call secure edge function to delete user
-            const { error: functionError } = await supabase.functions.invoke('delete-account');
-
-            if (functionError) throw functionError;
-
-            // 3. Clean up client state
-            await supabase.auth.signOut();
-            window.location.href = '/';
-            
-        } catch (error: any) {
-            console.error("Error deleting account:", error);
-            alert("Failed to delete account. Please try again later.");
-        } finally {
-            setIsDeletingAccount(false);
-            setDeletePassword('');
-        }
-    };
-
 
     const openSettings = async () => {
         if (session) {
@@ -914,34 +839,7 @@ const ChatView: React.FC = () => {
 
             {legalModal && <LegalModal title={legalModal.title} content={legalModal.content} onClose={() => setLegalModal(null)} />}
             {supportModal && <SupportModal type={supportModal} onClose={() => setSupportModal(null)} />}
-
-            {showDeleteAccountModal && (
-                <div className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-                    <div data-liquid-glass className="liquid-glass w-full max-w-sm p-6 rounded-2xl animate-pop-in shadow-2xl border border-red-500/30">
-                        <h2 className="text-xl font-bold text-white mb-2">Delete Account</h2>
-                        <p className="text-zinc-400 mb-6 text-sm">
-                            This action is permanent and cannot be undone. All your data will be wiped.
-                            Please enter your password to confirm.
-                        </p>
-                        <form onSubmit={handleAccountDeletion}>
-                            <input
-                                type="password"
-                                placeholder="Enter password to confirm"
-                                value={deletePassword}
-                                onChange={(e) => setDeletePassword(e.target.value)}
-                                className="w-full bg-black/30 border border-white/10 rounded-xl px-4 py-3 text-white mb-4 focus:border-red-500/50 focus:ring-1 focus:ring-red-500/50 focus:outline-none"
-                                required
-                            />
-                            <div className="flex justify-end gap-3">
-                                <button type="button" onClick={() => { setShowDeleteAccountModal(false); setDeletePassword(''); }} className="px-4 py-2 text-zinc-300 hover:text-white hover:bg-white/10 rounded-lg transition-colors">Cancel</button>
-                                <button type="submit" disabled={isDeletingAccount} className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors disabled:opacity-50 font-medium">
-                                    {isDeletingAccount ? 'Deleting...' : 'Delete Forever'}
-                                </button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            )}
+            {showAccountSettings && <AccountSettingsModal isOpen={showAccountSettings} onClose={() => setShowAccountSettings(false)} />}
 
             {isDragging && (
                 <div className="absolute inset-0 z-[101] bg-black/70 backdrop-blur-md flex items-center justify-center border-4 border-dashed border-indigo-500 rounded-3xl m-4 pointer-events-none">
@@ -1089,37 +987,35 @@ const ChatView: React.FC = () => {
                         )}
                     </div>
                     <div className="space-y-2">
+                        <button onClick={() => window.open('https://gofund.me/4747854c6', '_blank')} className="w-full flex items-center gap-3 px-3 py-2 text-sm text-green-400 hover:text-green-300 hover:bg-green-500/10 rounded-lg transition-colors">
+                           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>
+                            Keep this project alive
+                        </button>
                         <button onClick={() => setSupportModal('support')} className="w-full flex items-center gap-3 px-3 py-2 text-sm text-zinc-300 hover:text-white hover:bg-white/5 rounded-lg transition-colors">
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
                             Need help?
                         </button>
-
                         <button onClick={openSettings} className="w-full flex items-center gap-3 px-3 py-2 text-sm text-zinc-300 hover:text-white hover:bg-white/5 rounded-lg transition-colors"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l-.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.47a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.35a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>Settings</button>
                         {session ? (
-                            <div className="flex items-center justify-between gap-3 px-3 py-2 bg-white/5 rounded-lg">
+                            <button onClick={() => setShowAccountSettings(true)} className="w-full flex items-center justify-between gap-3 px-3 py-2 bg-white/5 rounded-lg hover:bg-white/10 transition-colors">
                                 <div className="flex items-center gap-3 min-w-0">
-                                    <input type="file" ref={avatarFileRef} onChange={handleAvatarUpload} className="hidden" accept="image/png, image/jpeg" />
-                                    <button onClick={() => avatarFileRef.current?.click()} className="shrink-0 group relative" title="Change profile picture">
+                                    <div className="shrink-0 group relative">
                                         {profile?.avatar_url ? (
-                                            <img src={profile.avatar_url} alt="User Avatar" className="w-8 h-8 rounded-full object-cover group-hover:opacity-80 transition-opacity" />
+                                            <img src={profile.avatar_url} alt="User Avatar" className="w-8 h-8 rounded-full object-cover" />
                                         ) : (
-                                            <div className="w-8 h-8 rounded-full liquid-glass flex items-center justify-center border border-white/10 group-hover:border-white/20 transition-colors">
+                                            <div className="w-8 h-8 rounded-full liquid-glass flex items-center justify-center border border-white/10">
                                                 <svg className="w-5 h-5 text-zinc-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
                                             </div>
                                         )}
-                                    </button>
-                                    <button 
-                                        onClick={() => setShowDeleteAccountModal(true)} 
-                                        className="text-sm text-zinc-200 truncate hover:text-red-400 transition-colors text-left"
-                                        title="Click to delete account"
-                                    >
+                                    </div>
+                                    <div className="text-sm text-zinc-200 truncate text-left">
                                         {profile?.first_name && profile?.last_name 
                                             ? `${profile.first_name} ${profile.last_name}` 
                                             : session.user.email}
-                                    </button>
+                                    </div>
                                 </div>
-                                <button onClick={() => supabase.auth.signOut()} className="text-zinc-300 hover:text-white p-1.5 hover:bg-white/10 rounded-md" title="Log Out"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg></button>
-                            </div>
+                                <button onClick={(e) => { e.stopPropagation(); supabase.auth.signOut(); }} className="text-zinc-300 hover:text-white p-1.5 hover:bg-white/10 rounded-md" title="Log Out"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg></button>
+                            </button>
                         ) : (
                             <button onClick={() => navigate('/auth')} className="w-full flex items-center justify-center gap-2 px-3 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-full transition-colors duration-300 text-sm font-semibold interactive-lift">
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>

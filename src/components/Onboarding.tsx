@@ -7,6 +7,7 @@ const Onboarding: React.FC = () => {
     const { user, refreshProfile } = useSession();
     const [step, setStep] = useState(1);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [showSadFace, setShowSadFace] = useState(false);
     const [formData, setFormData] = useState({
         discovery_source: '',
         image_model_preference: 'img4', // Default to the recommended option
@@ -41,10 +42,25 @@ const Onboarding: React.FC = () => {
             alert("There was an error saving your preferences. Please try again.");
             setIsSubmitting(false);
         } else {
-            setStep(4);
+            setStep(4); // Move to donation step
+        }
+    };
+
+    const handleDonationChoice = (choseToDonate: boolean) => {
+        if (choseToDonate) {
+            window.open('https://gofund.me/4747854c6', '_blank');
+            setStep(5);
             setTimeout(() => {
                 refreshProfile();
-            }, 2000);
+            }, 1000);
+        } else {
+            setShowSadFace(true);
+            setTimeout(() => {
+                setStep(5);
+                setTimeout(() => {
+                    refreshProfile();
+                }, 1000);
+            }, 1500);
         }
     };
 
@@ -99,6 +115,29 @@ const Onboarding: React.FC = () => {
                     </div>
                 );
             case 4:
+                return (
+                    <div className="text-center space-y-6 animate-pop-in">
+                        {showSadFace ? (
+                            <div className="text-6xl animate-pop-in">: (</div>
+                        ) : (
+                            <>
+                                <h2 className="text-3xl font-bold text-white">One last thing...</h2>
+                                <p className="text-zinc-400 text-lg max-w-md mx-auto">
+                                    Quillix is a free, self-funded project. A small donation helps cover server costs and keeps the AI running for everyone.
+                                </p>
+                                <div className="flex flex-col sm:flex-row gap-4 justify-center pt-4">
+                                    <button onClick={() => handleDonationChoice(false)} className="bg-white/10 hover:bg-white/20 text-white px-8 py-3 rounded-full font-medium transition-all duration-300">
+                                        Maybe later
+                                    </button>
+                                    <button onClick={() => handleDonationChoice(true)} className="bg-green-600 hover:bg-green-500 text-white px-8 py-3 rounded-full font-medium transition-all duration-300 shadow-[0_0_20px_rgba(34,197,94,0.4)] hover:shadow-[0_0_30px_rgba(34,197,94,0.6)] interactive-lift">
+                                        I'll help out!
+                                    </button>
+                                </div>
+                            </>
+                        )}
+                    </div>
+                );
+            case 5:
                 return (
                     <div className="text-center space-y-6 animate-pop-in">
                         <div className="w-16 h-16 bg-green-500/20 text-green-400 rounded-full flex items-center justify-center mx-auto">
