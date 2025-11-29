@@ -136,6 +136,9 @@ export const termsOfService = `
         <h2>14. CONTACT US</h2>
         <p>In order to resolve a complaint regarding the Platform or to receive further information regarding use of the Platform, please contact us at:</p>
         <p>Quillix Intelligence Inc.<br>
+        123 AI Boulevard<br>
+        San Francisco, CA 94107<br>
+        United States<br>
         Email: legal@quillixai.com</p>
     </section>
     
@@ -313,6 +316,9 @@ export const privacyPolicy = `
         <h2>12. CONTACT US</h2>
         <p>If you have questions or comments about this Privacy Policy, please contact us at:</p>
         <p>Quillix Intelligence Inc.<br>
+        123 AI Boulevard<br>
+        San Francisco, CA 94107<br>
+        United States<br>
         Email: privacy@quillixai.com</p>
     </section>
     
