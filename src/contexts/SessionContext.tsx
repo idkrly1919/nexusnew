@@ -67,25 +67,31 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
     };
 
     useEffect(() => {
-        setIsLoading(true);
-
-        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+        const fetchInitialSession = async () => {
+            setIsLoading(true);
+            const { data: { session } } = await supabase.auth.getSession();
+            
             setSession(session);
             setUser(session?.user ?? null);
 
             if (session?.user) {
-                const { data: profileData, error } = await fetchProfileWithRetry(session.user.id);
-                if (error) {
-                    console.error("Error fetching profile:", error.message);
-                    setProfile(null);
-                } else {
-                    setProfile(profileData as Profile);
-                }
+                const { data: profileData } = await fetchProfileWithRetry(session.user.id);
+                setProfile(profileData as Profile | null);
+            }
+            setIsLoading(false);
+        };
+
+        fetchInitialSession();
+
+        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+            setSession(session);
+            setUser(session?.user ?? null);
+            if (session?.user) {
+                const { data: profileData } = await fetchProfileWithRetry(session.user.id);
+                setProfile(profileData as Profile | null);
             } else {
                 setProfile(null);
             }
-
-            setIsLoading(false);
         });
 
         return () => {
