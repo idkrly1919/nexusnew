@@ -181,7 +181,6 @@ const ChatView: React.FC = () => {
         setMessages(prev => prev.slice(0, lastUserMsgIndex + 1));
         
         // Remove the last AI response from chat history to avoid context duplication
-        // We assume chat history is synced. We'll pop the last item if it's an assistant message.
         setChatHistory(prev => {
             const newHistory = [...prev];
             if (newHistory.length > 0 && newHistory[newHistory.length - 1].role === 'assistant') {
@@ -190,25 +189,9 @@ const ChatView: React.FC = () => {
             return newHistory;
         });
 
-        // Trigger generation with the text of the last user message
-        // Note: we pass the text directly but we rely on the trimmed history for context
-        // We strip any HTML/image tags from the display text to get the raw prompt if possible,
-        // but since we don't store raw prompt separately, we use the display text. 
-        // Ideally we'd store raw prompt, but for now this works for text-only regenerations.
-        // For file attachments, since we cleared attachedFiles state, this might just send text.
-        // A full robust solution would need to re-hydrate attachedFiles from the message history.
-        // For now, we'll re-run the text portion.
-        
-        // Extract plain text from the message if it contains HTML (like images)
         const div = document.createElement("div");
         div.innerHTML = lastUserMsg.text;
-        const rawText = div.textContent || lastUserMsg.text; // Simple extraction
-        
-        // Remove the user message we just found from the UI so processSubmission can re-add it? 
-        // No, processSubmission adds a NEW user message.
-        // We need a special logic to NOT add a new user message but just generate.
-        // For simplicity: We will delete the last Assistant message, and then call a specialized generation function
-        // that doesn't add a user message.
+        const rawText = div.textContent || lastUserMsg.text; 
         
         reGenerateResponse(rawText);
     };
@@ -1244,12 +1227,15 @@ const ChatView: React.FC = () => {
                             <div className="w-full max-w-5xl mx-auto px-4 pb-8">
                                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                                     <button 
-                                        onClick={() => navigate('/search')}
+                                        onClick={() => {
+                                            if (!session) { navigate('/auth'); return; }
+                                            setEmbeddedUrl('https://veoaifree.com');
+                                        }}
                                         data-liquid-glass
                                         className="liquid-glass p-4 rounded-2xl text-left interactive-lift space-y-2"
                                     >
-                                        <h3 className="font-semibold text-white">Internet Search</h3>
-                                        <p className="text-sm text-zinc-400">Search the web with AI summaries.</p>
+                                        <h3 className="font-semibold text-white">Make a video</h3>
+                                        <p className="text-sm text-zinc-400">Create a video from a text prompt.</p>
                                     </button>
                                     <button 
                                         onClick={() => navigate('/dev')}
