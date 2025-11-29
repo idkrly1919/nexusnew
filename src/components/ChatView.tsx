@@ -60,7 +60,6 @@ const ChatView: React.FC = () => {
     const [isDataLoading, setIsDataLoading] = useState(true);
     const [currentConversationId, setCurrentConversationId] = useState<string | null>(null);
     const [activePersona, setActivePersona] = useState<Persona | null>(null);
-    const [activePersonaFile, setActivePersonaFile] = useState<{ name: string, content: string, type: string } | null>(null);
     const [isPersonaListOpen, setIsPersonaListOpen] = useState(true);
     const [backgroundStatus, setBackgroundStatus] = useState<'idle' | 'loading-text' | 'loading-image'>('idle');
 
@@ -103,38 +102,8 @@ const ChatView: React.FC = () => {
         setCurrentConversationId(paramConversationId || null);
         if (!paramConversationId) {
             setActivePersona(null);
-            setActivePersonaFile(null);
         }
     }, [paramConversationId]);
-
-    // Effect to load persona file when active persona changes
-    useEffect(() => {
-        const loadPersonaFile = async () => {
-            if (activePersona && activePersona.file_path) {
-                try {
-                    const { data, error } = await supabase.storage.from('persona_files').download(activePersona.file_path);
-                    if (error) throw error;
-                    
-                    const reader = new FileReader();
-                    reader.onload = (e) => {
-                        const content = e.target?.result as string;
-                        setActivePersonaFile({
-                            name: activePersona.file_name || 'attached_file',
-                            type: activePersona.file_type || 'application/octet-stream',
-                            content: content
-                        });
-                    };
-                    reader.readAsDataURL(data);
-                } catch (error) {
-                    console.error("Error loading persona file:", error);
-                    setActivePersonaFile(null);
-                }
-            } else {
-                setActivePersonaFile(null);
-            }
-        };
-        loadPersonaFile();
-    }, [activePersona]);
 
     useEffect(() => {
         if (profile?.image_model_preference) {
@@ -377,7 +346,6 @@ const ChatView: React.FC = () => {
             window.speechSynthesis.speak(utterance);
         }
     };
-
     const handleStop = () => {
         if (abortControllerRef.current) {
             abortControllerRef.current.abort();
@@ -498,6 +466,7 @@ const ChatView: React.FC = () => {
                 setMessages(prev => prev.map(m => m.id === summaryMessageId ? { ...m, text: 'Could not compress history. Proceeding with full context.' } : m));
             }
         }
+        // --- End Context Management ---
 
         const videoKeywords = ['make a video', 'generate a video', 'create a video', 'video of'];
         const isVideoRequest = videoKeywords.some(k => userText.toLowerCase().includes(k));
@@ -592,7 +561,7 @@ const ChatView: React.FC = () => {
                 profile?.first_name, 
                 personalizationData, 
                 activePersona?.instructions || null,
-                activePersonaFile // Passing the persistent file
+                activePersona?.file_context || null
             );
             let assistantMessageExists = false;
             let accumulatedText = "";

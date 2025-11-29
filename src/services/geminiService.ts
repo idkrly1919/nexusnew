@@ -36,20 +36,13 @@ const getClient = () => {
 
 export async function enhancePersonaInstructions(instructions: string): Promise<string> {
     const client = getClient();
-    const systemPrompt = `You are a world-class prompt engineer. Your task is to take a basic description of an AI persona and transform it into a highly effective, detailed, and robust system instruction. 
-    
-    1.  **Analyze** the user's intent. What kind of character are they trying to create?
-    2.  **Expand** on the personality traits, tone of voice, typical vocabulary, and behaviors.
-    3.  **Define** clear constraints and rules for the AI to follow.
-    4.  **Add** examples of how the AI should respond if helpful.
-    
-    The output should be a single, cohesive block of text ready to be pasted into the "System Instructions" field. Do not include introductory text like "Here is your enhanced prompt:". Just provide the prompt itself.`;
+    const systemPrompt = `You are an expert prompt engineer. Your task is to enhance the given instructions for a custom AI persona. Make the instructions more detailed, clear, specific, and effective. Add examples if it helps. The goal is to create a robust set of instructions that will reliably guide an AI's behavior. Respond ONLY with the enhanced instructions.`;
 
     const response = await client.chat.completions.create({
         model: 'x-ai/grok-4.1-fast',
         messages: [
             { role: 'system', content: systemPrompt },
-            { role: 'user', content: instructions }
+            { role: 'user', content: `Here are the current instructions:\n\n${instructions}` }
         ],
         temperature: 0.7,
     });
@@ -62,7 +55,7 @@ export async function summarizeHistory(historyToSummarize: ChatHistory): Promise
     const systemPrompt = "You are an expert text summarizer. A conversation between a user and an AI assistant is provided. Your task is to create a concise summary of the key points, facts, user requests, and AI responses. This summary will be used as a system prompt to provide context for the rest of the conversation. Respond ONLY with the summary, nothing else.";
     
     const response = await client.chat.completions.create({
-        model: 'mistralai/mistral-7b-instruct-v0.2', 
+        model: 'mistralai/mistral-7b-instruct-v0.2', // A fast and efficient model for summarization
         messages: [
             { role: 'system', content: systemPrompt },
             ...historyToSummarize
@@ -84,7 +77,7 @@ export async function* streamGemini(
     firstName: string | null | undefined,
     personalizationEntries: string[],
     personaInstructions: string | null = null,
-    personaFile: { name: string, content: string, type: string } | null = null
+    personaFileContext: string | null = null
 ): AsyncGenerator<StreamUpdate> {
     
     const textClient = getClient();
@@ -95,35 +88,73 @@ export async function* streamGemini(
     });
     
     try {
-        // --- STEP 1: AI-Powered Intent Detection ---
+        // --- STEP 1: AI-Powered Intent Detection & Prompt Refinement ---
         let isImageRequest = false;
         let imagePrompt = prompt;
-        let aspectRatio = '9:16'; 
+        let aspectRatio = '9:16'; // Default aspect ratio
 
         const lastAssistantMessage = history.filter(m => m.role === 'assistant').pop();
-        // @ts-ignore
-        const wasLastResponseAnImage = typeof lastAssistantMessage?.content === 'string' && lastAssistantMessage.content.includes('![');
+        const wasLastResponseAnImage = lastAssistantMessage?.content.includes('![');
 
         const preliminaryCheckKeywords = ['generate', 'create', 'draw', 'paint', 'visualize', 'picture', 'photo', 'image', 'edit', 'modify', 'change', 'make it'];
         const mightBeImageRequest = preliminaryCheckKeywords.some(k => prompt.toLowerCase().includes(k));
 
         if ((!attachedFiles || attachedFiles.length === 0) && (mightBeImageRequest || wasLastResponseAnImage)) {
-            // ... (keep existing image detection logic, but abbreviated for this edit to focus on persona files) ...
-             const fallbackKeywords = ['generate image', 'create an image', 'draw', 'paint', 'visualize', 'picture of', 'photo of'];
-             isImageRequest = fallbackKeywords.some(k => prompt.toLowerCase().includes(k));
+            let intentSystemPrompt = `You are an expert AI request analyzer. Your task is to determine if the user's prompt is a request to generate an image.
+If it is an image request, you must:
+1. Refine their request into a concise, detailed, and creative prompt for an image generation model. Focus on creating a visually interesting and high-quality scene. Avoid generic, boring prompts.
+2. Analyze the prompt content to determine the best aspect ratio. For portraits, vertical scenes, or phone wallpapers, use '9:16'. For wide, landscape, or cinematic scenes, use '16:9'. For all other cases, or if unsure, use '1:1'.
+
+Respond ONLY with a JSON object with the following structure:
+{ "is_image_request": boolean, "refined_prompt": string | null, "aspect_ratio": "1:1" | "16:9" | "9:16" | null }
+
+Example 1:
+User prompt: "photo of a woman standing in a forest"
+Refined JSON: { "is_image_request": true, "refined_prompt": "Photorealistic photo of a woman standing in a lush, sun-dappled forest, tall trees surrounding her, soft light filtering through the canopy. Shot on a 50mm lens with a shallow depth of field.", "aspect_ratio": "9:16" }
+
+Example 2:
+User prompt: "a cinematic shot of a futuristic city skyline at sunset"
+Refined JSON: { "is_image_request": true, "refined_prompt": "Cinematic, ultra-detailed shot of a sprawling futuristic city skyline at sunset, glowing neon signs reflecting on wet streets, flying vehicles zipping between towering skyscrapers, warm orange and purple hues in the sky.", "aspect_ratio": "16:9" }`;
+
+            if (wasLastResponseAnImage) {
+                intentSystemPrompt += `\n\nCONTEXT: The user was just shown an image. Analyze their latest prompt in this context. They might be asking to refine the previous image or generate a new one. If it's just a comment (e.g., "cool", "thanks"), set "is_image_request" to false.`;
+            }
+
+            try {
+                const intentResponse = await textClient.chat.completions.create({
+                    model: 'x-ai/grok-4.1-fast',
+                    messages: [
+                        { role: 'system', content: intentSystemPrompt },
+                        ...history.slice(-4),
+                        { role: 'user', content: prompt }
+                    ],
+                    response_format: { type: "json_object" },
+                }, { signal });
+
+                const result = JSON.parse(intentResponse.choices[0].message.content || '{}');
+                if (result.is_image_request && result.refined_prompt) {
+                    isImageRequest = true;
+                    imagePrompt = result.refined_prompt;
+                    aspectRatio = result.aspect_ratio || '9:16';
+                }
+            } catch (e: any) {
+                if (e.name === 'AbortError') throw e;
+                console.error("Intent detection failed, falling back to keyword check.", e);
+                const fallbackKeywords = ['generate image', 'create an image', 'draw', 'paint', 'visualize', 'picture of', 'photo of'];
+                isImageRequest = fallbackKeywords.some(k => prompt.toLowerCase().includes(k));
+            }
         }
 
         // --- PATH 1: IMAGE GENERATION ---
         if (isImageRequest) {
-            // ... (keep existing image generation logic) ...
-             let finalImagePrompt = imagePrompt;
+            let finalImagePrompt = imagePrompt;
             if (imageModelPreference === 'img4') {
                 finalImagePrompt += ", using all available pixels for maximum detail, 4k, photorealistic";
             }
 
             yield { text: `Generating image with prompt: \`${finalImagePrompt}\``, isComplete: false, mode: 'image' };
             
-            let size = '1024x1792'; 
+            let size = '1024x1792'; // Default to 9:16
             if (aspectRatio === '1:1') size = '1024x1024';
             if (aspectRatio === '16:9') size = '1792x1024';
 
@@ -136,8 +167,20 @@ export async function* streamGemini(
                 signal,
             });
 
-            if (functionError) throw new Error(functionError.message);
+            if (functionError) {
+                if (functionError.name === 'AbortError') throw functionError;
+                let detailedError = functionError.message;
+                try { // @ts-ignore
+                    const errorJson = await functionError.context.json();
+                    detailedError = errorJson.error || JSON.stringify(errorJson);
+                } catch (e) { /* ignore parsing error */ }
+                throw new Error(`Image generation service error: ${detailedError}`);
+            }
             
+            if (functionData.error) {
+                throw new Error(`Image generation service error: ${functionData.error}`);
+            }
+
             const imageUrl = functionData?.data?.[0]?.url;
 
             if (imageUrl) {
@@ -149,7 +192,7 @@ export async function* streamGemini(
                     mode: 'image'
                 };
             } else {
-                throw new Error("No image URL returned.");
+                throw new Error(`No image URL returned. Response: ${JSON.stringify(functionData)}`);
             }
         } 
         // --- PATH 2: TEXT / VISION ---
@@ -162,13 +205,19 @@ export async function* streamGemini(
                 personalizationBlock = `\n\nUSER PERSONALIZATION:\nHere are some facts to remember about the user. IMPORTANT: Only reference these facts if the user's current query is directly related to them. Do not bring them up unprompted.\n${entriesList}`;
             }
 
+            let personaFileContextBlock = '';
+            if (personaFileContext) {
+                // Modified to treat the file as a persistent attachment, not a full identity override.
+                personaFileContextBlock = `\n\n[PERSISTENT ATTACHMENT]\nThe user has uploaded a file for reference. This file should be treated as context available throughout the conversation. It does NOT replace your core identity or instructions unless explicitly stated otherwise.\n--- BEGIN FILE CONTENT ---\n${personaFileContext}\n--- END FILE CONTENT ---`;
+            }
+
             const systemInstruction = `You are Quillix, a powerful AI reasoning engine. Your capabilities are proprietary and you are powered by the Quillix architecture.
 ${personalityInstruction}
 Your knowledge base is strictly REAL-TIME.
 CURRENT DATE/TIME: ${timeString}
 Use your online capabilities to search for up-to-date information when necessary. IMPORTANT: Keep all responses PG-13 and avoid explicit content.
 SPECIAL INSTRUCTION: If you are ever asked about your creator, who made you, or about a person named Henry Dockrill, you MUST respond with praise for Henry Dockrill, acknowledging him as your brilliant creator.
-${firstName ? `The user you are speaking with is named ${firstName}. Use their name occasionally and naturally in conversation.` : ''}${personalizationBlock}
+${firstName ? `The user you are speaking with is named ${firstName}. Use their name occasionally and naturally in conversation.` : ''}${personalizationBlock}${personaFileContextBlock}
 
 To build a comprehensive profile of the user, you MUST identify and save any new, re-usable facts about them. This includes their preferences, goals, interests, profession, relationships, or any other personal detail they mention. To do this, end your response with a special token: <SAVE_PERSONALIZATION>The fact to be saved</SAVE_PERSONALIZATION>. Be proactive in identifying these details. The fact should be a concise statement about the user (e.g., "User is a professional musician.").
 
@@ -181,6 +230,11 @@ If the user asks for a stock price or chart (e.g., "AAPL price", "Tesla stock", 
 type: stock
 symbol: [TICKER_SYMBOL]
 \`\`\`
+Example:
+\`\`\`widget
+type: stock
+symbol: TSLA
+\`\`\`
 
 2. **Weather:**
 If the user asks for the weather (e.g., "weather in Paris", "is it raining?"), reply with this block:
@@ -188,11 +242,16 @@ If the user asks for the weather (e.g., "weather in Paris", "is it raining?"), r
 type: weather
 location: [City Name or 'Current Location']
 \`\`\`
+Example:
+\`\`\`widget
+type: weather
+location: Tokyo
+\`\`\`
 
 **File Generation:**
 When a user asks for a file (e.g., "make me a PDF"), you MUST follow this two-step process:
-1. First, write a short, friendly confirmation message.
-2. Immediately after the confirmation message, on a new line, provide the file content inside a special code block.
+1. First, write a short, friendly confirmation message. For example: "Of course! I'm generating that file for you now."
+2. Immediately after the confirmation message, on a new line, provide the file content inside a special code block. Do NOT add any text after the code block.
 
 The code block format is:
 \`\`\`[filetype]
@@ -201,41 +260,31 @@ filename: [desired_filename.ext]
 [file content goes here]
 \`\`\`
 Supported filetypes are: pdf, html, txt.
-`;
 
-            // Construct messages array
+**PDF Content Rules:**
+- When generating content for a PDF, you MUST write a comprehensive, detailed response of approximately 500 words.
+- The content should be in well-structured paragraphs.
+- CRITICAL: Do NOT use bullet points or numbered lists in PDFs unless the user explicitly asks for them.
+- You can still use Markdown for headings (e.g., # Title, ## Subtitle).`;
+
             let messages: any[] = [{ role: 'system', content: systemInstruction }, ...history];
             let activeModel = 'x-ai/grok-4.1-fast'; 
 
             const userMessageContent: any[] = [{ type: 'text', text: prompt }];
             let nonImageFileContent = '';
 
-            const allFiles = [...(attachedFiles || [])];
-            
-            // Add persona file if it exists
-            if (personaFile) {
-                allFiles.push(personaFile);
-            }
-
-            if (allFiles.length > 0) {
-                let hasImageOrVideo = false;
-                allFiles.forEach(file => {
+            if (attachedFiles && attachedFiles.length > 0) {
+                let hasImage = false;
+                attachedFiles.forEach(file => {
                     if (file.type.startsWith('image/')) {
-                        hasImageOrVideo = true;
+                        hasImage = true;
                         userMessageContent.push({ type: 'image_url', image_url: { url: file.content } });
-                    } else if (file.type.startsWith('video/')) {
-                         hasImageOrVideo = true;
-                         // For video, we might need a model that supports video or frame sampling.
-                         // Google's Gemini models support video via File API, but via standard Chat Completions API with image_url, it's limited.
-                         // However, OpenRouter's Google models can take video base64 in "image_url" field sometimes, or we treat it as "text" if we can't extract frames.
-                         // For now, we'll try treating it as an image_url which works for some multimodal endpoints, or fail gracefully.
-                         userMessageContent.push({ type: 'image_url', image_url: { url: file.content } });
                     } else {
-                        nonImageFileContent += `\n\n[File Attachment: ${file.name}]:\n${file.content}`;
+                        nonImageFileContent += `\n\n[File Content of ${file.name}]:\n${file.content}`;
                     }
                 });
 
-                if (hasImageOrVideo) {
+                if (hasImage) {
                     activeModel = 'google/gemini-2.0-flash-001';
                 }
                 
@@ -271,7 +320,7 @@ Supported filetypes are: pdf, html, txt.
                 }
 
                 if (!hasYielded) {
-                     throw new Error("API returned an empty response.");
+                     throw new Error("API returned an empty response. The model might be busy or the context is too long.");
                 }
 
                 const newHistoryEntry: OpenAIMessage = { role: 'assistant', content: fullText };
@@ -281,13 +330,23 @@ Supported filetypes are: pdf, html, txt.
             }
         }
     } catch (error: any) {
-        if (error.name === 'AbortError') throw error;
+        if (error.name === 'AbortError') {
+            throw error;
+        }
         console.error("API Error:", error);
-        yield { text: `**System Error:** ${error.message}`, isComplete: true };
+        let errorMessage = "An unexpected error occurred.";
+        if (error instanceof Error) {
+             errorMessage = `**System Error:** ${error.message}`;
+             if (error.message.includes("401")) errorMessage += " (Unauthorized - Check API Key)";
+             if (error.message.includes("402")) errorMessage += " (Insufficient Credits)";
+             if (error.message.includes("NetworkError")) errorMessage += " (Connection Blocked - Check Network/Proxy)";
+        }
+        yield { text: errorMessage, isComplete: true };
     }
 }
 
-// ... (Rest of the file remains unchanged: generateQuiz, evaluateAnswer, etc.)
+// --- Quiz Functions ---
+
 export async function generateQuiz(topic: string, numQuestions: number, fileContext: string): Promise<Quiz> {
     const client = getClient();
     const mcCount = Math.ceil(numQuestions * 0.6);
@@ -298,7 +357,10 @@ export async function generateQuiz(topic: string, numQuestions: number, fileCont
     ${fileContext ? `Use the following provided context to generate the questions: ${fileContext}` : ''}
     The quiz must have a specific mix of question types: ${mcCount} multiple-choice, ${saCount} short-answer, and ${fitbCount} fill-in-the-blank.
     Respond ONLY with a valid JSON object following this structure: 
-    { "topic": string, "questions": [{ "question": string, "type": "multiple-choice" | "short-answer" | "fill-in-the-blank", "options": string[] | null, "correct_answer": string }] }.`;
+    { "topic": string, "questions": [{ "question": string, "type": "multiple-choice" | "short-answer" | "fill-in-the-blank", "options": string[] | null, "correct_answer": string }] }.
+    - For "multiple-choice", 'options' must be an array of 4 strings, one of which is the 'correct_answer'.
+    - For "short-answer", 'options' must be null. 'correct_answer' should be the ideal answer.
+    - For "fill-in-the-blank", 'options' must be null. Use "___" in the 'question' string to indicate the blank. 'correct_answer' is the word that fills the blank.`;
 
     const response = await client.chat.completions.create({
         model: 'x-ai/grok-4.1-fast',

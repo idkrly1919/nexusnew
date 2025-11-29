@@ -24,12 +24,9 @@ const AppContent: React.FC = () => {
         );
     }
 
-    // Strict Onboarding Check:
-    // If we have a session, we MUST have a profile with onboarding_completed = true.
-    // If profile is missing (race condition) or incomplete, go to onboarding.
-    const needsOnboarding = session && (!profile || !profile.onboarding_completed);
-
-    if (needsOnboarding) {
+    if (session && profile && !profile.onboarding_completed) {
+        // If the user is logged in but hasn't finished onboarding,
+        // force them to the onboarding page regardless of the URL.
         return (
             <Routes>
                 <Route path="*" element={<Onboarding />} />

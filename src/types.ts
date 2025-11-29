@@ -12,7 +12,7 @@ export interface Message {
 
 export interface OpenAIMessage {
     role: 'user' | 'assistant' | 'system';
-    content: string | any[];
+    content: string;
     name?: string;
     reasoning_details?: unknown; 
 }
@@ -40,10 +40,8 @@ export interface Persona {
   instructions: string;
   created_at: string;
   updated_at?: string;
-  file_context?: string | null; // Keeping for legacy/text context
+  file_context?: string | null;
   file_name?: string | null;
-  file_path?: string | null; // New: Path in storage
-  file_type?: string | null; // New: MIME type
 }
 
 // --- Quiz Feature Types ---
