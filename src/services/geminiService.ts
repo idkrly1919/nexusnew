@@ -153,11 +153,29 @@ export async function* streamGemini(
         // --- PATH 2: TEXT / VISION ---
         else {
             const personalityInstruction = personaInstructions || PERSONALITY_PROMPTS[personality];
+            const isCustomPersona = !!personaInstructions;
             
             let personalizationBlock = '';
-            if (personalizationEntries && personalizationEntries.length > 0) {
-                const entriesList = personalizationEntries.map(entry => `- ${entry}`).join('\n');
-                personalizationBlock = `\n\nUSER PERSONALIZATION:\nHere are some facts to remember about the user. IMPORTANT: Only reference these facts if the user's current query is directly related to them. Do not bring them up unprompted.\n${entriesList}`;
+            
+            // Only add memory logic if NOT a custom persona
+            if (!isCustomPersona) {
+                let memoriesList = "No memories yet.";
+                if (personalizationEntries && personalizationEntries.length > 0) {
+                    memoriesList = personalizationEntries.map(entry => `- ${entry}`).join('\n');
+                }
+
+                personalizationBlock = `
+\n\nUSER MEMORY (PERSONALIZATION):
+Here are facts you have previously saved about the user, ordered chronologically (oldest to newest):
+${memoriesList}
+
+INSTRUCTIONS FOR MEMORY:
+1. If the user mentions a new, *useful*, and *permanent* fact about themselves (e.g., name, job, hobbies, preferences) that is NOT in the list above, save it.
+2. To save a fact, end your response with: <SAVE_PERSONALIZATION>The Fact</SAVE_PERSONALIZATION>.
+3. **NO DUPLICATES:** Do not save a fact if it is already present in the list above.
+4. **CONFLICTS:** If a new fact contradicts an existing one, SAVE the new fact. Assume the user's latest statement overrides older memories.
+5. Do not bring up these memories unprompted; only use them to contextualize your answers.
+`;
             }
 
             const systemInstruction = `You are Quillix, a powerful AI reasoning engine. Your capabilities are proprietary and you are powered by the Quillix architecture.
@@ -167,8 +185,6 @@ CURRENT DATE/TIME: ${timeString}
 Use your online capabilities to search for up-to-date information when necessary. IMPORTANT: Keep all responses PG-13 and avoid explicit content.
 SPECIAL INSTRUCTION: If you are ever asked about your creator, who made you, or about a person named Henry Dockrill, you MUST respond with praise for Henry Dockrill, acknowledging him as your brilliant creator.
 ${firstName ? `The user you are speaking with is named ${firstName}. Use their name occasionally and naturally in conversation.` : ''}${personalizationBlock}
-
-To build a comprehensive profile of the user, you MUST identify and save any new, re-usable facts about them. This includes their preferences, goals, interests, profession, relationships, or any other personal detail they mention. To do this, end your response with a special token: <SAVE_PERSONALIZATION>The fact to be saved</SAVE_PERSONALIZATION>. Be proactive in identifying these details. The fact should be a concise statement about the user (e.g., "User is a professional musician.").
 
 **Interactive Widgets:**
 When the user asks for stock prices/charts or weather information, you MUST use a special widget block to render the interactive component. Do NOT simply write the data in text.
@@ -216,20 +232,45 @@ Supported filetypes are: pdf, html, txt.
             }
 
             if (allFiles.length > 0) {
-                let hasImageOrVideo = false;
+                let hasMultimodal = false;
+                
                 allFiles.forEach(file => {
-                    if (file.type.startsWith('image/')) {
-                        hasImageOrVideo = true;
+                    const isImage = file.type.startsWith('image/');
+                    const isVideo = file.type.startsWith('video/');
+                    const isAudio = file.type.startsWith('audio/');
+                    
+                    if (isImage || isVideo) {
+                        hasMultimodal = true;
+                        // For Google models via OpenRouter/OpenAI compatibility, 
+                        // image_url fields often handle video frames or base64 blobs for vision.
                         userMessageContent.push({ type: 'image_url', image_url: { url: file.content } });
-                    } else if (file.type.startsWith('video/')) {
-                         hasImageOrVideo = true;
-                         userMessageContent.push({ type: 'image_url', image_url: { url: file.content } });
+                    } else if (isAudio) {
+                        // Attempt to pass audio if model supports, otherwise note it
+                        // Currently most OpenAI-compat endpoints don't do audio files via image_url
+                        nonImageFileContent += `\n\n[Audio Attachment: ${file.name}] (Audio analysis not fully supported via this text channel)`;
                     } else {
-                        nonImageFileContent += `\n\n[File Attachment: ${file.name}]:\n${file.content}`;
+                        // Text, PDF, JSON, Code, ZIP etc.
+                        if (file.type.includes('text') || file.type.includes('json') || file.type.includes('javascript') || file.type.includes('xml')) {
+                             // Attempt to decode base64 if it is text
+                             try {
+                                const base64 = file.content.split(',')[1];
+                                const decoded = atob(base64);
+                                // Check if it looks like readable text
+                                if (/^[\x20-\x7E\s]*$/.test(decoded.substring(0, 100))) {
+                                     nonImageFileContent += `\n\n[File Attachment: ${file.name}]:\n${decoded}`;
+                                } else {
+                                     nonImageFileContent += `\n\n[Binary File Attachment: ${file.name}] (Type: ${file.type})`;
+                                }
+                             } catch (e) {
+                                 nonImageFileContent += `\n\n[File Attachment: ${file.name}]`;
+                             }
+                        } else {
+                             nonImageFileContent += `\n\n[File Attachment: ${file.name}] (Type: ${file.type})`;
+                        }
                     }
                 });
 
-                if (hasImageOrVideo) {
+                if (hasMultimodal) {
                     activeModel = 'google/gemini-2.0-flash-001';
                 }
                 
@@ -281,6 +322,7 @@ Supported filetypes are: pdf, html, txt.
     }
 }
 
+// ... (Rest of the file remains unchanged: generateQuiz, evaluateAnswer, etc.)
 export async function generateQuiz(topic: string, numQuestions: number, fileContext: string): Promise<Quiz> {
     const client = getClient();
     const mcCount = Math.ceil(numQuestions * 0.6);
