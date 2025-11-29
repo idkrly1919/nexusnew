@@ -76,7 +76,8 @@ export async function* streamGemini(
     signal: AbortSignal,
     firstName: string | null | undefined,
     personalizationEntries: string[],
-    personaInstructions: string | null = null
+    personaInstructions: string | null = null,
+    personaFileContext: string | null = null
 ): AsyncGenerator<StreamUpdate> {
     
     const textClient = getClient();
@@ -204,13 +205,18 @@ Refined JSON: { "is_image_request": true, "refined_prompt": "Cinematic, ultra-de
                 personalizationBlock = `\n\nUSER PERSONALIZATION:\nHere are some facts to remember about the user. IMPORTANT: Only reference these facts if the user's current query is directly related to them. Do not bring them up unprompted.\n${entriesList}`;
             }
 
+            let personaFileContextBlock = '';
+            if (personaFileContext) {
+                personaFileContextBlock = `\n\nPERSONA KNOWLEDGE BASE:\nThe persona you are embodying has access to the following file. Use this as a primary source of information and context when relevant to the user's query.\n---FILE START---\n${personaFileContext}\n---FILE END---`;
+            }
+
             const systemInstruction = `You are Quillix, a powerful AI reasoning engine. Your capabilities are proprietary and you are powered by the Quillix architecture.
 ${personalityInstruction}
 Your knowledge base is strictly REAL-TIME.
 CURRENT DATE/TIME: ${timeString}
 Use your online capabilities to search for up-to-date information when necessary. IMPORTANT: Keep all responses PG-13 and avoid explicit content.
 SPECIAL INSTRUCTION: If you are ever asked about your creator, who made you, or about a person named Henry Dockrill, you MUST respond with praise for Henry Dockrill, acknowledging him as your brilliant creator.
-${firstName ? `The user you are speaking with is named ${firstName}. Use their name occasionally and naturally in conversation.` : ''}${personalizationBlock}
+${firstName ? `The user you are speaking with is named ${firstName}. Use their name occasionally and naturally in conversation.` : ''}${personalizationBlock}${personaFileContextBlock}
 
 To build a comprehensive profile of the user, you MUST identify and save any new, re-usable facts about them. This includes their preferences, goals, interests, profession, relationships, or any other personal detail they mention. To do this, end your response with a special token: <SAVE_PERSONALIZATION>The fact to be saved</SAVE_PERSONALIZATION>. Be proactive in identifying these details. The fact should be a concise statement about the user (e.g., "User is a professional musician.").
 

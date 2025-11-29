@@ -40,6 +40,8 @@ export interface Persona {
   instructions: string;
   created_at: string;
   updated_at?: string;
+  file_context?: string | null;
+  file_name?: string | null;
 }
 
 // --- Quiz Feature Types ---

@@ -55,7 +55,7 @@ const ChatView: React.FC = () => {
     const [isDataLoading, setIsDataLoading] = useState(true);
     const [currentConversationId, setCurrentConversationId] = useState<string | null>(null);
     const [activePersona, setActivePersona] = useState<Persona | null>(null);
-    const [expandedPersonas, setExpandedPersonas] = useState<Record<string, boolean>>({});
+    const [isPersonaListOpen, setIsPersonaListOpen] = useState(true);
     const [backgroundStatus, setBackgroundStatus] = useState<'idle' | 'loading-text' | 'loading-image'>('idle');
 
     const [isVoiceMode, setIsVoiceMode] = useState(false);
@@ -547,7 +547,19 @@ const ChatView: React.FC = () => {
         }
 
         try {
-            const stream = streamGemini(userText, currentChatHistory, true, personality, imageModelPref, filesToProcess, controller.signal, profile?.first_name, personalizationData, activePersona?.instructions || null);
+            const stream = streamGemini(
+                userText, 
+                currentChatHistory, 
+                true, 
+                personality, 
+                imageModelPref, 
+                filesToProcess, 
+                controller.signal, 
+                profile?.first_name, 
+                personalizationData, 
+                activePersona?.instructions || null,
+                activePersona?.file_context || null
+            );
             let assistantMessageExists = false;
             let accumulatedText = "";
             const aiMsgId = `ai-${Date.now()}`;
@@ -1021,28 +1033,29 @@ const ChatView: React.FC = () => {
                             <>
                                 <div className="border-b border-white/10 pb-2 mb-2">
                                     <div className="flex items-center justify-between px-2">
-                                        <h3 className="text-sm font-semibold text-zinc-300">My Personas</h3>
+                                        <button onClick={() => setIsPersonaListOpen(prev => !prev)} className="w-full flex items-center justify-between text-left">
+                                            <h3 className="text-sm font-semibold text-zinc-300">My Personas</h3>
+                                            <svg className={`w-4 h-4 text-zinc-500 transition-transform ${isPersonaListOpen ? 'rotate-180' : ''}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                                        </button>
                                         <button onClick={() => setShowPersonaManager(true)} className="p-1.5 text-zinc-400 hover:text-white hover:bg-white/10 rounded-full" title="Create New Persona">+</button>
                                     </div>
-                                    {personas.map(persona => (
-                                        <div key={persona.id}>
-                                            <button onClick={() => setExpandedPersonas(prev => ({...prev, [persona.id]: !prev[persona.id]}))} className="w-full flex items-center justify-between text-left p-2 rounded-lg hover:bg-white/5">
-                                                <span className="text-sm text-zinc-200">{persona.name}</span>
-                                                <svg className={`w-4 h-4 text-zinc-500 transition-transform ${expandedPersonas[persona.id] ? 'rotate-180' : ''}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
-                                            </button>
-                                            {expandedPersonas[persona.id] && (
-                                                <div className="pl-4 ml-2 border-l border-zinc-700 space-y-1 py-1">
-                                                    <button onClick={() => startNewPersonaChat(persona)} className="w-full text-left text-xs text-indigo-400 hover:text-indigo-300 p-2 rounded-lg hover:bg-white/5">+ New Chat</button>
+                                    {isPersonaListOpen && (
+                                        <div className="mt-2 space-y-1">
+                                            {personas.map(persona => (
+                                                <div key={persona.id} className="group">
+                                                    <div onClick={() => startNewPersonaChat(persona)} className={`p-2 rounded-lg cursor-pointer ${activePersona?.id === persona.id && !currentConversationId ? 'bg-indigo-500/20' : 'hover:bg-white/5'}`}>
+                                                        <p className={`text-sm truncate ${activePersona?.id === persona.id && !currentConversationId ? 'text-indigo-300' : 'text-zinc-200'}`}>{persona.name}</p>
+                                                    </div>
                                                     {conversations.filter(c => c.persona_id === persona.id).map(chat => (
-                                                        <div key={chat.id} onClick={() => navigate(`/chat/${chat.id}`)} className={`p-2 rounded-lg group relative cursor-pointer ${currentConversationId === chat.id ? 'bg-white/10' : 'hover:bg-white/5'}`}>
+                                                        <div key={chat.id} onClick={() => navigate(`/chat/${chat.id}`)} className={`pl-6 p-2 rounded-lg relative cursor-pointer ${currentConversationId === chat.id ? 'bg-white/10' : 'hover:bg-white/5'}`}>
                                                             <p className="text-xs text-zinc-400 truncate pr-6">{chat.title || 'New Chat'}</p>
                                                             <button onClick={(e) => { e.stopPropagation(); handleDeleteConversation(chat.id); }} className="absolute right-1 top-1/2 -translate-y-1/2 p-1 text-zinc-500 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity" title="Delete Chat"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg></button>
                                                         </div>
                                                     ))}
                                                 </div>
-                                            )}
+                                            ))}
                                         </div>
-                                    ))}
+                                    )}
                                 </div>
                                 {Object.entries(groupedConversations).map(([groupName, groupConversations]) => (
                                     groupConversations.length > 0 && (
