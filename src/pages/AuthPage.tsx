@@ -1,4 +1,4 @@
-import React, { useState, FormEvent } from 'react';
+import React, { useState, FormEvent, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '../integrations/supabase/client';
 import DynamicBackground from '../components/DynamicBackground';
@@ -18,6 +18,17 @@ const AuthPage: React.FC = () => {
     const [confirmPassword, setConfirmPassword] = useState('');
 
     const [legalModal, setLegalModal] = useState<{ title: string, content: string } | null>(null);
+    const [resendCooldown, setResendCooldown] = useState(0);
+    const [isResending, setIsResending] = useState(false);
+
+    useEffect(() => {
+        if (resendCooldown > 0) {
+            const timer = setTimeout(() => {
+                setResendCooldown(resendCooldown - 1);
+            }, 1000);
+            return () => clearTimeout(timer);
+        }
+    }, [resendCooldown]);
 
     const handleEmailSubmit = async (e: FormEvent) => {
         e.preventDefault();
@@ -104,6 +115,25 @@ const AuthPage: React.FC = () => {
             setError(error.message);
             setIsLoading(false);
         }
+    };
+
+    const handleResendVerification = async () => {
+        setIsResending(true);
+        setError(null);
+        setInfoMessage(null);
+
+        const { error } = await supabase.auth.resend({
+            type: 'signup',
+            email: email,
+        });
+
+        if (error) {
+            setError(error.message);
+        } else {
+            setInfoMessage("Verification email sent again.");
+            setResendCooldown(30);
+        }
+        setIsResending(false);
     };
 
     const renderForm = () => {
@@ -201,6 +231,20 @@ const AuthPage: React.FC = () => {
                         <p className="text-zinc-400">
                             We've sent a verification link to <strong>{email}</strong>. Please check your inbox to complete the process.
                         </p>
+                        {infoMessage && <p className="text-sm text-green-400">{infoMessage}</p>}
+                        <div className="pt-2">
+                            <button
+                                onClick={handleResendVerification}
+                                disabled={isResending || resendCooldown > 0}
+                                className="text-sm text-indigo-400 hover:text-indigo-300 disabled:text-zinc-500 disabled:cursor-not-allowed transition-colors"
+                            >
+                                {isResending
+                                    ? 'Sending...'
+                                    : resendCooldown > 0
+                                    ? `Resend in ${resendCooldown}s`
+                                    : 'Resend verification email'}
+                            </button>
+                        </div>
                     </div>
                 );
         }
