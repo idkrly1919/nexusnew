@@ -469,6 +469,10 @@ const ChatView: React.FC = () => {
         const isVideoRequest = videoKeywords.some(k => userText.toLowerCase().includes(k));
 
         if (isVideoRequest) {
+            if (!session) {
+                navigate('/auth');
+                return;
+            }
             setEmbeddedUrl('https://veoaifree.com');
             const userMessage: Message = { id: `user-${Date.now()}`, role: 'user', text: userText };
             const assistantMessage: Message = { id: `ai-${Date.now()}`, role: 'assistant', text: "Of course! Opening the video generation tool for you now." };
@@ -1058,7 +1062,7 @@ const ChatView: React.FC = () => {
                     </div>
                     <div className="space-y-2">
                         <button onClick={openSettings} className="w-full flex items-center gap-3 px-3 py-2 text-sm text-zinc-300 hover:text-white hover:bg-white/5 rounded-lg transition-colors"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l-.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.47a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.35a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>Settings</button>
-                        {session && (
+                        {session ? (
                             <div className="flex items-center justify-between gap-3 px-3 py-2 bg-white/5 rounded-lg">
                                 <div className="flex items-center gap-3 min-w-0">
                                     <input type="file" ref={avatarFileRef} onChange={handleAvatarUpload} className="hidden" accept="image/png, image/jpeg" />
@@ -1083,6 +1087,11 @@ const ChatView: React.FC = () => {
                                 </div>
                                 <button onClick={() => supabase.auth.signOut()} className="text-zinc-300 hover:text-white p-1.5 hover:bg-white/10 rounded-md" title="Log Out"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg></button>
                             </div>
+                        ) : (
+                            <button onClick={() => navigate('/auth')} className="w-full flex items-center justify-center gap-2 px-3 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-full transition-colors duration-300 text-sm font-semibold interactive-lift">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
+                                Sign In / Sign Up
+                            </button>
                         )}
                         {session && (
                             <button onClick={handleDeleteAllConversations} className="w-full flex items-center gap-3 px-3 py-2 text-sm text-zinc-400 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors">
@@ -1102,6 +1111,11 @@ const ChatView: React.FC = () => {
                         <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="p-2 hover:bg-white/5 rounded-full text-zinc-400 hover:text-white transition-colors" title="Menu"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><line x1="9" y1="3" x2="9" y2="21"/></svg></button>
                         <span className="font-semibold text-sm tracking-wide text-zinc-300">{activePersona ? activePersona.name : (currentConversationId && session ? conversations.find(c => c.id === currentConversationId)?.title : 'Quillix')}</span>
                     </div>
+                    {!session && (
+                        <button onClick={() => navigate('/auth')} className="bg-white/10 backdrop-blur-md border border-white/20 text-white px-5 py-2.5 rounded-full text-sm font-semibold hover:bg-white/20 transition-all duration-300 interactive-lift">
+                            Sign In / Sign Up
+                        </button>
+                    )}
                 </header>
 
                 <div className="flex-1 overflow-y-auto relative z-10 scrollbar-hide">
@@ -1117,7 +1131,10 @@ const ChatView: React.FC = () => {
                             <div className="w-full max-w-5xl mx-auto px-4 pb-8">
                                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                                     <button 
-                                        onClick={() => setEmbeddedUrl('https://veoaifree.com')}
+                                        onClick={() => {
+                                            if (!session) { navigate('/auth'); return; }
+                                            setEmbeddedUrl('https://veoaifree.com');
+                                        }}
                                         data-liquid-glass
                                         className="liquid-glass p-4 rounded-2xl text-left interactive-lift space-y-2"
                                     >
