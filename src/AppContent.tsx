@@ -9,6 +9,7 @@ import SupabaseKeepAlive from './components/SupabaseKeepAlive';
 import QuizPage from './pages/QuizPage';
 import DevEnvironmentPage from './pages/DevEnvironmentPage';
 import ResetPasswordPage from './pages/ResetPasswordPage';
+import SearchPage from './pages/SearchPage';
 
 const AppContent: React.FC = () => {
     const { session, profile, isLoading } = useSession();
@@ -69,6 +70,10 @@ const AppContent: React.FC = () => {
                  <Route
                     path="/dev/:conversationId"
                     element={session ? <DevEnvironmentPage /> : <Navigate to="/auth" replace />}
+                />
+                <Route
+                    path="/search"
+                    element={session ? <SearchPage /> : <Navigate to="/auth" replace />}
                 />
                 {/* Fallback route to redirect any unknown URL to the correct starting point */}
                 <Route path="*" element={<Navigate to="/" replace />} />

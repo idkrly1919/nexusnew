@@ -1244,15 +1244,12 @@ const ChatView: React.FC = () => {
                             <div className="w-full max-w-5xl mx-auto px-4 pb-8">
                                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                                     <button 
-                                        onClick={() => {
-                                            if (!session) { navigate('/auth'); return; }
-                                            setEmbeddedUrl('https://veoaifree.com');
-                                        }}
+                                        onClick={() => navigate('/search')}
                                         data-liquid-glass
                                         className="liquid-glass p-4 rounded-2xl text-left interactive-lift space-y-2"
                                     >
-                                        <h3 className="font-semibold text-white">Make a video</h3>
-                                        <p className="text-sm text-zinc-400">Create a video from a text prompt.</p>
+                                        <h3 className="font-semibold text-white">Internet Search</h3>
+                                        <p className="text-sm text-zinc-400">Search the web with AI summaries.</p>
                                     </button>
                                     <button 
                                         onClick={() => navigate('/dev')}

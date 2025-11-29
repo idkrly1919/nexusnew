@@ -322,7 +322,7 @@ Supported filetypes are: pdf, html, txt.
     }
 }
 
-// ... (Rest of the file remains unchanged: generateQuiz, evaluateAnswer, etc.)
+// ... (Existing quiz functions remain here)
 export async function generateQuiz(topic: string, numQuestions: number, fileContext: string): Promise<Quiz> {
     const client = getClient();
     const mcCount = Math.ceil(numQuestions * 0.6);
@@ -404,4 +404,113 @@ export async function getImprovementTips(topic: string, userAnswers: UserAnswer[
     });
 
     return response.choices[0].message.content || "Could not generate improvement tips.";
+}
+
+// --- NEW SEARCH FUNCTIONS ---
+
+export interface SearchResult {
+    title: string;
+    link: string;
+    snippet: string;
+    date?: string;
+}
+
+export async function performWebSearch(query: string): Promise<SearchResult[]> {
+    const client = getClient();
+    
+    // We use a model known for good live search integration or general knowledge
+    const systemPrompt = `You are a search engine backend. You will be given a user query.
+    You must act as a search index.
+    Task:
+    1. Perform a real-time web search for the query (using your browsing tool).
+    2. Select the top 8-10 most relevant, high-quality results.
+    3. Return them strictly as a valid JSON object.
+    
+    The JSON structure must be:
+    {
+      "results": [
+        {
+          "title": "Page Title",
+          "link": "https://full.url.com",
+          "snippet": "A concise description of the page content...",
+          "date": "Optional date string if available (e.g. '2 days ago')"
+        }
+      ]
+    }
+    
+    Do NOT include any conversational text, markdown formatting (like \`\`\`json), or explanations. JUST the raw JSON string.`;
+
+    const response = await client.chat.completions.create({
+        model: 'google/gemini-2.0-flash-001', // This model often has good grounding/search capabilities via OpenRouter
+        messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: query }
+        ],
+        // @ts-ignore
+        response_format: { type: "json_object" }, 
+        // Note: OpenRouter support for response_format varies by model, but we'll try to enforce JSON in prompt too
+    });
+
+    const rawContent = response.choices[0].message.content || '{}';
+    try {
+        const parsed = JSON.parse(rawContent);
+        return parsed.results || [];
+    } catch (e) {
+        console.error("Failed to parse search results JSON:", e);
+        // Fallback: try to clean markdown
+        try {
+            const clean = rawContent.replace(/```json/g, '').replace(/```/g, '');
+            const parsed = JSON.parse(clean);
+            return parsed.results || [];
+        } catch (e2) {
+            return [];
+        }
+    }
+}
+
+export async function summarizeUrl(url: string, snippet: string): Promise<string> {
+    const client = getClient();
+    const systemPrompt = `You are an intelligent reading assistant. 
+    The user is interested in a search result with the URL: "${url}" and the snippet: "${snippet}".
+    
+    Please provide a concise, 2-3 sentence summary of what this page is likely about and what key information it contains. 
+    Use your knowledge of the website/domain if possible. 
+    Do not hallucinate specific details not implied by the snippet or URL context.`;
+
+    const response = await client.chat.completions.create({
+        model: 'x-ai/grok-4.1-fast',
+        messages: [{ role: 'system', content: systemPrompt }],
+    });
+
+    return response.choices[0].message.content || "Summary unavailable.";
+}
+
+export async function getTrustScore(url: string): Promise<{ score: number, reason: string }> {
+    const client = getClient();
+    const systemPrompt = `You are a website credibility analyzer.
+    Analyze the trustworthiness of this URL: "${url}".
+    
+    Consider:
+    - Domain authority (e.g., .gov, .edu, known news outlets are high).
+    - Security/Spam reputation.
+    - Bias or factual history.
+    
+    Return a JSON object:
+    {
+      "score": number (0-100),
+      "reason": "A short, one-sentence explanation."
+    }`;
+
+    const response = await client.chat.completions.create({
+        model: 'x-ai/grok-4.1-fast',
+        messages: [{ role: 'system', content: systemPrompt }],
+        // @ts-ignore
+        response_format: { type: "json_object" }
+    });
+
+    try {
+        return JSON.parse(response.choices[0].message.content || '{"score": 50, "reason": "Unknown domain."}');
+    } catch (e) {
+        return { score: 50, reason: "Could not analyze." };
+    }
 }
