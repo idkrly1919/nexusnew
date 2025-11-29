@@ -33,34 +33,14 @@
             filter: invert(1) hue-rotate(180deg);
         }
         
-        /* Re-invert media, brand elements, AND ORBS to restore original look/control */
+        /* Re-invert media, brand elements to restore original look/control */
+        /* NOTE: .orb is REMOVED from here so it gets inverted (White -> Black) */
         html.light-mode img,
         html.light-mode video,
         html.light-mode iframe,
-        html.light-mode .no-invert,
-        html.light-mode .orb {
+        html.light-mode .no-invert {
             filter: invert(1) hue-rotate(180deg);
         }
-
-        /* Light Mode Orb Customization 
-           Since we re-inverted them, they are currently white-on-white (invisible).
-           We override the background to be dark/colorful so they show up on the white background.
-           mix-blend-mode: multiply makes them look like ink/watercolor.
-        */
-        html.light-mode .orb {
-            mix-blend-mode: multiply;
-            opacity: 0.7;
-        }
-        
-        html.light-mode .orb-1 { background: radial-gradient(circle at 30% 30%, rgba(99, 102, 241, 0.5), rgba(0,0,0,0) 70%); } /* Indigo */
-        html.light-mode .orb-2 { background: radial-gradient(circle at 30% 30%, rgba(168, 85, 247, 0.5), rgba(0,0,0,0) 70%); } /* Purple */
-        html.light-mode .orb-3 { background: radial-gradient(circle at 30% 30%, rgba(236, 72, 153, 0.5), rgba(0,0,0,0) 70%); } /* Pink */
-        html.light-mode .orb-4 { background: radial-gradient(circle at 30% 30%, rgba(59, 130, 246, 0.5), rgba(0,0,0,0) 70%); } /* Blue */
-        html.light-mode .orb-5 { background: radial-gradient(circle at 30% 30%, rgba(14, 165, 233, 0.5), rgba(0,0,0,0) 70%); } /* Sky */
-        html.light-mode .orb-6 { background: radial-gradient(circle at 30% 30%, rgba(139, 92, 246, 0.5), rgba(0,0,0,0) 70%); } /* Violet */
-        html.light-mode .orb-7 { background: radial-gradient(circle at 30% 30%, rgba(244, 63, 94, 0.5), rgba(0,0,0,0) 70%); } /* Rose */
-        html.light-mode .orb-8 { background: radial-gradient(circle at 30% 30%, rgba(16, 185, 129, 0.5), rgba(0,0,0,0) 70%); } /* Emerald */
-
 
         .liquid-glass {
             background: linear-gradient(135deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.02));
@@ -329,8 +309,6 @@
             animation-timing-function: linear;
             animation-iteration-count: infinite;
         }
-
-        /* html.light-mode .orb { filter: brightness(60%); }  REMOVED */
 
     </style>
 <script type="importmap">
