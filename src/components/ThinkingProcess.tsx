@@ -27,7 +27,7 @@ export const ThinkingProcess: React.FC<ThinkingProcessProps> = ({ isThinking = f
     useEffect(() => {
         if (!isThinking || devStatus) return;
 
-        let textInterval: NodeJS.Timeout;
+        let textInterval: any;
 
         if (mode === 'image') {
             const imageStatuses = ["Constructing wireframe...", "Calculating geometry...", "Scanning spatial data...", "Rendering textures...", "Finalizing output..."];
