@@ -76,7 +76,10 @@ const AuthPage: React.FC = () => {
         const { error } = await supabase.auth.signUp({
             email,
             password,
-            options: { data: { first_name: firstName, last_name: lastName } }
+            options: { 
+                data: { first_name: firstName, last_name: lastName },
+                emailRedirectTo: 'https://quillixai.com/chat'
+            }
         });
         if (error) {
             setError(error.message);
@@ -93,7 +96,7 @@ const AuthPage: React.FC = () => {
         setInfoMessage(null);
 
         const { error } = await supabase.auth.resetPasswordForEmail(email, {
-            redirectTo: `${window.location.origin}/reset-password`,
+            redirectTo: `https://quillixai.com/reset-password`,
         });
 
         if (error) {
@@ -109,7 +112,7 @@ const AuthPage: React.FC = () => {
         setError(null);
         const { error } = await supabase.auth.signInWithOAuth({
             provider: 'google',
-            options: { redirectTo: `${window.location.origin}/chat` }
+            options: { redirectTo: `https://quillixai.com/chat` }
         });
         if (error) {
             setError(error.message);
