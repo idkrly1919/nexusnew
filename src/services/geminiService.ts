@@ -34,6 +34,42 @@ const getClient = () => {
     });
 };
 
+export async function detectImageIntent(prompt: string): Promise<boolean> {
+    const client = getClient();
+    const systemPrompt = `You are a strict intent classifier. Determine if the user is explicitly asking to generate, create, draw, or visualize a NEW image/picture/photo using an AI tool.
+    
+    Reply ONLY with "YES" or "NO".
+    
+    Examples:
+    "Draw a cat" -> YES
+    "Make an image of a city" -> YES
+    "Create a picture of a dog" -> YES
+    "Visualize this concept" -> YES
+    "What is a cat?" -> NO
+    "Describe this image" -> NO
+    "Help me write code" -> NO
+    "Show me a photo of the eiffel tower" -> NO (This implies searching for an existing photo, unless they say 'generate')
+    `;
+
+    try {
+        const response = await client.chat.completions.create({
+            model: 'x-ai/grok-4.1-fast',
+            messages: [
+                { role: 'system', content: systemPrompt },
+                { role: 'user', content: prompt }
+            ],
+            max_tokens: 5,
+            temperature: 0,
+        });
+        
+        const content = response.choices[0].message.content?.trim().toUpperCase() || "NO";
+        return content.includes("YES");
+    } catch (e) {
+        console.error("Intent detection failed, defaulting to text:", e);
+        return false;
+    }
+}
+
 export async function enhancePersonaInstructions(instructions: string): Promise<string> {
     const client = getClient();
     const systemPrompt = `You are a world-class prompt engineer. Your task is to take a basic description of an AI persona and transform it into a highly effective, detailed, and robust system instruction. 
@@ -117,32 +153,19 @@ export async function* streamGemini(
     try {
         // --- STEP 1: Intent Detection ---
         let isImageRequest = false;
-        let imagePrompt = prompt;
-
-        // More specific, command-like triggers that are less likely to be part of a question.
-        const imageCreationTriggers = [
-            'generate an image of', 'create an image of', 'make an image of',
-            'draw a picture of', 'create a picture of', 'make a picture of',
-            'generate a photo of', 'create a photo of', 'make a photo of',
-            'visualize'
-        ];
-
-        const normalizedPrompt = prompt.toLowerCase().trim();
-
-        // Check if the prompt starts with one of the triggers.
-        const triggerUsed = imageCreationTriggers.find(trigger => normalizedPrompt.startsWith(trigger));
-
-        if (triggerUsed) {
-            isImageRequest = true;
-            // Extract the subject of the image from the prompt.
-            imagePrompt = prompt.substring(triggerUsed.length).trim();
+        
+        // Use fast model to classify intent
+        try {
+            isImageRequest = await detectImageIntent(prompt);
+        } catch (e) {
+            console.warn("Intent classification failed, falling back to text.", e);
         }
 
         // --- PATH 1: IMAGE GENERATION ---
         if (isImageRequest) {
             try {
                 yield { text: `Enhancing prompt...`, isComplete: false, mode: 'image' };
-                const enhancedPrompt = await enhanceImagePrompt(imagePrompt);
+                const enhancedPrompt = await enhanceImagePrompt(prompt);
 
                 let finalImagePrompt = enhancedPrompt;
                 if (imageModelPreference === 'nano-banana') {
@@ -152,9 +175,7 @@ export async function* streamGemini(
                 yield { text: `Generating image with prompt: \`${finalImagePrompt}\``, isComplete: false, mode: 'image' };
                 
                 let size = '1024x1792';
-                let aspectRatio = '9:16';
-                if (aspectRatio === '1:1') size = '1024x1024';
-                if (aspectRatio === '16:9') size = '1792x1024';
+                // You can add size logic here if you parse it from the prompt later
 
                 const { data: functionData, error: functionError } = await supabase.functions.invoke('infip-image-gen', {
                     body: { 
@@ -162,7 +183,6 @@ export async function* streamGemini(
                         model: imageModelPreference,
                         size: size
                     },
-                    // Removing signal for now to avoid premature abort errors during function invocation
                 });
 
                 if (functionError) throw new Error(functionError.message);
@@ -170,7 +190,7 @@ export async function* streamGemini(
                 const imageUrl = functionData?.data?.[0]?.url;
 
                 if (imageUrl) {
-                    const markdownImage = `![${imagePrompt.replace(/[\[\]\(\)]/g, '')}](${imageUrl})`;
+                    const markdownImage = `![${prompt.replace(/[\[\]\(\)]/g, '')}](${imageUrl})`;
                     yield {
                         text: markdownImage,
                         isComplete: true,
@@ -287,21 +307,14 @@ Supported filetypes are: pdf, html, txt.
                     
                     if (isImage || isVideo) {
                         hasMultimodal = true;
-                        // For Google models via OpenRouter/OpenAI compatibility, 
-                        // image_url fields often handle video frames or base64 blobs for vision.
                         userMessageContent.push({ type: 'image_url', image_url: { url: file.content } });
                     } else if (isAudio) {
-                        // Attempt to pass audio if model supports, otherwise note it
-                        // Currently most OpenAI-compat endpoints don't do audio files via image_url
                         nonImageFileContent += `\n\n[Audio Attachment: ${file.name}] (Audio analysis not fully supported via this text channel)`;
                     } else {
-                        // Text, PDF, JSON, Code, ZIP etc.
                         if (file.type.includes('text') || file.type.includes('json') || file.type.includes('javascript') || file.type.includes('xml')) {
-                             // Attempt to decode base64 if it is text
                              try {
                                 const base64 = file.content.split(',')[1];
                                 const decoded = atob(base64);
-                                // Check if it looks like readable text
                                 if (/^[\x20-\x7E\s]*$/.test(decoded.substring(0, 100))) {
                                      nonImageFileContent += `\n\n[File Attachment: ${file.name}]:\n${decoded}`;
                                 } else {
@@ -368,7 +381,10 @@ Supported filetypes are: pdf, html, txt.
     }
 }
 
-// ... (Existing quiz functions remain here)
+// ... (Rest of the file remains unchanged)
+// We need to re-export the other functions to avoid breaking the file structure
+// Since we are rewriting the file, we must include the other existing functions.
+
 export async function generateQuiz(topic: string, numQuestions: number, fileContext: string): Promise<Quiz> {
     const client = getClient();
     const mcCount = Math.ceil(numQuestions * 0.6);
@@ -452,8 +468,6 @@ export async function getImprovementTips(topic: string, userAnswers: UserAnswer[
     return response.choices[0].message.content || "Could not generate improvement tips.";
 }
 
-// --- NEW SEARCH FUNCTIONS ---
-
 export interface SearchResult {
     title: string;
     link: string;
@@ -464,7 +478,6 @@ export interface SearchResult {
 export async function performWebSearch(query: string): Promise<SearchResult[]> {
     const client = getClient();
     
-    // We use a model known for good live search integration or general knowledge
     const systemPrompt = `You are a search engine backend. You will be given a user query.
     You must act as a search index.
     Task:
@@ -487,14 +500,13 @@ export async function performWebSearch(query: string): Promise<SearchResult[]> {
     Do NOT include any conversational text, markdown formatting (like \`\`\`json), or explanations. JUST the raw JSON string.`;
 
     const response = await client.chat.completions.create({
-        model: 'google/gemini-2.0-flash-001', // This model often has good grounding/search capabilities via OpenRouter
+        model: 'google/gemini-2.0-flash-001', 
         messages: [
             { role: 'system', content: systemPrompt },
             { role: 'user', content: query }
         ],
         // @ts-ignore
         response_format: { type: "json_object" }, 
-        // Note: OpenRouter support for response_format varies by model, but we'll try to enforce JSON in prompt too
     });
 
     const rawContent = response.choices[0].message.content || '{}';
@@ -503,7 +515,6 @@ export async function performWebSearch(query: string): Promise<SearchResult[]> {
         return parsed.results || [];
     } catch (e) {
         console.error("Failed to parse search results JSON:", e);
-        // Fallback: try to clean markdown
         try {
             const clean = rawContent.replace(/```json/g, '').replace(/```/g, '');
             const parsed = JSON.parse(clean);
