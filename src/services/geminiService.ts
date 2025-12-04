@@ -53,7 +53,7 @@ export async function detectImageIntent(prompt: string): Promise<boolean> {
 
     try {
         const response = await client.chat.completions.create({
-            model: 'google/gemini-2.0-flash-001',
+            model: 'x-ai/grok-4.1-fast',
             messages: [
                 { role: 'system', content: systemPrompt },
                 { role: 'user', content: prompt }
@@ -82,7 +82,7 @@ export async function enhancePersonaInstructions(instructions: string): Promise<
     The output should be a single, cohesive block of text ready to be pasted into the "System Instructions" field. Do not include introductory text like "Here is your enhanced prompt:". Just provide the prompt itself.`;
 
     const response = await client.chat.completions.create({
-        model: 'google/gemini-2.0-flash-001',
+        model: 'x-ai/grok-4.1-fast',
         messages: [
             { role: 'system', content: systemPrompt },
             { role: 'user', content: instructions }
@@ -98,7 +98,7 @@ export async function summarizeHistory(historyToSummarize: ChatHistory): Promise
     const systemPrompt = "You are an expert text summarizer. A conversation between a user and an AI assistant is provided. Your task is to create a concise summary of the key points, facts, user requests, and AI responses. This summary will be used as a system prompt to provide context for the rest of the conversation. Respond ONLY with the summary, nothing else.";
     
     const response = await client.chat.completions.create({
-        model: 'google/gemini-2.0-flash-001', 
+        model: 'x-ai/grok-4.1-fast', 
         messages: [
             { role: 'system', content: systemPrompt },
             ...historyToSummarize
@@ -114,7 +114,7 @@ export async function enhanceImagePrompt(prompt: string): Promise<string> {
     const systemPrompt = "You are an expert image prompt engineer. You will be given a user's image prompt. Your task is to enhance it for a diffusion model to generate a more beautiful, detailed, and visually appealing image. Add details about lighting, composition, style (e.g., photorealistic, cinematic, anime, watercolor), and quality. Respond ONLY with the enhanced prompt. Do not add any conversational text.";
     try {
         const response = await client.chat.completions.create({
-            model: 'google/gemini-2.0-flash-001',
+            model: 'x-ai/grok-4.1-fast',
             messages: [
                 { role: 'system', content: systemPrompt },
                 { role: 'user', content: prompt }
@@ -285,7 +285,7 @@ Supported filetypes are: pdf, html, txt.
 
             // Construct messages array
             let messages: any[] = [{ role: 'system', content: systemInstruction }, ...history];
-            let activeModel = 'google/gemini-2.0-flash-001'; 
+            let activeModel = 'x-ai/grok-4.1-fast'; 
 
             const userMessageContent: any[] = [{ type: 'text', text: prompt }];
             let nonImageFileContent = '';
@@ -298,6 +298,7 @@ Supported filetypes are: pdf, html, txt.
             }
 
             if (allFiles.length > 0) {
+                let hasMultimodal = false;
                 
                 allFiles.forEach(file => {
                     const isImage = file.type.startsWith('image/');
@@ -305,6 +306,7 @@ Supported filetypes are: pdf, html, txt.
                     const isAudio = file.type.startsWith('audio/');
                     
                     if (isImage || isVideo) {
+                        hasMultimodal = true;
                         userMessageContent.push({ type: 'image_url', image_url: { url: file.content } });
                     } else if (isAudio) {
                         nonImageFileContent += `\n\n[Audio Attachment: ${file.name}] (Audio analysis not fully supported via this text channel)`;
@@ -327,8 +329,9 @@ Supported filetypes are: pdf, html, txt.
                     }
                 });
 
-                // Gemini Flash 2.0 is great for multimodal
-                activeModel = 'google/gemini-2.0-flash-001';
+                if (hasMultimodal) {
+                    activeModel = 'google/gemini-2.0-flash-001';
+                }
                 
                 if (nonImageFileContent) {
                     userMessageContent[0].text += nonImageFileContent;
@@ -395,7 +398,7 @@ export async function generateQuiz(topic: string, numQuestions: number, fileCont
     { "topic": string, "questions": [{ "question": string, "type": "multiple-choice" | "short-answer" | "fill-in-the-blank", "options": string[] | null, "correct_answer": string }] }.`;
 
     const response = await client.chat.completions.create({
-        model: 'google/gemini-2.0-flash-001',
+        model: 'x-ai/grok-4.1-fast',
         messages: [
             { role: 'system', content: systemPrompt },
             { role: 'user', content: `Topic: ${topic}` }
@@ -415,7 +418,7 @@ export async function evaluateAnswer(question: QuizQuestion, userAnswer: string)
     Respond ONLY with a JSON object: { "score": number, "is_correct": boolean }.`;
 
     const response = await client.chat.completions.create({
-        model: 'google/gemini-2.0-flash-001',
+        model: 'x-ai/grok-4.1-fast',
         messages: [
             { role: 'system', content: systemPrompt },
             { role: 'user', content: `Question: "${question.question}"\nIdeal Answer: "${question.correct_answer}"\nUser's Answer: "${userAnswer}"` }
@@ -431,7 +434,7 @@ export async function getExplanation(question: QuizQuestion, userAnswer: string,
     const systemPrompt = "You are a helpful tutor. The user answered a question incorrectly. Explain why their answer is wrong and what the correct answer is. Be clear, concise, and encouraging.";
     
     const response = await client.chat.completions.create({
-        model: 'google/gemini-2.0-flash-001',
+        model: 'x-ai/grok-4.1-fast',
         messages: [
             { role: 'system', content: systemPrompt },
             { role: 'user', content: `Question: "${question.question}"\nUser's incorrect answer: "${userAnswer}"\nCorrect answer: "${correctAnswer}"` }
@@ -455,7 +458,7 @@ export async function getImprovementTips(topic: string, userAnswers: UserAnswer[
     }
 
     const response = await client.chat.completions.create({
-        model: 'google/gemini-2.0-flash-001',
+        model: 'x-ai/grok-4.1-fast',
         messages: [
             { role: 'system', content: systemPrompt },
             { role: 'user', content: `Topic: ${topic}\n\nHere are the questions the user got wrong:\n${incorrectAnswers}` }
