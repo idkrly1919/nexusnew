@@ -836,15 +836,12 @@ const ChatView: React.FC = () => {
             }
             
             // 2. Match Bare URLs (excluding those in markdown links ideally)
-            // A simple regex for http/https URLs. We'll filter duplicates after.
             const urlRegex = /(https?:\/\/[^\s<)\]]+)/g;
             let urlMatch;
             while ((urlMatch = urlRegex.exec(inputText)) !== null) {
                 const url = urlMatch[1];
-                // Only add if not already present (checking URL only)
                 if (!links.some(l => l.url === url)) {
                     try {
-                        // Use domain as title for bare URLs
                         const domain = new URL(url).hostname.replace(/^www\./, '');
                         links.push({ title: domain, url: url });
                     } catch (e) {
@@ -885,8 +882,13 @@ const ChatView: React.FC = () => {
                 }
             );
 
+            // HEADERS (Added H1-H4 support)
+            parsed = parsed.replace(/^#### (.*$)/gm, '<h4 class="text-base font-semibold text-zinc-200 mt-4 mb-2">$1</h4>');
+            parsed = parsed.replace(/^### (.*$)/gm, '<h3 class="text-lg font-bold text-white mt-5 mb-3">$1</h3>');
+            parsed = parsed.replace(/^## (.*$)/gm, '<h2 class="text-xl font-bold text-white mt-6 mb-3">$1</h2>');
+            parsed = parsed.replace(/^# (.*$)/gm, '<h1 class="text-2xl font-bold text-white mt-8 mb-4 border-b border-white/10 pb-2">$1</h1>');
+
             // --- Math Rendering (LaTeX) ---
-            // 1. Block Math: $$...$$
             parsed = parsed.replace(/\$\$([\s\S]*?)\$\$/g, (_, equation) => {
                 try {
                     return `<div class="my-4 text-center overflow-x-auto">${katex.renderToString(equation, { displayMode: true, throwOnError: false })}</div>`;
@@ -895,9 +897,6 @@ const ChatView: React.FC = () => {
                 }
             });
 
-            // 2. Inline Math: \(...\) or $...$ (careful with $)
-            // Using a simpler regex for inline math that avoids matching normal currency like $10
-            // We match $...$ where ... doesn't start with space or digit
             parsed = parsed.replace(/\\\[(.*?)\\\]/g, (_, equation) => {
                 try {
                      return katex.renderToString(equation, { displayMode: true, throwOnError: false });
@@ -933,12 +932,6 @@ const ChatView: React.FC = () => {
             parsed = parsed.replace(/\[([^\]]+)\]\((https?:\/\/[^)]+)\)/g, '<a href="$2" target="_blank" class="text-indigo-400 hover:text-indigo-300 hover:underline transition-colors">$1</a>');
 
             // 2. Bare URLs
-            // We use a regex that looks for http/https but avoids things that are likely inside href="..."
-            // This is a simplification. For full robustness, a parser is better, but this regex helps common cases.
-            // It avoids replacing if followed immediately by " (end of href) or preceded by =" (start of href)
-            // Note: simpleParse processes linearly. We already replaced Markdown links with HTML <a> tags.
-            // So now we just need to avoid matching inside those tags.
-            // A simple hack is to match things that look like URLs but don't start with quote or =
             parsed = parsed.replace(/(?<!href="|">)(https?:\/\/[^\s<]+)/g, (url) => {
                 return `<a href="${url}" target="_blank" class="text-indigo-400 hover:text-indigo-300 hover:underline transition-colors break-all">${url}</a>`;
             });
@@ -974,7 +967,6 @@ const ChatView: React.FC = () => {
                     </div>
                 );
             }
-            // If sources exist, append them to the file block or text part
             if (sources.length > 0) {
                 parts.push(
                     <div key="sources" className="mt-4 flex flex-wrap gap-2 pt-4 border-t border-white/10">

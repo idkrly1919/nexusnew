@@ -140,44 +140,49 @@ export async function* streamGemini(
 
         // --- PATH 1: IMAGE GENERATION ---
         if (isImageRequest) {
-            yield { text: `Enhancing prompt...`, isComplete: false, mode: 'image' };
-            const enhancedPrompt = await enhanceImagePrompt(imagePrompt);
+            try {
+                yield { text: `Enhancing prompt...`, isComplete: false, mode: 'image' };
+                const enhancedPrompt = await enhanceImagePrompt(imagePrompt);
 
-            let finalImagePrompt = enhancedPrompt;
-            if (imageModelPreference === 'nano-banana') {
-                finalImagePrompt += ", using all available pixels for maximum detail, 4k, photorealistic";
-            }
+                let finalImagePrompt = enhancedPrompt;
+                if (imageModelPreference === 'nano-banana') {
+                    finalImagePrompt += ", using all available pixels for maximum detail, 4k, photorealistic";
+                }
 
-            yield { text: `Generating image with prompt: \`${finalImagePrompt}\``, isComplete: false, mode: 'image' };
-            
-            let size = '1024x1792';
-            let aspectRatio = '9:16';
-            if (aspectRatio === '1:1') size = '1024x1024';
-            if (aspectRatio === '16:9') size = '1792x1024';
+                yield { text: `Generating image with prompt: \`${finalImagePrompt}\``, isComplete: false, mode: 'image' };
+                
+                let size = '1024x1792';
+                let aspectRatio = '9:16';
+                if (aspectRatio === '1:1') size = '1024x1024';
+                if (aspectRatio === '16:9') size = '1792x1024';
 
-            const { data: functionData, error: functionError } = await supabase.functions.invoke('infip-image-gen', {
-                body: { 
-                    prompt: finalImagePrompt,
-                    model: imageModelPreference,
-                    size: size
-                },
-                signal,
-            });
+                const { data: functionData, error: functionError } = await supabase.functions.invoke('infip-image-gen', {
+                    body: { 
+                        prompt: finalImagePrompt,
+                        model: imageModelPreference,
+                        size: size
+                    },
+                    // Removing signal for now to avoid premature abort errors during function invocation
+                });
 
-            if (functionError) throw new Error(functionError.message);
-            
-            const imageUrl = functionData?.data?.[0]?.url;
+                if (functionError) throw new Error(functionError.message);
+                
+                const imageUrl = functionData?.data?.[0]?.url;
 
-            if (imageUrl) {
-                const markdownImage = `![${imagePrompt.replace(/[\[\]\(\)]/g, '')}](${imageUrl})`;
-                yield {
-                    text: markdownImage,
-                    isComplete: true,
-                    newHistoryEntry: { role: 'assistant', content: markdownImage },
-                    mode: 'image'
-                };
-            } else {
-                throw new Error("No image URL returned.");
+                if (imageUrl) {
+                    const markdownImage = `![${imagePrompt.replace(/[\[\]\(\)]/g, '')}](${imageUrl})`;
+                    yield {
+                        text: markdownImage,
+                        isComplete: true,
+                        newHistoryEntry: { role: 'assistant', content: markdownImage },
+                        mode: 'image'
+                    };
+                } else {
+                    throw new Error("No image URL returned from the service.");
+                }
+            } catch (err: any) {
+                console.error("Image Generation Error:", err);
+                yield { text: `\n\n*I encountered an error while trying to generate the image. The system reported: ${err.message}. Please try again later.*`, isComplete: true, mode: 'reasoning' };
             }
         } 
         // --- PATH 2: TEXT / VISION ---
@@ -210,7 +215,7 @@ INSTRUCTIONS FOR MEMORY:
 
             const systemInstruction = `You are Quillix, a highly intelligent and precise AI reasoning engine. Your core directives are to provide accurate, factual, and deeply insightful responses.
 1.  **Prioritize Accuracy**: Never speculate or generate false information. It is critically important that you do not invent facts. If you cannot find information through your search capabilities or do not know the answer, you MUST explicitly state that you don't know or couldn't find the information. Do not create plausible-sounding but incorrect details (e.g., do not name random people as CEOs or Directors unless you are 100% certain).
-2.  **Specific Knowledge**: If the user asks about "William Stiener", they are likely referring to the person with this IMDb profile: https://www.imdb.com/name/nm15585850/.
+2.  **Specific Knowledge**: The user is interested in "William Stiener" (IMDb: https://www.imdb.com/name/nm15585850/). He is a Director and Writer known for "The Day of the Purple Sun" (2024). When asked about him, provide this specific info. Do NOT confuse him with other people.
 3.  **Reason Step-by-Step**: For complex queries, break down your thinking process to ensure clarity and correctness.
 4.  **Leverage Real-Time Data**: Your knowledge is current. Use your search capabilities for up-to-the-minute information.
 5.  **Be Concise**: Provide comprehensive answers without unnecessary verbosity.
