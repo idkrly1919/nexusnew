@@ -6,7 +6,6 @@ import { Message, ChatHistory, PersonalityMode, Conversation, Role, Persona } fr
 import { streamGemini, summarizeHistory } from '../services/geminiService';
 import { ThinkingProcess } from './ThinkingProcess';
 import { useSession } from '../contexts/SessionContext';
-import { useTheme, Theme } from '../contexts/ThemeContext';
 import { supabase } from '../integrations/supabase/client';
 import DynamicBackground from './DynamicBackground';
 import EmbeddedView from './EmbeddedView';
@@ -36,7 +35,6 @@ const OrbLogo = () => (
 
 const ChatView: React.FC = () => {
     const { session, profile } = useSession();
-    const { theme, setTheme } = useTheme();
     const { conversationId: paramConversationId } = useParams<{ conversationId?: string }>();
     const navigate = useNavigate();
 
@@ -51,7 +49,7 @@ const ChatView: React.FC = () => {
     const [showAccountSettings, setShowAccountSettings] = useState(false);
     const [showPersonaManager, setShowPersonaManager] = useState(false);
     const [personality, setPersonality] = useState<PersonalityMode>('conversational');
-    const [imageModelPref, setImageModelPref] = useState(profile?.image_model_preference || 'img4');
+    const [imageModelPref, setImageModelPref] = useState(profile?.image_model_preference || 'nano-banana');
     
     const [attachedFiles, setAttachedFiles] = useState<{id: string, name: string, content: string, type: string}[]>([]);
     const [isDragging, setIsDragging] = useState(false);
@@ -830,6 +828,22 @@ const ChatView: React.FC = () => {
         const simpleParse = (str: string) => {
             let parsed = str;
 
+            // Tables
+            parsed = parsed.replace(
+                /^\|(.+)\|\r?\n\|([\s\-|:]+)\|\r?\n((?:\|.*(?:\r?\n|$))*)/gm,
+                (match, headerLine, separatorLine, bodyLines) => {
+                    const headers = headerLine.split('|').map(h => h.trim()).filter(Boolean);
+                    const rows = bodyLines.trim().split('\n').map(rowLine => 
+                        rowLine.split('|').map(c => c.trim()).filter(Boolean)
+                    );
+
+                    const thead = `<thead><tr class="border-b border-white/20">${headers.map(h => `<th class="p-3 text-left font-semibold">${h}</th>`).join('')}</tr></thead>`;
+                    const tbody = `<tbody>${rows.map(row => `<tr class="border-b border-white/10">${row.map(cell => `<td class="p-3">${cell}</td>`).join('')}</tr>`).join('')}</tbody>`;
+                    
+                    return `<div class="my-4 overflow-x-auto bg-black/20 border border-white/10 rounded-lg"><table class="w-full text-sm">${thead}${tbody}</table></div>`;
+                }
+            );
+
             // --- Math Rendering (LaTeX) ---
             // 1. Block Math: $$...$$
             parsed = parsed.replace(/\$\$([\s\S]*?)\$\$/g, (_, equation) => {
@@ -859,7 +873,7 @@ const ChatView: React.FC = () => {
             parsed = parsed.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, (_, alt, url) => {
                 const downloadIcon = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>`;
                 const fullscreenIcon = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg>`;
-                return `<div class="mt-3 mb-3 block w-full">
+                return `<div class="mt-3 mb-3 block w-full max-w-lg">
                     <div class="relative group">
                         <img src="${url}" alt="${alt}" class="rounded-xl shadow-lg border border-white/10 w-full h-auto object-cover" />
                         <div class="absolute top-3 right-3 flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-all duration-300">
@@ -1030,20 +1044,6 @@ const ChatView: React.FC = () => {
                         </div>
                         <div className="p-6 space-y-6 max-h-[70vh] overflow-y-auto scrollbar-hide">
                             <div>
-                                <label className="block text-sm font-medium text-zinc-400 mb-3">Theme</label>
-                                <div className="grid grid-cols-3 gap-2">
-                                    {['system', 'dark', 'light'].map((t) => (
-                                        <button 
-                                            key={t} 
-                                            onClick={() => setTheme(t as Theme)} 
-                                            className={`px-4 py-2.5 rounded-xl border transition-all duration-300 capitalize text-sm font-medium ${theme === t ? 'bg-indigo-500/20 border-indigo-500/50 text-white shadow-lg' : 'bg-white/5 border-white/10 text-zinc-300 hover:border-white/20 hover:bg-white/10'}`}
-                                        >
-                                            {t}
-                                        </button>
-                                    ))}
-                                </div>
-                            </div>
-                            <div>
                                 <label className="block text-sm font-medium text-zinc-400 mb-3">Personality Mode</label>
                                 <div className="grid grid-cols-2 gap-2">
                                     {[{ id: 'conversational', name: 'Conversational', desc: 'Friendly and helpful.' }, { id: 'academic', name: 'Academic', desc: 'Formal and technical.' }, { id: 'brainrot', name: 'Brainrot', desc: 'Chaotic Gen Z slang.' }, { id: 'roast-master', name: 'Roast Master', desc: 'Sarcastic and witty.' }, { id: 'formal', name: 'Business Formal', desc: 'Strictly professional.' }, { id: 'zesty', name: 'Zesty', desc: 'Flamboyant and sassy.' }].map((mode) => (
@@ -1061,7 +1061,7 @@ const ChatView: React.FC = () => {
                                         <div className="font-medium text-sm">Quillix K3</div>
                                         <div className="text-xs opacity-60">Fast generation (~15s).</div>
                                     </button>
-                                    <button onClick={() => handleImageModelChange('img4')} className={`text-left px-4 py-3 rounded-xl border transition-all duration-300 relative overflow-hidden ${imageModelPref === 'img4' ? 'bg-indigo-500/20 border-indigo-500/50 text-white shadow-lg' : 'bg-white/5 border-white/10 text-zinc-300 hover:border-white/20 hover:bg-white/10'}`}>
+                                    <button onClick={() => handleImageModelChange('nano-banana')} className={`text-left px-4 py-3 rounded-xl border transition-all duration-300 relative overflow-hidden ${imageModelPref === 'nano-banana' ? 'bg-indigo-500/20 border-indigo-500/50 text-white shadow-lg' : 'bg-white/5 border-white/10 text-zinc-300 hover:border-white/20 hover:bg-white/10'}`}>
                                         <span className="absolute top-2 right-2 bg-indigo-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">Recommended</span>
                                         <div className="font-medium text-sm">Quillix K4</div>
                                         <div className="text-xs opacity-60">Highest quality (~20s).</div>
@@ -1093,7 +1093,7 @@ const ChatView: React.FC = () => {
             )}
 
             {/* Sidebar code */}
-            <div data-liquid-glass className={`fixed inset-y-0 left-0 z-40 w-72 liquid-glass border-l-0 border-t-0 border-b-0 rounded-none rounded-r-2xl transform transition-transform duration-300 ease-in-out ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+            <div data-liquid-glass className={`fixed inset-y-0 left-0 z-40 w-96 liquid-glass border-l-0 border-t-0 border-b-0 rounded-none rounded-r-2xl transform transition-transform duration-300 ease-in-out ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
                 <div className="flex flex-col h-full p-4 space-y-4">
                     <div className="flex justify-between items-center"><div className="font-bold tracking-wide text-white flex items-center gap-2"><img src="/quillix-logo.png" alt="Quillix Logo" className="w-6 h-6 animate-spin-slow" />Quillix</div><button onClick={() => setIsSidebarOpen(false)} className="text-zinc-400 hover:text-white p-1 rounded-full hover:bg-white/10"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m15 18-6-6 6-6"/></svg></button></div>
                     
@@ -1296,8 +1296,17 @@ const ChatView: React.FC = () => {
                                 </div>
                             ))}
                             {isLoading && (
-                                <div className="animate-pop-in">
-                                    <ThinkingProcess isThinking={true} mode={thinkingMode} />
+                                <div className="flex items-start gap-4 animate-pop-in group">
+                                    <div className="shrink-0 mt-1"><NexusIconSmall /></div>
+                                    {thinkingMode === 'image' ? (
+                                        <div data-liquid-glass className="dark-liquid-glass p-4 rounded-3xl rounded-bl-lg">
+                                            <div className="w-full max-w-lg aspect-[9/16] bg-black/20 rounded-xl flex items-center justify-center animate-pulse">
+                                                <ThinkingProcess isThinking={true} mode="image" />
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <ThinkingProcess isThinking={true} mode="reasoning" />
+                                    )}
                                 </div>
                             )}
                             <div ref={messagesEndRef} className="h-48"></div>
@@ -1353,9 +1362,11 @@ const ChatView: React.FC = () => {
                                     </div>
                                 )}
                             </form>
-                            <div className="text-xs text-zinc-500 mt-2 text-center">
-                                Quillix is an experimental AI. By using it, you agree to our <a href="#" onClick={(e) => { e.preventDefault(); setLegalModal({ title: 'Terms of Service', content: termsOfService }); }} className="underline hover:text-zinc-300">Terms of Service</a> and <a href="#" onClick={(e) => { e.preventDefault(); setLegalModal({ title: 'Privacy Policy', content: privacyPolicy }); }} className="underline hover:text-zinc-300">Privacy Policy</a>.
-                            </div>
+                            {messages.length === 0 && (
+                                <div className="text-xs text-zinc-500 mt-2 text-center">
+                                    Quillix is an experimental AI. By using it, you agree to our <a href="#" onClick={(e) => { e.preventDefault(); setLegalModal({ title: 'Terms of Service', content: termsOfService }); }} className="underline hover:text-zinc-300">Terms of Service</a> and <a href="#" onClick={(e) => { e.preventDefault(); setLegalModal({ title: 'Privacy Policy', content: privacyPolicy }); }} className="underline hover:text-zinc-300">Privacy Policy</a>.
+                                </div>
+                            )}
                         </div>
                     )}
                 </div>

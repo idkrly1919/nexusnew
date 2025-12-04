@@ -46,7 +46,7 @@ export async function enhancePersonaInstructions(instructions: string): Promise<
     The output should be a single, cohesive block of text ready to be pasted into the "System Instructions" field. Do not include introductory text like "Here is your enhanced prompt:". Just provide the prompt itself.`;
 
     const response = await client.chat.completions.create({
-        model: 'x-ai/grok-4.1-fast-free',
+        model: 'x-ai/grok-4.1-fast',
         messages: [
             { role: 'system', content: systemPrompt },
             { role: 'user', content: instructions }
@@ -73,12 +73,32 @@ export async function summarizeHistory(historyToSummarize: ChatHistory): Promise
     return response.choices[0].message.content || "Summary could not be generated.";
 }
 
+export async function enhanceImagePrompt(prompt: string): Promise<string> {
+    const client = getClient();
+    const systemPrompt = "You are an expert image prompt engineer. You will be given a user's image prompt. Your task is to enhance it for a diffusion model to generate a more beautiful, detailed, and visually appealing image. Add details about lighting, composition, style (e.g., photorealistic, cinematic, anime, watercolor), and quality. Respond ONLY with the enhanced prompt. Do not add any conversational text.";
+    try {
+        const response = await client.chat.completions.create({
+            model: 'mistralai/mistral-7b-instruct-v0.2',
+            messages: [
+                { role: 'system', content: systemPrompt },
+                { role: 'user', content: prompt }
+            ],
+            temperature: 0.7,
+            max_tokens: 200,
+        });
+        return response.choices[0].message.content?.trim() || prompt;
+    } catch (error) {
+        console.error("Error enhancing image prompt:", error);
+        return prompt; // Fallback to original prompt
+    }
+}
+
 export async function* streamGemini(
     prompt: string,
     history: ChatHistory,
     useSearch: boolean,
     personality: PersonalityMode = 'conversational',
-    imageModelPreference: string = 'img4',
+    imageModelPreference: string = 'nano-banana',
     attachedFiles: { name: string, content: string, type: string }[] | null = null,
     signal: AbortSignal,
     firstName: string | null | undefined,
@@ -120,8 +140,11 @@ export async function* streamGemini(
 
         // --- PATH 1: IMAGE GENERATION ---
         if (isImageRequest) {
-             let finalImagePrompt = imagePrompt;
-            if (imageModelPreference === 'img4') {
+            yield { text: `Enhancing prompt...`, isComplete: false, mode: 'image' };
+            const enhancedPrompt = await enhanceImagePrompt(imagePrompt);
+
+            let finalImagePrompt = enhancedPrompt;
+            if (imageModelPreference === 'nano-banana') {
                 finalImagePrompt += ", using all available pixels for maximum detail, 4k, photorealistic";
             }
 
@@ -186,7 +209,7 @@ INSTRUCTIONS FOR MEMORY:
             }
 
             const systemInstruction = `You are Quillix, a highly intelligent and precise AI reasoning engine. Your core directives are to provide accurate, factual, and deeply insightful responses.
-1.  **Prioritize Accuracy**: Never speculate or generate false information. If you do not know the answer, state that clearly.
+1.  **Prioritize Accuracy**: Never speculate or generate false information. It is critically important that you do not invent facts. If you cannot find information through your search capabilities or do not know the answer, you MUST explicitly state that you don't know or couldn't find the information. Do not create plausible-sounding but incorrect details.
 2.  **Reason Step-by-Step**: For complex queries, break down your thinking process to ensure clarity and correctness.
 3.  **Leverage Real-Time Data**: Your knowledge is current. Use your search capabilities for up-to-the-minute information.
 4.  **Be Concise**: Provide comprehensive answers without unnecessary verbosity.

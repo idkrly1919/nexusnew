@@ -10,7 +10,7 @@ const Onboarding: React.FC = () => {
     const [showSadFace, setShowSadFace] = useState(false);
     const [formData, setFormData] = useState({
         discovery_source: '',
-        image_model_preference: 'img4', // Default to the recommended option
+        image_model_preference: 'nano-banana', // Default to the recommended option
         usage_reason: ''
     });
 
@@ -88,7 +88,7 @@ const Onboarding: React.FC = () => {
                                 <h3 className="font-semibold">Quillix K3</h3>
                                 <p className="text-sm text-zinc-400">Ultra-fast generation (~15s), great for rapid iteration.</p>
                             </button>
-                            <button onClick={() => handleSelect('image_model_preference', 'img4')} className={`p-4 rounded-xl border text-left transition-all duration-300 relative overflow-hidden ${formData.image_model_preference === 'img4' ? 'bg-indigo-500/20 border-indigo-500/50' : 'bg-white/5 border-white/10 hover:bg-white/10'}`}>
+                            <button onClick={() => handleSelect('image_model_preference', 'nano-banana')} className={`p-4 rounded-xl border text-left transition-all duration-300 relative overflow-hidden ${formData.image_model_preference === 'nano-banana' ? 'bg-indigo-500/20 border-indigo-500/50' : 'bg-white/5 border-white/10 hover:bg-white/10'}`}>
                                 <span className="absolute top-2 right-2 bg-indigo-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">Recommended</span>
                                 <h3 className="font-semibold">Quillix K4</h3>
                                 <p className="text-sm text-zinc-400">Highest quality (~20s), for stunning, detailed visuals.</p>
