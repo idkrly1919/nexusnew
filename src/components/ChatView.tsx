@@ -756,8 +756,6 @@ const ChatView: React.FC = () => {
         if (textareaRef.current) {
             textareaRef.current.style.height = 'auto';
             const scrollHeight = textareaRef.current.scrollHeight;
-            // Ensure a reasonable minimum height to prevent clipped placeholder on initial render
-            // Min height of 48px covers standard one line + padding
             textareaRef.current.style.height = `${Math.min(Math.max(scrollHeight, 48), 200)}px`;
         }
     }, [inputValue]);
@@ -864,6 +862,14 @@ const ChatView: React.FC = () => {
         };
 
         const sources = extractSources(text);
+
+        // Remove the explicit source block from the text to avoid duplication with the buttons
+        let textToDisplay = text;
+        if (sources.length > 0) {
+            // Matches lines starting with "Source:", "Sources:", etc., followed by links, at the end of the message.
+            const sourceBlockRegex = /(?:\r\n|\r|\n|^)\s*(?:Sources?|References?|Citations?|SOURCE)(?::|)\s*(?:\[[^\]]+\]\([^)]+\)(?:[\s|,\u2022-]*))+$/im;
+            textToDisplay = text.replace(sourceBlockRegex, '').trim();
+        }
     
         const simpleParse = (str: string) => {
             let parsed = str;
@@ -949,10 +955,14 @@ const ChatView: React.FC = () => {
             const [_, fileType, filename, content] = match;
             const startIndex = match.index!;
             const confirmationText = text.substring(0, startIndex).trim();
+            const cleanConfirmationText = sources.length > 0 
+                ? confirmationText.replace(/(?:\r\n|\r|\n|^)\s*(?:Sources?|References?|Citations?|SOURCE)(?::|)\s*(?:\[[^\]]+\]\([^)]+\)(?:[\s|,\u2022-]*))+$/im, '').trim()
+                : confirmationText;
+
             const parts = [];
     
-            if (confirmationText) {
-                parts.push(<div key="text-part" dangerouslySetInnerHTML={{ __html: simpleParse(confirmationText) }} />);
+            if (cleanConfirmationText) {
+                parts.push(<div key="text-part" dangerouslySetInnerHTML={{ __html: simpleParse(cleanConfirmationText) }} />);
             }
     
             if (text.trim().endsWith('```')) {
@@ -997,7 +1007,7 @@ const ChatView: React.FC = () => {
     
         return (
             <div className="w-full">
-                <div dangerouslySetInnerHTML={{ __html: simpleParse(text) }} />
+                <div dangerouslySetInnerHTML={{ __html: simpleParse(textToDisplay) }} />
                 {sources.length > 0 && (
                     <div className="mt-4 flex flex-wrap gap-2 pt-4 border-t border-white/10">
                         {sources.map((source, idx) => (
