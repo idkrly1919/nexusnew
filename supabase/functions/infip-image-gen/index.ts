@@ -36,7 +36,7 @@ serve(async (req: Request) => {
     
     const payload = {
         prompt: prompt,
-        model: model || 'nano-banana-pro', // Use the provided model, or default to nano-banana-pro
+        model: model || 'nano-banana', // Use the provided model, or default to nano-banana
         n: 1,
         size: size || '1024x1792' // Use provided size, or default to 9:16
     };
