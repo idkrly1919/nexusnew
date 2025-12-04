@@ -46,7 +46,7 @@ export async function enhancePersonaInstructions(instructions: string): Promise<
     The output should be a single, cohesive block of text ready to be pasted into the "System Instructions" field. Do not include introductory text like "Here is your enhanced prompt:". Just provide the prompt itself.`;
 
     const response = await client.chat.completions.create({
-        model: 'x-ai/grok-4.1-fast',
+        model: 'x-ai/grok-4.1-fast-free',
         messages: [
             { role: 'system', content: systemPrompt },
             { role: 'user', content: instructions }
