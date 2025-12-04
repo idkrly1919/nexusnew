@@ -312,7 +312,7 @@ const ChatView: React.FC = () => {
                         a.style.display = 'none';
                         a.href = blobUrl;
                         
-                        const filename = 'quillix-generated-image.png';
+                        const filename = `quillix-${Date.now()}.png`;
                         a.download = filename;
                         
                         document.body.appendChild(a);
@@ -320,12 +320,14 @@ const ChatView: React.FC = () => {
                         a.remove();
                     } catch (error) {
                         console.error('Proxy download failed, falling back to direct:', error);
-                        // Fallback: try to force download via header manipulation if possible, or just open
+                        // Fallback: direct download logic
                         const a = document.createElement('a');
                         a.href = imageUrl;
-                        a.download = 'image.png';
+                        a.download = `quillix-${Date.now()}.png`;
                         a.target = '_blank';
+                        document.body.appendChild(a);
                         a.click();
+                        a.remove();
                     } finally {
                         if (blobUrl) window.URL.revokeObjectURL(blobUrl);
                     }
@@ -844,15 +846,11 @@ const ChatView: React.FC = () => {
 
         const extractSources = (inputText: string) => {
             const links: { title: string, url: string }[] = [];
-            
-            // 1. Match Markdown Links [Title](url)
             const mdLinkRegex = /\[([^\]]+)\]\((https?:\/\/[^)]+)\)/g;
             let mdMatch;
             while ((mdMatch = mdLinkRegex.exec(inputText)) !== null) {
                 links.push({ title: mdMatch[1], url: mdMatch[2] });
             }
-            
-            // 2. Match Bare URLs (excluding those in markdown links ideally)
             const urlRegex = /(https?:\/\/[^\s<)\]]+)/g;
             let urlMatch;
             while ((urlMatch = urlRegex.exec(inputText)) !== null) {
@@ -866,79 +864,54 @@ const ChatView: React.FC = () => {
                     }
                 }
             }
-            
-            // 3. Deduplicate by URL
             const uniqueLinks = new Map();
             links.forEach(link => {
                 if (!uniqueLinks.has(link.url)) {
                     uniqueLinks.set(link.url, link);
                 }
             });
-            
             return Array.from(uniqueLinks.values());
         };
 
         const sources = extractSources(text);
-
-        // Remove the explicit source block from the text to avoid duplication with the buttons
         let textToDisplay = text;
         if (sources.length > 0) {
-            // Matches lines starting with "Source:", "Sources:", etc., followed by links, at the end of the message.
             const sourceBlockRegex = /(?:\r\n|\r|\n|^)\s*(?:Sources?|References?|Citations?|SOURCE)(?::|)\s*(?:\[[^\]]+\]\([^)]+\)(?:[\s|,\u2022-]*))+$/im;
             textToDisplay = text.replace(sourceBlockRegex, '').trim();
         }
     
         const simpleParse = (str: string) => {
             let parsed = str;
+            const placeholders: string[] = [];
+            const addPlaceholder = (content: string) => {
+                placeholders.push(content);
+                return `__PLACEHOLDER_${placeholders.length - 1}__`;
+            };
 
-            // Tables
-            parsed = parsed.replace(
-                /^\|(.+)\|\r?\n\|([\s\-|:]+)\|\r?\n((?:\|.*(?:\r?\n|$))*)/gm,
-                (_match, headerLine, _separatorLine, bodyLines) => {
-                    const headers = headerLine.split('|').map((h: string) => h.trim()).filter(Boolean);
-                    const rows = bodyLines.trim().split('\n').map((rowLine: string) => 
-                        rowLine.split('|').map((c: string) => c.trim()).filter(Boolean)
-                    );
-
-                    const thead = `<thead><tr class="border-b border-white/20">${headers.map((h: string) => `<th class="p-3 text-left font-semibold">${h}</th>`).join('')}</tr></thead>`;
-                    const tbody = `<tbody>${rows.map((row: string[]) => `<tr class="border-b border-white/10">${row.map((cell: string) => `<td class="p-3">${cell}</td>`).join('')}</tr>`).join('')}</tbody>`;
-                    
-                    return `<div class="my-4 overflow-x-auto bg-black/20 border border-white/10 rounded-lg"><table class="w-full text-sm">${thead}${tbody}</table></div>`;
-                }
-            );
-
-            // HEADERS (Added H1-H4 support)
-            parsed = parsed.replace(/^#### (.*$)/gm, '<h4 class="text-base font-semibold text-zinc-200 mt-4 mb-2">$1</h4>');
-            parsed = parsed.replace(/^### (.*$)/gm, '<h3 class="text-lg font-bold text-white mt-5 mb-3">$1</h3>');
-            parsed = parsed.replace(/^## (.*$)/gm, '<h2 class="text-xl font-bold text-white mt-6 mb-3">$1</h2>');
-            parsed = parsed.replace(/^# (.*$)/gm, '<h1 class="text-2xl font-bold text-white mt-8 mb-4 border-b border-white/10 pb-2">$1</h1>');
-
-            // --- Math Rendering (LaTeX) ---
+            // 1. Math Rendering (LaTeX) - Do this first to protect it
             parsed = parsed.replace(/\$\$([\s\S]*?)\$\$/g, (_, equation) => {
                 try {
-                    return `<div class="my-4 text-center overflow-x-auto">${katex.renderToString(equation, { displayMode: true, throwOnError: false })}</div>`;
+                    return addPlaceholder(`<div class="my-4 text-center overflow-x-auto">${katex.renderToString(equation, { displayMode: true, throwOnError: false })}</div>`);
                 } catch (e) {
                     return `$$${equation}$$`;
                 }
             });
-
             parsed = parsed.replace(/\\\[(.*?)\\\]/g, (_, equation) => {
                 try {
-                     return katex.renderToString(equation, { displayMode: true, throwOnError: false });
+                     return addPlaceholder(katex.renderToString(equation, { displayMode: true, throwOnError: false }));
                 } catch(e) { return `\\[${equation}\\]`; }
             });
-
             parsed = parsed.replace(/\\\((.*?)\\\)/g, (_, equation) => {
                 try {
-                     return katex.renderToString(equation, { displayMode: false, throwOnError: false });
+                     return addPlaceholder(katex.renderToString(equation, { displayMode: false, throwOnError: false }));
                 } catch(e) { return `\\(${equation}\\)`; }
             });
-            
-            // Standard Image Parsing
+
+            // 2. Standard Image Parsing - Protect these from bare URL regex
             parsed = parsed.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, (_, alt, url) => {
                 const downloadIcon = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>`;
                 const fullscreenIcon = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg>`;
-                return `<div class="mt-3 mb-3 block w-full max-w-lg">
+                const imgHtml = `<div class="mt-3 mb-3 block w-full max-w-lg">
                     <div class="relative group">
                         <img src="${url}" alt="${alt}" class="rounded-xl shadow-lg border border-white/10 w-full h-auto object-cover" />
                         <div class="absolute top-3 right-3 flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-all duration-300">
@@ -951,12 +924,33 @@ const ChatView: React.FC = () => {
                         </div>
                     </div>
                 </div>`;
+                return addPlaceholder(imgHtml);
             });
-            
-            // 1. Markdown Links [text](url) -> <a ...>text</a>
+
+            // 3. Tables
+            parsed = parsed.replace(
+                /^\|(.+)\|\r?\n\|([\s\-|:]+)\|\r?\n((?:\|.*(?:\r?\n|$))*)/gm,
+                (_match, headerLine, _separatorLine, bodyLines) => {
+                    const headers = headerLine.split('|').map((h: string) => h.trim()).filter(Boolean);
+                    const rows = bodyLines.trim().split('\n').map((rowLine: string) => 
+                        rowLine.split('|').map((c: string) => c.trim()).filter(Boolean)
+                    );
+                    const thead = `<thead><tr class="border-b border-white/20">${headers.map((h: string) => `<th class="p-3 text-left font-semibold">${h}</th>`).join('')}</tr></thead>`;
+                    const tbody = `<tbody>${rows.map((row: string[]) => `<tr class="border-b border-white/10">${row.map((cell: string) => `<td class="p-3">${cell}</td>`).join('')}</tr>`).join('')}</tbody>`;
+                    return addPlaceholder(`<div class="my-4 overflow-x-auto bg-black/20 border border-white/10 rounded-lg"><table class="w-full text-sm">${thead}${tbody}</table></div>`);
+                }
+            );
+
+            // 4. Headers
+            parsed = parsed.replace(/^#### (.*$)/gm, '<h4 class="text-base font-semibold text-zinc-200 mt-4 mb-2">$1</h4>');
+            parsed = parsed.replace(/^### (.*$)/gm, '<h3 class="text-lg font-bold text-white mt-5 mb-3">$1</h3>');
+            parsed = parsed.replace(/^## (.*$)/gm, '<h2 class="text-xl font-bold text-white mt-6 mb-3">$1</h2>');
+            parsed = parsed.replace(/^# (.*$)/gm, '<h1 class="text-2xl font-bold text-white mt-8 mb-4 border-b border-white/10 pb-2">$1</h1>');
+
+            // 5. Markdown Links [text](url) -> <a ...>text</a>
             parsed = parsed.replace(/\[([^\]]+)\]\((https?:\/\/[^)]+)\)/g, '<a href="$2" target="_blank" class="text-indigo-400 hover:text-indigo-300 hover:underline transition-colors">$1</a>');
 
-            // 2. Bare URLs
+            // 6. Bare URLs (Now safe because images/math are placeholders)
             parsed = parsed.replace(/(?<!href="|">)(https?:\/\/[^\s<]+)/g, (url) => {
                 return `<a href="${url}" target="_blank" class="text-indigo-400 hover:text-indigo-300 hover:underline transition-colors break-all">${url}</a>`;
             });
@@ -964,7 +958,15 @@ const ChatView: React.FC = () => {
             const emojiRegex = /([\u2700-\u27BF]|[\uE000-\uF8FF]|\uD83C[\uDC00-\uDFFF]|\uD83D[\uDC00-\uDFFF]|[\u2011-\u26FF]|\uD83E[\uDD10-\uDDFF])/g;
             parsed = parsed.replace(emojiRegex, '<span class="no-invert inline-block">$1</span>');
 
-            parsed = parsed.replace(/\*\*(.*?)\*\*/g, '<strong class="text-white font-semibold">$1</strong>').replace(/`([^`]+)`/g, '<code class="bg-black/20 px-1.5 py-0.5 rounded text-sm font-mono text-cyan-300 border border-white/10">$1</code>').replace(/\n/g, '<br />');
+            parsed = parsed.replace(/\*\*(.*?)\*\*/g, '<strong class="text-white font-semibold">$1</strong>')
+                           .replace(/`([^`]+)`/g, '<code class="bg-black/20 px-1.5 py-0.5 rounded text-sm font-mono text-cyan-300 border border-white/10">$1</code>')
+                           .replace(/\n/g, '<br />');
+
+            // Restore Placeholders
+            placeholders.forEach((content, i) => {
+                parsed = parsed.replace(`__PLACEHOLDER_${i}__`, content);
+            });
+
             return parsed;
         };
     
@@ -1143,11 +1145,11 @@ const ChatView: React.FC = () => {
             )}
 
             {fullscreenImage && (
-                <div className="fixed inset-0 z-[100] bg-black/90 backdrop-blur-md flex items-center justify-center animate-in fade-in duration-200" onClick={() => setFullscreenImage(null)}>
-                    <button className="absolute top-4 right-4 p-2 text-white/50 hover:text-white transition-colors bg-white/10 rounded-full">
-                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                <div className="fixed inset-0 z-[100] bg-black/95 backdrop-blur-md flex items-center justify-center animate-in fade-in duration-200" onClick={() => setFullscreenImage(null)}>
+                    <button className="absolute top-6 right-6 p-3 text-white/70 hover:text-white transition-colors bg-white/10 hover:bg-white/20 rounded-full z-50">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                     </button>
-                    <img src={fullscreenImage} className="max-w-[95vw] max-h-[95vh] rounded-lg shadow-2xl object-contain" onClick={e => e.stopPropagation()} />
+                    <img src={fullscreenImage} className="max-w-[95vw] max-h-[95vh] rounded-lg shadow-2xl object-contain animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()} />
                 </div>
             )}
 
@@ -1434,7 +1436,7 @@ const ChatView: React.FC = () => {
                                     <div className="shrink-0 mt-1"><NexusIconSmall /></div>
                                     {thinkingMode === 'image' ? (
                                         <div data-liquid-glass className="dark-liquid-glass p-4 rounded-3xl rounded-bl-lg">
-                                            <div className="w-full max-w-lg aspect-[9/16] bg-black/20 rounded-xl flex items-center justify-center animate-pulse">
+                                            <div className="w-full max-w-lg aspect-[9/16] bg-black/20 rounded-xl flex items-center justify-center">
                                                 <ImageGenerationPlaceholder />
                                             </div>
                                         </div>
