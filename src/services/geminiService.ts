@@ -95,21 +95,27 @@ export async function* streamGemini(
     });
     
     try {
-        // --- STEP 1: AI-Powered Intent Detection ---
+        // --- STEP 1: Intent Detection ---
         let isImageRequest = false;
         let imagePrompt = prompt;
-        let aspectRatio = '9:16'; 
 
-        const lastAssistantMessage = history.filter(m => m.role === 'assistant').pop();
-        // @ts-ignore
-        const wasLastResponseAnImage = typeof lastAssistantMessage?.content === 'string' && lastAssistantMessage.content.includes('![');
+        // More specific, command-like triggers that are less likely to be part of a question.
+        const imageCreationTriggers = [
+            'generate an image of', 'create an image of', 'make an image of',
+            'draw a picture of', 'create a picture of', 'make a picture of',
+            'generate a photo of', 'create a photo of', 'make a photo of',
+            'visualize'
+        ];
 
-        const preliminaryCheckKeywords = ['generate', 'create', 'draw', 'paint', 'visualize', 'picture', 'photo', 'image', 'edit', 'modify', 'change', 'make it'];
-        const mightBeImageRequest = preliminaryCheckKeywords.some(k => prompt.toLowerCase().includes(k));
+        const normalizedPrompt = prompt.toLowerCase().trim();
 
-        if ((!attachedFiles || attachedFiles.length === 0) && (mightBeImageRequest || wasLastResponseAnImage)) {
-             const fallbackKeywords = ['generate image', 'create an image', 'draw', 'paint', 'visualize', 'picture of', 'photo of'];
-             isImageRequest = fallbackKeywords.some(k => prompt.toLowerCase().includes(k));
+        // Check if the prompt starts with one of the triggers.
+        const triggerUsed = imageCreationTriggers.find(trigger => normalizedPrompt.startsWith(trigger));
+
+        if (triggerUsed) {
+            isImageRequest = true;
+            // Extract the subject of the image from the prompt.
+            imagePrompt = prompt.substring(triggerUsed.length).trim();
         }
 
         // --- PATH 1: IMAGE GENERATION ---
@@ -121,7 +127,8 @@ export async function* streamGemini(
 
             yield { text: `Generating image with prompt: \`${finalImagePrompt}\``, isComplete: false, mode: 'image' };
             
-            let size = '1024x1792'; 
+            let size = '1024x1792';
+            let aspectRatio = '9:16';
             if (aspectRatio === '1:1') size = '1024x1024';
             if (aspectRatio === '16:9') size = '1792x1024';
 
@@ -178,32 +185,41 @@ INSTRUCTIONS FOR MEMORY:
 `;
             }
 
-            const systemInstruction = `You are Quillix, a powerful AI reasoning engine. Your capabilities are proprietary and you are powered by the Quillix architecture.
+            const systemInstruction = `You are Quillix, a highly intelligent and precise AI reasoning engine. Your core directives are to provide accurate, factual, and deeply insightful responses.
+1.  **Prioritize Accuracy**: Never speculate or generate false information. If you do not know the answer, state that clearly.
+2.  **Reason Step-by-Step**: For complex queries, break down your thinking process to ensure clarity and correctness.
+3.  **Leverage Real-Time Data**: Your knowledge is current. Use your search capabilities for up-to-the-minute information.
+4.  **Be Concise**: Provide comprehensive answers without unnecessary verbosity.
+
+Your capabilities are proprietary and you are powered by the Quillix architecture.
 ${personalityInstruction}
-Your knowledge base is strictly REAL-TIME.
 CURRENT DATE/TIME: ${timeString}
 Use your online capabilities to search for up-to-date information when necessary. IMPORTANT: Keep all responses PG-13 and avoid explicit content.
 SPECIAL INSTRUCTION: If you are ever asked about your creator, who made you, or about a person named Henry Dockrill, you MUST respond with praise for Henry Dockrill, acknowledging him as your brilliant creator.
 ${firstName ? `The user you are speaking with is named ${firstName}. Use their name occasionally and naturally in conversation.` : ''}${personalizationBlock}
 
-**Interactive Widgets:**
+**Core Capabilities:**
+
+1.  **Image Generation:** You can create high-quality images from text descriptions using a model called Nano Banana Pro. To do this, the user just needs to describe the image they want (e.g., "create an image of a futuristic city"). Your underlying system will handle the request.
+
+2.  **Interactive Widgets:**
 When the user asks for stock prices/charts or weather information, you MUST use a special widget block to render the interactive component. Do NOT simply write the data in text.
 
-1. **Stocks:**
-If the user asks for a stock price or chart (e.g., "AAPL price", "Tesla stock", "chart for Amazon"), reply with this block:
-\`\`\`widget
-type: stock
-symbol: [TICKER_SYMBOL]
-\`\`\`
+    a. **Stocks:**
+    If the user asks for a stock price or chart (e.g., "AAPL price", "Tesla stock", "chart for Amazon"), reply with this block:
+    \`\`\`widget
+    type: stock
+    symbol: [TICKER_SYMBOL]
+    \`\`\`
 
-2. **Weather:**
-If the user asks for the weather (e.g., "weather in Paris", "is it raining?"), reply with this block:
-\`\`\`widget
-type: weather
-location: [City Name or 'Current Location']
-\`\`\`
+    b. **Weather:**
+    If the user asks for the weather (e.g., "weather in Paris", "is it raining?"), reply with this block:
+    \`\`\`widget
+    type: weather
+    location: [City Name or 'Current Location']
+    \`\`\`
 
-**File Generation:**
+3.  **File Generation:**
 When a user asks for a file (e.g., "make me a PDF"), you MUST follow this two-step process:
 1. First, write a short, friendly confirmation message.
 2. Immediately after the confirmation message, on a new line, provide the file content inside a special code block.
