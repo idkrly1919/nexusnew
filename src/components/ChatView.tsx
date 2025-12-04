@@ -824,6 +824,47 @@ const ChatView: React.FC = () => {
     
         const fileBlockRegex = /```(pdf|txt|html)\nfilename:\s*(.*?)\n---\n([\s\S]*)/;
         const match = text.match(fileBlockRegex);
+
+        const extractSources = (inputText: string) => {
+            const links: { title: string, url: string }[] = [];
+            
+            // 1. Match Markdown Links [Title](url)
+            const mdLinkRegex = /\[([^\]]+)\]\((https?:\/\/[^)]+)\)/g;
+            let mdMatch;
+            while ((mdMatch = mdLinkRegex.exec(inputText)) !== null) {
+                links.push({ title: mdMatch[1], url: mdMatch[2] });
+            }
+            
+            // 2. Match Bare URLs (excluding those in markdown links ideally)
+            // A simple regex for http/https URLs. We'll filter duplicates after.
+            const urlRegex = /(https?:\/\/[^\s<)\]]+)/g;
+            let urlMatch;
+            while ((urlMatch = urlRegex.exec(inputText)) !== null) {
+                const url = urlMatch[1];
+                // Only add if not already present (checking URL only)
+                if (!links.some(l => l.url === url)) {
+                    try {
+                        // Use domain as title for bare URLs
+                        const domain = new URL(url).hostname.replace(/^www\./, '');
+                        links.push({ title: domain, url: url });
+                    } catch (e) {
+                        // Invalid URL, ignore
+                    }
+                }
+            }
+            
+            // 3. Deduplicate by URL
+            const uniqueLinks = new Map();
+            links.forEach(link => {
+                if (!uniqueLinks.has(link.url)) {
+                    uniqueLinks.set(link.url, link);
+                }
+            });
+            
+            return Array.from(uniqueLinks.values());
+        };
+
+        const sources = extractSources(text);
     
         const simpleParse = (str: string) => {
             let parsed = str;
@@ -888,6 +929,20 @@ const ChatView: React.FC = () => {
                 </div>`;
             });
             
+            // 1. Markdown Links [text](url) -> <a ...>text</a>
+            parsed = parsed.replace(/\[([^\]]+)\]\((https?:\/\/[^)]+)\)/g, '<a href="$2" target="_blank" class="text-indigo-400 hover:text-indigo-300 hover:underline transition-colors">$1</a>');
+
+            // 2. Bare URLs
+            // We use a regex that looks for http/https but avoids things that are likely inside href="..."
+            // This is a simplification. For full robustness, a parser is better, but this regex helps common cases.
+            // It avoids replacing if followed immediately by " (end of href) or preceded by =" (start of href)
+            // Note: simpleParse processes linearly. We already replaced Markdown links with HTML <a> tags.
+            // So now we just need to avoid matching inside those tags.
+            // A simple hack is to match things that look like URLs but don't start with quote or =
+            parsed = parsed.replace(/(?<!href="|">)(https?:\/\/[^\s<]+)/g, (url) => {
+                return `<a href="${url}" target="_blank" class="text-indigo-400 hover:text-indigo-300 hover:underline transition-colors break-all">${url}</a>`;
+            });
+
             const emojiRegex = /([\u2700-\u27BF]|[\uE000-\uF8FF]|\uD83C[\uDC00-\uDFFF]|\uD83D[\uDC00-\uDFFF]|[\u2011-\u26FF]|\uD83E[\uDD10-\uDDFF])/g;
             parsed = parsed.replace(emojiRegex, '<span class="no-invert inline-block">$1</span>');
 
@@ -919,10 +974,59 @@ const ChatView: React.FC = () => {
                     </div>
                 );
             }
+            // If sources exist, append them to the file block or text part
+            if (sources.length > 0) {
+                parts.push(
+                    <div key="sources" className="mt-4 flex flex-wrap gap-2 pt-4 border-t border-white/10">
+                        {sources.map((source, idx) => (
+                            <a 
+                                key={idx} 
+                                href={source.url} 
+                                target="_blank" 
+                                rel="noopener noreferrer"
+                                className="flex items-center gap-2 bg-black/20 hover:bg-black/40 border border-white/5 hover:border-white/20 rounded-full px-3 py-1.5 text-xs text-zinc-300 hover:text-white transition-all duration-200 max-w-[200px]"
+                            >
+                                <img 
+                                    src={`https://www.google.com/s2/favicons?domain=${new URL(source.url).hostname}&sz=32`}
+                                    alt=""
+                                    className="w-3.5 h-3.5 rounded-sm opacity-70"
+                                    onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                                />
+                                <span className="truncate">{source.title}</span>
+                            </a>
+                        ))}
+                    </div>
+                );
+            }
             return parts;
         }
     
-        return <div dangerouslySetInnerHTML={{ __html: simpleParse(text) }} />;
+        return (
+            <div className="w-full">
+                <div dangerouslySetInnerHTML={{ __html: simpleParse(text) }} />
+                {sources.length > 0 && (
+                    <div className="mt-4 flex flex-wrap gap-2 pt-4 border-t border-white/10">
+                        {sources.map((source, idx) => (
+                            <a 
+                                key={idx} 
+                                href={source.url} 
+                                target="_blank" 
+                                rel="noopener noreferrer"
+                                className="flex items-center gap-2 bg-black/20 hover:bg-black/40 border border-white/5 hover:border-white/20 rounded-full px-3 py-1.5 text-xs text-zinc-300 hover:text-white transition-all duration-200 max-w-[200px]"
+                            >
+                                <img 
+                                    src={`https://www.google.com/s2/favicons?domain=${new URL(source.url).hostname}&sz=32`}
+                                    alt=""
+                                    className="w-3.5 h-3.5 rounded-sm opacity-70"
+                                    onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                                />
+                                <span className="truncate">{source.title}</span>
+                            </a>
+                        ))}
+                    </div>
+                )}
+            </div>
+        );
     };
 
     const handleDeleteAllConversations = async () => {
