@@ -831,14 +831,14 @@ const ChatView: React.FC = () => {
             // Tables
             parsed = parsed.replace(
                 /^\|(.+)\|\r?\n\|([\s\-|:]+)\|\r?\n((?:\|.*(?:\r?\n|$))*)/gm,
-                (match, headerLine, separatorLine, bodyLines) => {
-                    const headers = headerLine.split('|').map(h => h.trim()).filter(Boolean);
-                    const rows = bodyLines.trim().split('\n').map(rowLine => 
-                        rowLine.split('|').map(c => c.trim()).filter(Boolean)
+                (_match, headerLine, _separatorLine, bodyLines) => {
+                    const headers = headerLine.split('|').map((h: string) => h.trim()).filter(Boolean);
+                    const rows = bodyLines.trim().split('\n').map((rowLine: string) => 
+                        rowLine.split('|').map((c: string) => c.trim()).filter(Boolean)
                     );
 
-                    const thead = `<thead><tr class="border-b border-white/20">${headers.map(h => `<th class="p-3 text-left font-semibold">${h}</th>`).join('')}</tr></thead>`;
-                    const tbody = `<tbody>${rows.map(row => `<tr class="border-b border-white/10">${row.map(cell => `<td class="p-3">${cell}</td>`).join('')}</tr>`).join('')}</tbody>`;
+                    const thead = `<thead><tr class="border-b border-white/20">${headers.map((h: string) => `<th class="p-3 text-left font-semibold">${h}</th>`).join('')}</tr></thead>`;
+                    const tbody = `<tbody>${rows.map((row: string[]) => `<tr class="border-b border-white/10">${row.map((cell: string) => `<td class="p-3">${cell}</td>`).join('')}</tr>`).join('')}</tbody>`;
                     
                     return `<div class="my-4 overflow-x-auto bg-black/20 border border-white/10 rounded-lg"><table class="w-full text-sm">${thead}${tbody}</table></div>`;
                 }
