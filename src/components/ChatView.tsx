@@ -18,6 +18,7 @@ import WeatherWidget from './WeatherWidget';
 import LegalModal from './LegalModal';
 import SupportModal from './SupportModal';
 import AccountSettingsModal from './AccountSettingsModal';
+import ImageGenerationPlaceholder from './ImageGenerationPlaceholder';
 import { termsOfService, privacyPolicy } from '../legal';
 
 const NexusIconSmall = () => (
@@ -68,6 +69,8 @@ const ChatView: React.FC = () => {
     
     const [personalizationEntries, setPersonalizationEntries] = useState<{id: string, entry: string}[]>([]);
     const [showMemoryToast, setShowMemoryToast] = useState(false);
+
+    const [fullscreenImage, setFullscreenImage] = useState<string | null>(null);
 
     const [legalModal, setLegalModal] = useState<{ title: string, content: string } | null>(null);
     const [supportModal, setSupportModal] = useState<'support' | 'suggestion' | null>(null);
@@ -278,7 +281,16 @@ const ChatView: React.FC = () => {
         const handleChatViewClick = async (e: MouseEvent) => {
             const target = e.target as HTMLElement;
             const downloadButton = target.closest('.download-image-btn');
+            const fullscreenButton = target.closest('.fullscreen-image-btn');
             const betterImageButton = target.closest('.better-image-btn');
+
+            if (fullscreenButton) {
+                e.preventDefault();
+                const imageUrl = fullscreenButton.getAttribute('data-src');
+                if (imageUrl) {
+                    setFullscreenImage(imageUrl);
+                }
+            }
 
             if (downloadButton) {
                 e.preventDefault();
@@ -308,7 +320,12 @@ const ChatView: React.FC = () => {
                         a.remove();
                     } catch (error) {
                         console.error('Proxy download failed, falling back to direct:', error);
-                        window.open(imageUrl, '_blank');
+                        // Fallback: try to force download via header manipulation if possible, or just open
+                        const a = document.createElement('a');
+                        a.href = imageUrl;
+                        a.download = 'image.png';
+                        a.target = '_blank';
+                        a.click();
                     } finally {
                         if (blobUrl) window.URL.revokeObjectURL(blobUrl);
                     }
@@ -925,9 +942,9 @@ const ChatView: React.FC = () => {
                     <div class="relative group">
                         <img src="${url}" alt="${alt}" class="rounded-xl shadow-lg border border-white/10 w-full h-auto object-cover" />
                         <div class="absolute top-3 right-3 flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-all duration-300">
-                            <a href="${url}" target="_blank" title="View Fullscreen" class="bg-black/60 hover:bg-black/80 backdrop-blur-md text-white w-10 h-10 flex items-center justify-center rounded-full shadow-xl border border-white/10 interactive-lift">
+                            <button title="View Fullscreen" class="fullscreen-image-btn bg-black/60 hover:bg-black/80 backdrop-blur-md text-white w-10 h-10 flex items-center justify-center rounded-full shadow-xl border border-white/10 interactive-lift" data-src="${url}">
                                 ${fullscreenIcon}
-                            </a>
+                            </button>
                             <a href="${url}" title="Download Image" class="download-image-btn bg-black/60 hover:bg-black/80 backdrop-blur-md text-white w-10 h-10 flex items-center justify-center rounded-full shadow-xl border border-white/10 interactive-lift">
                                 ${downloadIcon}
                             </a>
@@ -1122,6 +1139,15 @@ const ChatView: React.FC = () => {
                         <svg className="w-5 h-5 text-indigo-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 20h9"/><path d="M4 20h2"/><path d="M4 12h16"/><path d="M4 4h10"/><path d="M18 8h2"/><path d="M16 4v16"/></svg>
                         <span className="text-sm font-medium text-white">Memory Updated</span>
                     </div>
+                </div>
+            )}
+
+            {fullscreenImage && (
+                <div className="fixed inset-0 z-[100] bg-black/90 backdrop-blur-md flex items-center justify-center animate-in fade-in duration-200" onClick={() => setFullscreenImage(null)}>
+                    <button className="absolute top-4 right-4 p-2 text-white/50 hover:text-white transition-colors bg-white/10 rounded-full">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                    </button>
+                    <img src={fullscreenImage} className="max-w-[95vw] max-h-[95vh] rounded-lg shadow-2xl object-contain" onClick={e => e.stopPropagation()} />
                 </div>
             )}
 
@@ -1409,7 +1435,7 @@ const ChatView: React.FC = () => {
                                     {thinkingMode === 'image' ? (
                                         <div data-liquid-glass className="dark-liquid-glass p-4 rounded-3xl rounded-bl-lg">
                                             <div className="w-full max-w-lg aspect-[9/16] bg-black/20 rounded-xl flex items-center justify-center animate-pulse">
-                                                <ThinkingProcess isThinking={true} mode="image" />
+                                                <ImageGenerationPlaceholder />
                                             </div>
                                         </div>
                                     ) : (
