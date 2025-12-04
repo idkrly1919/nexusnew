@@ -8,37 +8,40 @@ const corsHeaders = {
 }
 
 serve(async (req: Request) => {
+  // Handle CORS preflight request
   if (req.method === 'OPTIONS') {
     return new Response(null, { status: 200, headers: corsHeaders })
   }
 
   try {
     const { prompt, model, size } = await req.json();
+    
     if (!prompt) {
-      return new Response(JSON.stringify({ error: "Prompt is required" }), {
-        status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      });
+      return new Response(
+        JSON.stringify({ error: "Prompt is required" }), 
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
     // @ts-ignore
     const infipApiKey = Deno.env.get('INFIP_API_KEY');
     if (!infipApiKey) {
-      const errorMsg = 'CRITICAL: Secret "INFIP_API_KEY" not found in environment variables.';
-      console.error(errorMsg);
+      console.error("INFIP_API_KEY missing");
       return new Response(
-        JSON.stringify({ error: 'API key secret (INFIP_API_KEY) is not set in your Supabase project function secrets.' }),
+        JSON.stringify({ error: 'Server configuration error: API key missing.' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
+
+    console.log(`Generating image with prompt: "${prompt}", model: ${model || 'default'}`);
 
     const infipUrl = "https://api.infip.pro/v1/images/generations";
     
     const payload = {
         prompt: prompt,
-        model: model || 'nano-banana', // Use the provided model, or default to nano-banana
+        model: model || 'nano-banana',
         n: 1,
-        size: size || '1024x1792' // Use provided size, or default to 9:16
+        size: size || '1024x1792'
     };
 
     const response = await fetch(infipUrl, {
@@ -54,23 +57,23 @@ serve(async (req: Request) => {
         const errText = await response.text();
         console.error(`Infip API Error ${response.status}:`, errText);
         return new Response(
-          JSON.stringify({ error: `Infip API Error ${response.status}: ${errText}` }),
+          JSON.stringify({ error: `Image Service Error (${response.status}): ${errText}` }),
           { status: response.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         )
     }
 
     const data = await response.json();
+    console.log("Image generation successful");
 
     return new Response(
       JSON.stringify(data),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
 
-  } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : "An unknown error occurred";
-    console.error("Caught an unexpected error in the function:", errorMessage);
+  } catch (error: any) {
+    console.error("Function Error:", error.message);
     return new Response(
-      JSON.stringify({ error: errorMessage }),
+      JSON.stringify({ error: error.message || "Internal Server Error" }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
   }
