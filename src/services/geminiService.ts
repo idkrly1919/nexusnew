@@ -43,7 +43,8 @@ const getGeminiKey = () => {
     return process.env.VITE_GEMINI_API_KEY || process.env.GEMINI_API_KEY;
 };
 
-async function callGeminiSimple(prompt: string, systemInstruction: string): Promise<string> {
+// Exporting this for use in GeminiLiveView
+export async function callGeminiSimple(prompt: string, systemInstruction: string): Promise<string> {
     const apiKey = getGeminiKey();
     if (!apiKey) return ""; 
 
@@ -67,6 +68,19 @@ async function callGeminiSimple(prompt: string, systemInstruction: string): Prom
         console.error("Gemini Utility Call Failed:", e);
         return "";
     }
+}
+
+// New function specifically for the Live/Voice chat history
+export async function chatWithGeminiLive(history: {role: string, message: string}[], userMsg: string): Promise<string> {
+    const systemPrompt = `You are Gemini Live, a real-time voice assistant. 
+    - Keep answers VERY concise (1-2 sentences) and conversational. 
+    - Do not use markdown formatting like bold/italic as this is for text-to-speech.
+    - Be helpful, witty, and fast.`;
+    
+    const context = history.map(h => `${h.role}: ${h.message}`).join('\n');
+    const fullPrompt = `${context}\nUser: ${userMsg}\nGemini:`;
+    
+    return await callGeminiSimple(fullPrompt, systemPrompt);
 }
 
 async function callGeminiJSON(prompt: string, systemInstruction: string): Promise<any> {
