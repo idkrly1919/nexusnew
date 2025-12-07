@@ -3,14 +3,13 @@ import { useParams, useNavigate } from 'react-router-dom';
 import OpenAI from 'openai';
 import katex from 'katex';
 import { Message, ChatHistory, PersonalityMode, Conversation, Role, Persona } from '../types';
-import { streamGemini, summarizeHistory } from '../services/geminiService';
+import { streamGemini, summarizeHistory, cleanMarkdown } from '../services/geminiService';
 import { ThinkingProcess } from './ThinkingProcess';
 import { useSession } from '../contexts/SessionContext';
 import { supabase } from '../integrations/supabase/client';
 import DynamicBackground from './DynamicBackground';
 import EmbeddedView from './EmbeddedView';
 import VoiceInputView from './VoiceInputView';
-import GeminiLiveView from './GeminiLiveView';
 import FileGenerator from './FileGenerator';
 import FileIcon from './FileIcon';
 import PersonaManager from './PersonaManager';
@@ -66,8 +65,7 @@ const ChatView: React.FC = () => {
     const [backgroundStatus, setBackgroundStatus] = useState<'idle' | 'loading-text' | 'loading-image'>('idle');
 
     const [isVoiceMode, setIsVoiceMode] = useState(false);
-    const [isGeminiLiveMode, setIsGeminiLiveMode] = useState(false); // New state for Gemini Live
-    const [embeddedUrl, setEmbeddedUrl] = useState<string | null>(null);
+    const [embeddedContent, setEmbeddedContent] = useState<{ url: string; title: string } | null>(null);
     
     const [personalizationEntries, setPersonalizationEntries] = useState<{id: string, entry: string}[]>([]);
     const [showMemoryToast, setShowMemoryToast] = useState(false);
@@ -490,7 +488,8 @@ const ChatView: React.FC = () => {
     const handleTTS = (text: string) => {
         if ('speechSynthesis' in window) {
             window.speechSynthesis.cancel();
-            const utterance = new SpeechSynthesisUtterance(text);
+            const cleanedText = cleanMarkdown(text); 
+            const utterance = new SpeechSynthesisUtterance(cleanedText);
             const preferredVoiceNames = ['Daniel', 'Microsoft David - English (United States)', 'Google UK English Male', 'Alex'];
             let selectedVoice = null;
             for (const name of preferredVoiceNames) { selectedVoice = voices.find(v => v.name === name); if (selectedVoice) break; }
@@ -631,7 +630,7 @@ const ChatView: React.FC = () => {
                 navigate('/auth');
                 return;
             }
-            setEmbeddedUrl('https://veoaifree.com');
+            setEmbeddedContent({ url: 'https://veoaifree.com', title: 'Video Generator' });
             const userMessage: Message = { id: `user-${Date.now()}`, role: 'user', text: userText };
             const assistantMessage: Message = { id: `ai-${Date.now()}`, role: 'assistant', text: "Of course! Opening the video generation tool for you now." };
             setMessages(prev => [...prev, userMessage, assistantMessage]);
@@ -1215,10 +1214,8 @@ const ChatView: React.FC = () => {
                 </div>
             )}
 
-            {embeddedUrl && <EmbeddedView url={embeddedUrl} onClose={() => setEmbeddedUrl(null)} />}
+            {embeddedContent && <EmbeddedView url={embeddedContent.url} title={embeddedContent.title} onClose={() => setEmbeddedContent(null)} />}
             
-            {isGeminiLiveMode && <GeminiLiveView onClose={() => setIsGeminiLiveMode(false)} />}
-
             <PersonaManager isOpen={showPersonaManager} onClose={() => setShowPersonaManager(false)} onPersonaUpdate={fetchData} />
 
             {showSettings && (
@@ -1415,7 +1412,7 @@ const ChatView: React.FC = () => {
                                     <button 
                                         onClick={() => {
                                             if (!session) { navigate('/auth'); return; }
-                                            setEmbeddedUrl('https://veoaifree.com');
+                                            setEmbeddedContent({ url: 'https://veoaifree.com', title: 'Video Generator' });
                                         }}
                                         data-liquid-glass
                                         className="liquid-glass p-4 rounded-2xl text-left interactive-lift space-y-2"
@@ -1525,7 +1522,7 @@ const ChatView: React.FC = () => {
                                     <textarea ref={textareaRef} value={inputValue} onChange={(e) => setInputValue(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleChatSubmit(e); } }} rows={1} placeholder="Message Quillix..." className="flex-1 bg-transparent border-none text-white placeholder-zinc-500 focus:ring-0 focus:outline-none resize-none py-3.5 px-3 h-auto max-h-[120px] overflow-y-auto scrollbar-hide"></textarea>
                                     
                                     <div className="flex items-center gap-1">
-                                        <button type="button" onClick={() => setIsGeminiLiveMode(true)} className="p-2 rounded-full text-indigo-400 hover:text-indigo-300 hover:bg-indigo-500/20 transition-colors" title="Quillix Voice">
+                                        <button type="button" onClick={() => setEmbeddedContent({ url: 'https://gemini-live-521328066665.us-west1.run.app/', title: 'Quillix Live' })} className="p-2 rounded-full text-indigo-400 hover:text-indigo-300 hover:bg-indigo-500/20 transition-colors" title="Quillix Voice">
                                             <div className="flex items-end justify-center gap-0.5 w-5 h-5">
                                                 <div className="w-1 bg-current rounded-full animate-[bounce_1s_infinite] h-2"></div>
                                                 <div className="w-1 bg-current rounded-full animate-[bounce_1.2s_infinite] h-3"></div>
