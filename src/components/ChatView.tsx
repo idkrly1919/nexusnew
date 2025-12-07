@@ -65,6 +65,8 @@ const ChatView: React.FC = () => {
     const [backgroundStatus, setBackgroundStatus] = useState<'idle' | 'loading-text' | 'loading-image'>('idle');
 
     const [isVoiceMode, setIsVoiceMode] = useState(false);
+    
+    // Unified Embedded State
     const [embeddedContent, setEmbeddedContent] = useState<{ url: string; title: string } | null>(null);
     
     const [personalizationEntries, setPersonalizationEntries] = useState<{id: string, entry: string}[]>([]);
