@@ -298,7 +298,6 @@ filename: [desired_filename.ext]
 Supported filetypes are: pdf, html, txt.
 `;
 
-            // Prepare messages for API (OpenRouter)
             const historyMessages = history.map(msg => {
                 const m: any = { role: msg.role, content: msg.content };
                 if (msg.reasoning_details) {
@@ -406,7 +405,7 @@ Supported filetypes are: pdf, html, txt.
                     body: JSON.stringify({
                         contents: geminiContents,
                         system_instruction: { parts: [{ text: systemInstruction }] },
-                        tools: [{ googleSearch: {} }],
+                        tools: [{ google_search: {} }]
                     })
                 });
 
@@ -441,24 +440,13 @@ Supported filetypes are: pdf, html, txt.
                                     const candidate = data.candidates?.[0];
                                     
                                     if (candidate) {
-                                        // Handle parts (text and thought)
                                         if (candidate.content?.parts) {
                                             for (const part of candidate.content.parts) {
                                                 if (part.text) {
-                                                    // Trying to detect thought based on the user's explicit request "part.thought"
-                                                    if (part.thought) {
-                                                        fullThought += part.text;
-                                                        yield { thought: fullThought, isComplete: false, mode: 'reasoning' };
-                                                    } else {
-                                                        fullText += part.text;
-                                                        yield { text: fullText, isComplete: false, mode: 'reasoning' };
-                                                    }
+                                                    fullText += part.text;
+                                                    yield { text: fullText, isComplete: false, mode: 'reasoning' };
                                                 }
                                             }
-                                        }
-                                        // Grounding Metadata (Sources)
-                                        if (candidate.groundingMetadata?.groundingChunks) {
-                                            // Can yield this if needed, currently accumulated in text via citations usually
                                         }
                                     }
                                 } catch (e) {
@@ -474,8 +462,7 @@ Supported filetypes are: pdf, html, txt.
                 // Final yield
                 const newHistoryEntry: OpenAIMessage = { 
                     role: 'assistant', 
-                    content: fullText, 
-                    reasoning_details: fullThought 
+                    content: fullText
                 };
                 yield { text: fullText, thought: fullThought, isComplete: true, newHistoryEntry, mode: 'reasoning' };
             };
@@ -492,10 +479,8 @@ Supported filetypes are: pdf, html, txt.
                         model: "openai/gpt-oss-120b:exacto",
                         messages: messages,
                         stream: true,
-                        // @ts-ignore
-                        reasoning: { enabled: true },
-                        // @ts-ignore
-                        provider: { allow: ["groq"], sort: "throughput" },
+                        // Removed unsupported reasoning parameter causing 400s
+                        // Removed provider constraint causing 404s/availability issues
                         tools: [{ type: "web_search", web_search: { enable: true, recency: 30 } }],
                         tool_choice: "auto",
                     }) as any;
