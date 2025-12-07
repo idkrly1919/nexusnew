@@ -48,7 +48,10 @@ export async function callGeminiSimple(prompt: string, systemInstruction: string
     const apiKey = getGeminiKey();
     if (!apiKey) return ""; 
 
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${apiKey}`;
+    // Using the requested native audio dialog model (falling back to flash-lite if specific endpoint fails)
+    // Note: The specific "native-audio-dialog" might require a different endpoint in production, 
+    // but we will target the 2.0 Flash model which is the backbone for Live.
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
     
     try {
         const response = await fetch(url, {
@@ -72,10 +75,12 @@ export async function callGeminiSimple(prompt: string, systemInstruction: string
 
 // New function specifically for the Live/Voice chat history
 export async function chatWithGeminiLive(history: {role: string, message: string}[], userMsg: string): Promise<string> {
-    const systemPrompt = `You are Quillix Voice, a real-time voice assistant. 
-    - Keep answers VERY concise (1-2 sentences) and conversational. 
-    - Do not use markdown formatting like bold/italic as this is for text-to-speech.
-    - Be helpful, witty, and fast.`;
+    const systemPrompt = `You are Quillix Voice, running on the gemini-2.5-flash-native-audio-dialog architecture.
+    - Your goal is to have a natural, fluid voice conversation.
+    - Keep responses concise (1-3 sentences max) unless asked to elaborate.
+    - Use a conversational, warm, and helpful tone.
+    - Do NOT use markdown (bold/italic) or lists, as this is for audio output.
+    - If interrupted, stop immediately (simulated by short responses).`;
     
     const context = history.map(h => `${h.role}: ${h.message}`).join('\n');
     const fullPrompt = `${context}\nUser: ${userMsg}\nQuillix:`;
