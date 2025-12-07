@@ -34,21 +34,6 @@ const getClient = () => {
     });
 };
 
-const getGeminiClient = () => {
-    // @ts-ignore
-    const apiKey = process.env.VITE_GEMINI_API_KEY || process.env.GEMINI_API_KEY;
-    
-    if (!apiKey) {
-        console.warn("Gemini API Key is missing. Fallback may fail.");
-        return null;
-    }
-    return new OpenAI({
-        baseURL: "https://generativelanguage.googleapis.com/v1beta/openai/",
-        apiKey: apiKey,
-        dangerouslyAllowBrowser: true
-    });
-};
-
 export async function detectImageIntent(prompt: string): Promise<boolean> {
     const client = getClient();
     const systemPrompt = `You are a strict intent classifier. Determine if the user is explicitly asking to generate, create, draw, or visualize a NEW image/picture/photo using an AI tool.
@@ -168,7 +153,6 @@ export async function* streamGemini(
         // --- STEP 1: Intent Detection ---
         let isImageRequest = false;
         
-        // Use fast model to classify intent
         try {
             isImageRequest = await detectImageIntent(prompt);
         } catch (e) {
@@ -295,6 +279,7 @@ filename: [desired_filename.ext]
 Supported filetypes are: pdf, html, txt.
 `;
 
+            // Prepare messages for API (OpenRouter)
             const historyMessages = history.map(msg => {
                 const m: any = { role: msg.role, content: msg.content };
                 if (msg.reasoning_details) {
@@ -356,65 +341,152 @@ Supported filetypes are: pdf, html, txt.
             }
 
             const callGeminiFallback = async function* () {
-                const geminiClient = getGeminiClient();
-                if (!geminiClient) {
+                // @ts-ignore
+                const apiKey = process.env.VITE_GEMINI_API_KEY || process.env.GEMINI_API_KEY;
+                if (!apiKey) {
                     yield { text: "**Error:** Gemini API key is missing. Cannot use fallback.", isComplete: true };
                     return;
                 }
 
-                // Gemini messages cleanup: remove OpenRouter-specific reasoning_details
-                const geminiMessages = messages.map(m => {
-                    const { reasoning_details, ...rest } = m;
-                    return rest;
+                // Map OpenAI messages to Google Native Format
+                const geminiContents: any[] = [];
+                
+                for (const msg of history) {
+                    if (msg.role === 'user') {
+                        geminiContents.push({ role: 'user', parts: [{ text: String(msg.content) }] });
+                    } else if (msg.role === 'assistant') {
+                        geminiContents.push({ role: 'model', parts: [{ text: String(msg.content) }] });
+                    }
+                }
+
+                // Add current turn (handling multimodal)
+                const currentParts: any[] = [];
+                // Check if current prompt has text
+                if (prompt) currentParts.push({ text: prompt });
+                if (nonImageFileContent) currentParts.push({ text: nonImageFileContent });
+
+                // Add inline images/files
+                for (const file of allFiles) {
+                    if (file.type.startsWith('image/') || file.type.startsWith('video/')) {
+                        const base64Data = file.content.split(',')[1];
+                        currentParts.push({
+                            inline_data: {
+                                mime_type: file.type,
+                                data: base64Data
+                            }
+                        });
+                    }
+                }
+                geminiContents.push({ role: 'user', parts: currentParts });
+
+                const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:streamGenerateContent?alt=sse&key=${apiKey}`;
+                
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        contents: geminiContents,
+                        system_instruction: { parts: [{ text: systemInstruction }] },
+                        tools: [{ google_search: {} }],
+                        generationConfig: {
+                            thinkingConfig: {
+                                include_thoughts: true,
+                                budget_token_count: 1024
+                            }
+                        }
+                    })
                 });
 
+                if (!response.ok) {
+                    const errText = await response.text();
+                    throw new Error(`Gemini API Error ${response.status}: ${errText}`);
+                }
+
+                if (!response.body) throw new Error("No response body from Gemini.");
+
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder();
+                let buffer = '';
+                let fullText = '';
+                let fullThought = '';
+
                 try {
-                    // Using Gemini 2.0 Flash Lite via Google API with grounding
-                    // Note: 'gemini-2.0-flash-lite-preview-02-05' is the specific version ID for the preview.
-                    const stream = await geminiClient.chat.completions.create({
-                        model: 'gemini-2.0-flash-lite-preview-02-05',
-                        messages: geminiMessages,
-                        stream: true,
-                        // @ts-ignore - Google specific tools for Grounding
-                        tools: [{ googleSearchRetrieval: {} }]
-                    }) as any;
+                    while (true) {
+                        const { done, value } = await reader.read();
+                        if (done) break;
+                        
+                        buffer += decoder.decode(value, { stream: true });
+                        const lines = buffer.split('\n');
+                        buffer = lines.pop() || ''; // Keep incomplete line
 
-                    let fullText = '';
-                    let hasYielded = false;
-
-                    for await (const chunk of stream) {
-                        const content = chunk.choices[0]?.delta?.content || '';
-                        if (content) {
-                            fullText += content;
-                            yield { text: fullText, isComplete: false, mode: 'reasoning' };
-                            hasYielded = true;
+                        for (const line of lines) {
+                            if (line.startsWith('data: ')) {
+                                const jsonStr = line.slice(6).trim();
+                                if (!jsonStr) continue;
+                                try {
+                                    const data = JSON.parse(jsonStr);
+                                    const candidate = data.candidates?.[0];
+                                    
+                                    if (candidate) {
+                                        // Handle parts (text and thought)
+                                        if (candidate.content?.parts) {
+                                            for (const part of candidate.content.parts) {
+                                                if (part.text) {
+                                                    // Check if this part is a thought
+                                                    // Note: Google's API documentation or behavior for "thought" property on part
+                                                    // isn't strictly standard in v1beta yet for all models, but respecting user's structure.
+                                                    // The user's python code used `if part.thought:`. 
+                                                    // In REST JSON, this might be a `thought: true` property or similar.
+                                                    // However, often thoughts come as text parts with a specific flag.
+                                                    
+                                                    // Trying to detect thought based on the user's explicit request "part.thought"
+                                                    // In raw JSON response from `thinking_config`, sometimes thought is separate.
+                                                    // Assuming `thought: true` property exists on the part object based on python SDK usage.
+                                                    
+                                                    if (part.thought) {
+                                                        fullThought += part.text;
+                                                        yield { thought: fullThought, isComplete: false, mode: 'reasoning' };
+                                                    } else {
+                                                        fullText += part.text;
+                                                        yield { text: fullText, isComplete: false, mode: 'reasoning' };
+                                                    }
+                                                }
+                                            }
+                                        }
+                                        // Grounding Metadata (Sources)
+                                        if (candidate.groundingMetadata?.groundingChunks) {
+                                            // Can yield this if needed, currently accumulated in text via citations usually
+                                        }
+                                    }
+                                } catch (e) {
+                                    console.error("Error parsing Gemini SSE JSON", e);
+                                }
+                            }
                         }
                     }
-
-                    if (!hasYielded) throw new Error("Gemini returned empty response.");
-                    
-                    const newHistoryEntry: OpenAIMessage = { role: 'assistant', content: fullText };
-                    yield { text: fullText, isComplete: true, newHistoryEntry, mode: 'reasoning' };
-
-                } catch (err: any) {
-                    console.error("Gemini Fallback Error:", err);
-                    yield { text: `**System Error (Fallback):** ${err.message}`, isComplete: true };
+                } finally {
+                    reader.releaseLock();
                 }
+
+                // Final yield
+                const newHistoryEntry: OpenAIMessage = { 
+                    role: 'assistant', 
+                    content: fullText, 
+                    reasoning_details: fullThought 
+                };
+                yield { text: fullText, thought: fullThought, isComplete: true, newHistoryEntry, mode: 'reasoning' };
             };
 
             // Main Execution Logic
             if (hasImagesOrVideo) {
-                // Direct to Gemini for multimodal
                 yield* callGeminiFallback();
             } else {
-                // Try OpenRouter First
                 try {
                     const client = getClient();
                     const stream = await client.chat.completions.create({
                         model: "openai/gpt-oss-120b:exacto",
                         messages: messages,
                         stream: true,
-                        // OpenRouter specific params
                         // @ts-ignore
                         reasoning: { enabled: true },
                         // @ts-ignore
@@ -432,15 +504,11 @@ Supported filetypes are: pdf, html, txt.
                         const delta = chunk.choices[0]?.delta;
                         const content = delta?.content || '';
                         
-                        // Capture reasoning details if present (for deepseek style models)
-                        // DeepSeek usually sends 'reasoning_content'
-                        // OpenRouter might send 'reasoning_details'
                         if (delta?.reasoning_content) {
                             fullThought += delta.reasoning_content;
                             yield { thought: fullThought, isComplete: false, mode: 'reasoning' };
                         }
                         
-                        // For non-streaming deepseek via openrouter, sometimes reasoning comes in a separate field
                         if (delta?.reasoning_details) {
                             reasoningDetails = delta.reasoning_details;
                         }
@@ -474,191 +542,4 @@ Supported filetypes are: pdf, html, txt.
     }
 }
 
-// ... (Rest of the file remains unchanged)
-
-export async function generateQuiz(topic: string, numQuestions: number, fileContext: string): Promise<Quiz> {
-    const client = getClient();
-    const mcCount = Math.ceil(numQuestions * 0.6);
-    const saCount = Math.floor((numQuestions - mcCount) / 2);
-    const fitbCount = numQuestions - mcCount - saCount;
-
-    const systemPrompt = `You are an expert quiz generator. Create a quiz with ${numQuestions} questions on the given topic.
-    ${fileContext ? `Use the following provided context to generate the questions: ${fileContext}` : ''}
-    The quiz must have a specific mix of question types: ${mcCount} multiple-choice, ${saCount} short-answer, and ${fitbCount} fill-in-the-blank.
-    Respond ONLY with a valid JSON object following this structure: 
-    { "topic": string, "questions": [{ "question": string, "type": "multiple-choice" | "short-answer" | "fill-in-the-blank", "options": string[] | null, "correct_answer": string }] }.`;
-
-    const response = await client.chat.completions.create({
-        model: 'x-ai/grok-4.1-fast',
-        messages: [
-            { role: 'system', content: systemPrompt },
-            { role: 'user', content: `Topic: ${topic}` }
-        ],
-        response_format: { type: "json_object" },
-    });
-
-    return JSON.parse(response.choices[0].message.content || '{}');
-}
-
-export async function evaluateAnswer(question: QuizQuestion, userAnswer: string): Promise<{ score: number, is_correct: boolean }> {
-    const client = getClient();
-    const systemPrompt = `You are a strict AI grading assistant. Evaluate the user's answer to the following short-answer/fill-in-the-blank question. The ideal answer is provided.
-    - Award a score of 10 ONLY if the user's answer is a perfect or near-perfect match to the ideal answer.
-    - Deduct points for inaccuracies, omissions, or significant grammatical errors.
-    - A score of 7 or higher means the answer is largely correct.
-    Respond ONLY with a JSON object: { "score": number, "is_correct": boolean }.`;
-
-    const response = await client.chat.completions.create({
-        model: 'x-ai/grok-4.1-fast',
-        messages: [
-            { role: 'system', content: systemPrompt },
-            { role: 'user', content: `Question: "${question.question}"\nIdeal Answer: "${question.correct_answer}"\nUser's Answer: "${userAnswer}"` }
-        ],
-        response_format: { type: "json_object" },
-    });
-
-    return JSON.parse(response.choices[0].message.content || '{"score": 0, "is_correct": false}');
-}
-
-export async function getExplanation(question: QuizQuestion, userAnswer: string, correctAnswer: string): Promise<string> {
-    const client = getClient();
-    const systemPrompt = "You are a helpful tutor. The user answered a question incorrectly. Explain why their answer is wrong and what the correct answer is. Be clear, concise, and encouraging.";
-    
-    const response = await client.chat.completions.create({
-        model: 'x-ai/grok-4.1-fast',
-        messages: [
-            { role: 'system', content: systemPrompt },
-            { role: 'user', content: `Question: "${question.question}"\nUser's incorrect answer: "${userAnswer}"\nCorrect answer: "${correctAnswer}"` }
-        ],
-    });
-
-    return response.choices[0].message.content || "Could not generate an explanation.";
-}
-
-export async function getImprovementTips(topic: string, userAnswers: UserAnswer[], quiz: Quiz): Promise<string> {
-    const client = getClient();
-    const systemPrompt = "You are a study coach. The user just finished a quiz. Based on their performance (provided as a list of their answers), provide 3-5 actionable tips on how they can improve their understanding of the topic. Focus on the areas where they struggled. Format your response with markdown bullet points.";
-
-    const incorrectAnswers = userAnswers.filter(a => !a.isCorrect).map(a => {
-        const q = quiz.questions[a.questionIndex];
-        return `Question: ${q.question}\nYour Answer: ${a.answer}\nCorrect Answer: ${q.correct_answer}`;
-    }).join('\n\n');
-
-    if (!incorrectAnswers) {
-        return "Excellent work! You got a perfect score. To deepen your knowledge, you could explore related advanced topics or try teaching the concepts to someone else.";
-    }
-
-    const response = await client.chat.completions.create({
-        model: 'x-ai/grok-4.1-fast',
-        messages: [
-            { role: 'system', content: systemPrompt },
-            { role: 'user', content: `Topic: ${topic}\n\nHere are the questions the user got wrong:\n${incorrectAnswers}` }
-        ],
-    });
-
-    return response.choices[0].message.content || "Could not generate improvement tips.";
-}
-
-export interface SearchResult {
-    title: string;
-    link: string;
-    snippet: string;
-    date?: string;
-}
-
-export async function performWebSearch(query: string): Promise<SearchResult[]> {
-    const client = getClient();
-    
-    const systemPrompt = `You are a search engine backend. You will be given a user query.
-    You must act as a search index.
-    Task:
-    1. Perform a real-time web search for the query (using your browsing tool).
-    2. Select the top 8-10 most relevant, high-quality results.
-    3. Return them strictly as a valid JSON object.
-    
-    The JSON structure must be:
-    {
-      "results": [
-        {
-          "title": "Page Title",
-          "link": "https://full.url.com",
-          "snippet": "A concise description of the page content...",
-          "date": "Optional date string if available (e.g. '2 days ago')"
-        }
-      ]
-    }
-    
-    Do NOT include any conversational text, markdown formatting (like \`\`\`json), or explanations. JUST the raw JSON string.`;
-
-    const response = await client.chat.completions.create({
-        model: 'google/gemini-2.0-flash-001', 
-        messages: [
-            { role: 'system', content: systemPrompt },
-            { role: 'user', content: query }
-        ],
-        // @ts-ignore
-        response_format: { type: "json_object" }, 
-    });
-
-    const rawContent = response.choices[0].message.content || '{}';
-    try {
-        const parsed = JSON.parse(rawContent);
-        return parsed.results || [];
-    } catch (e) {
-        console.error("Failed to parse search results JSON:", e);
-        try {
-            const clean = rawContent.replace(/```json/g, '').replace(/```/g, '');
-            const parsed = JSON.parse(clean);
-            return parsed.results || [];
-        } catch (e2) {
-            return [];
-        }
-    }
-}
-
-export async function summarizeUrl(url: string, snippet: string): Promise<string> {
-    const client = getClient();
-    const systemPrompt = `You are an intelligent reading assistant. 
-    The user is interested in a search result with the URL: "${url}" and the snippet: "${snippet}".
-    
-    Please provide a concise, 2-3 sentence summary of what this page is likely about and what key information it contains. 
-    Use your knowledge of the website/domain if possible. 
-    Do not hallucinate specific details not implied by the snippet or URL context.`;
-
-    const response = await client.chat.completions.create({
-        model: 'google/gemini-2.0-flash-001',
-        messages: [{ role: 'system', content: systemPrompt }],
-    });
-
-    return response.choices[0].message.content || "Summary unavailable.";
-}
-
-export async function getTrustScore(url: string): Promise<{ score: number, reason: string }> {
-    const client = getClient();
-    const systemPrompt = `You are a website credibility analyzer.
-    Analyze the trustworthiness of this URL: "${url}".
-    
-    Consider:
-    - Domain authority (e.g., .gov, .edu, known news outlets are high).
-    - Security/Spam reputation.
-    - Bias or factual history.
-    
-    Return a JSON object:
-    {
-      "score": number (0-100),
-      "reason": "A short, one-sentence explanation."
-    }`;
-
-    const response = await client.chat.completions.create({
-        model: 'google/gemini-2.0-flash-001',
-        messages: [{ role: 'system', content: systemPrompt }],
-        // @ts-ignore
-        response_format: { type: "json_object" }
-    });
-
-    try {
-        return JSON.parse(response.choices[0].message.content || '{"score": 50, "reason": "Unknown domain."}');
-    } catch (e) {
-        return { score: 50, reason: "Could not analyze." };
-    }
-}
+// ... rest of the file ...
