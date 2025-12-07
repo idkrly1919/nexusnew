@@ -5,6 +5,17 @@ interface GeminiLiveViewProps {
     onClose: () => void;
 }
 
+interface Particle {
+    x: number;
+    y: number;
+    vx: number;
+    vy: number;
+    baseSize: number;
+    currentSize: number;
+    targetSize: number;
+    color: string;
+}
+
 const GeminiLiveView: React.FC<GeminiLiveViewProps> = ({ onClose }) => {
     const [status, setStatus] = useState<'listening' | 'processing' | 'speaking'>('listening');
     const [transcript, setTranscript] = useState('');
@@ -20,6 +31,7 @@ const GeminiLiveView: React.FC<GeminiLiveViewProps> = ({ onClose }) => {
     const analyserRef = useRef<AnalyserNode | null>(null);
     const sourceRef = useRef<MediaStreamAudioSourceNode | null>(null);
     const animationFrameRef = useRef<number | null>(null);
+    const particlesRef = useRef<Particle[]>([]);
 
     // Initialize Speech Recognition
     useEffect(() => {
@@ -77,7 +89,8 @@ const GeminiLiveView: React.FC<GeminiLiveViewProps> = ({ onClose }) => {
                 analyserRef.current = audioContextRef.current.createAnalyser();
                 sourceRef.current = audioContextRef.current.createMediaStreamSource(stream);
                 sourceRef.current.connect(analyserRef.current);
-                analyserRef.current.fftSize = 256;
+                analyserRef.current.fftSize = 64; // Smaller FFT size for fewer, larger blobs
+                analyserRef.current.smoothingTimeConstant = 0.8;
                 drawVisualizer();
             })
             .catch(err => console.error("Mic error for visualizer:", err));
@@ -114,7 +127,7 @@ const GeminiLiveView: React.FC<GeminiLiveViewProps> = ({ onClose }) => {
         try {
             const aiResponse = await chatWithGeminiLive(history, text);
             setResponse(aiResponse);
-            setHistory(prev => [...prev, { role: 'Gemini', message: aiResponse }]);
+            setHistory(prev => [...prev, { role: 'Quillix', message: aiResponse }]);
             speak(aiResponse);
         } catch (e) {
             console.error(e);
@@ -149,6 +162,23 @@ const GeminiLiveView: React.FC<GeminiLiveViewProps> = ({ onClose }) => {
         const ctx = canvas.getContext('2d');
         if (!ctx) return;
 
+        // Initialize particles
+        if (particlesRef.current.length === 0) {
+            const particleCount = 25;
+            for (let i = 0; i < particleCount; i++) {
+                particlesRef.current.push({
+                    x: Math.random() * canvas.width,
+                    y: Math.random() * canvas.height,
+                    vx: (Math.random() - 0.5) * 2,
+                    vy: (Math.random() - 0.5) * 2,
+                    baseSize: Math.random() * 20 + 10,
+                    currentSize: Math.random() * 20 + 10,
+                    targetSize: Math.random() * 20 + 10,
+                    color: `hsla(${200 + Math.random() * 60}, 80%, 70%, 0.3)` // Blue/Purple glassy look
+                });
+            }
+        }
+
         const bufferLength = analyserRef.current.frequencyBinCount;
         const dataArray = new Uint8Array(bufferLength);
 
@@ -156,56 +186,76 @@ const GeminiLiveView: React.FC<GeminiLiveViewProps> = ({ onClose }) => {
             animationFrameRef.current = requestAnimationFrame(draw);
             analyserRef.current!.getByteFrequencyData(dataArray);
 
+            // Clear with slight fade for trail effect if desired, but for liquid glass we usually want clean clear
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             
-            // Circular visualizer logic
-            const centerX = canvas.width / 2;
-            const centerY = canvas.height / 2;
-            const radius = 80;
+            // Calculate average volume for global reactivity
+            let sum = 0;
+            for(let i = 0; i < bufferLength; i++) sum += dataArray[i];
+            const avgVolume = sum / bufferLength;
 
-            ctx.beginPath();
-            ctx.arc(centerX, centerY, radius - 10, 0, 2 * Math.PI);
-            ctx.fillStyle = status === 'processing' ? 'rgba(255,255,255,0.8)' : 
-                           status === 'speaking' ? 'rgba(99, 102, 241, 0.8)' : 
-                           'rgba(0,0,0,0.5)';
-            ctx.fill();
+            // Update and draw particles
+            particlesRef.current.forEach((p, i) => {
+                // Map audio data to particle index (wrapping around)
+                const audioIndex = i % bufferLength;
+                const audioValue = dataArray[audioIndex];
+                
+                // Physics Update
+                p.x += p.vx;
+                p.y += p.vy;
 
-            // Blobs/Bars around circle
-            const bars = 40;
-            const step = (Math.PI * 2) / bars;
+                // Bounce off walls
+                if (p.x < 0 || p.x > canvas.width) p.vx *= -1;
+                if (p.y < 0 || p.y > canvas.height) p.vy *= -1;
 
-            for (let i = 0; i < bars; i++) {
-                // Use different frequency bands
-                const value = dataArray[i * 2] || 0; 
-                // Scale bar length based on volume and status
-                const barLen = (value / 255) * 100 * (status === 'listening' ? 1.5 : 0.5);
-                const angle = i * step;
+                // Size reactivity
+                // If listening/speaking, react to audio. If processing, pulse gently.
+                let sizeFactor = 0;
+                if (status === 'listening' || status === 'speaking') {
+                    sizeFactor = (audioValue / 255) * 30; // Grow based on volume
+                } else if (status === 'processing') {
+                    sizeFactor = Math.sin(Date.now() / 200) * 5; // Pulse
+                }
+                
+                p.targetSize = p.baseSize + sizeFactor;
+                p.currentSize += (p.targetSize - p.currentSize) * 0.1; // Smooth transition
 
-                const x1 = centerX + Math.cos(angle) * radius;
-                const y1 = centerY + Math.sin(angle) * radius;
-                const x2 = centerX + Math.cos(angle) * (radius + barLen);
-                const y2 = centerY + Math.sin(angle) * (radius + barLen);
-
+                // Draw Liquid Glass Orb
                 ctx.beginPath();
-                ctx.moveTo(x1, y1);
-                ctx.lineTo(x2, y2);
-                ctx.strokeStyle = status === 'listening' ? '#4ade80' : 
-                                  status === 'processing' ? '#fff' : 
-                                  '#818cf8';
-                ctx.lineWidth = 4;
-                ctx.lineCap = 'round';
-                ctx.stroke();
-            }
-            
-            // Rotating ring for processing
-            if (status === 'processing') {
-                const time = Date.now() / 1000;
-                ctx.beginPath();
-                ctx.arc(centerX, centerY, radius + 40, time % (Math.PI*2), (time + 1.5) % (Math.PI*2));
+                const radius = Math.max(0, p.currentSize);
+                
+                // Gradient for glass effect
+                const gradient = ctx.createRadialGradient(
+                    p.x - radius/3, p.y - radius/3, radius * 0.1, 
+                    p.x, p.y, radius
+                );
+                
+                if (status === 'speaking') {
+                    // Warmer colors when speaking
+                    gradient.addColorStop(0, 'rgba(255, 255, 255, 0.9)');
+                    gradient.addColorStop(0.4, 'rgba(129, 140, 248, 0.4)'); // Indigo
+                    gradient.addColorStop(1, 'rgba(129, 140, 248, 0.1)');
+                } else if (status === 'processing') {
+                    // Whiter/Pulse when thinking
+                    gradient.addColorStop(0, 'rgba(255, 255, 255, 0.9)');
+                    gradient.addColorStop(0.4, 'rgba(255, 255, 255, 0.3)');
+                    gradient.addColorStop(1, 'rgba(255, 255, 255, 0.05)');
+                } else {
+                    // Default Blue/Teal
+                    gradient.addColorStop(0, 'rgba(255, 255, 255, 0.8)');
+                    gradient.addColorStop(0.4, 'rgba(56, 189, 248, 0.3)'); // Sky blue
+                    gradient.addColorStop(1, 'rgba(56, 189, 248, 0.05)');
+                }
+
+                ctx.fillStyle = gradient;
+                ctx.arc(p.x, p.y, radius, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Glass Rim/Highlight
+                ctx.lineWidth = 1;
                 ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
-                ctx.lineWidth = 2;
                 ctx.stroke();
-            }
+            });
         };
         draw();
     };
@@ -213,16 +263,15 @@ const GeminiLiveView: React.FC<GeminiLiveViewProps> = ({ onClose }) => {
     return (
         <div className="fixed inset-0 z-[100] bg-black flex flex-col items-center justify-center animate-in fade-in duration-500">
             {/* Background Effects */}
-            <div className="absolute inset-0 overflow-hidden">
+            <div className="absolute inset-0 overflow-hidden pointer-events-none">
                 <div className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-indigo-500/20 rounded-full blur-[120px] transition-all duration-1000 ${status === 'speaking' ? 'scale-150 opacity-40' : 'scale-100 opacity-20'}`}></div>
-                <div className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[300px] h-[300px] bg-blue-500/20 rounded-full blur-[80px] transition-all duration-1000 delay-100 ${status === 'processing' ? 'scale-125 opacity-50' : 'scale-100 opacity-20'}`}></div>
             </div>
 
             {/* Header */}
             <div className="absolute top-0 left-0 right-0 p-6 flex justify-between items-center z-10">
                 <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse"></div>
-                    <span className="text-zinc-400 font-medium text-sm tracking-wider uppercase">Gemini Live</span>
+                    <div className={`w-2 h-2 rounded-full animate-pulse ${status === 'listening' ? 'bg-green-500' : status === 'speaking' ? 'bg-indigo-500' : 'bg-white'}`}></div>
+                    <span className="text-zinc-400 font-medium text-sm tracking-wider uppercase">Quillix Voice</span>
                 </div>
                 <button onClick={onClose} className="p-3 bg-white/10 hover:bg-white/20 rounded-full text-white transition-colors">
                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
@@ -230,30 +279,26 @@ const GeminiLiveView: React.FC<GeminiLiveViewProps> = ({ onClose }) => {
             </div>
 
             {/* Main Visualizer */}
-            <div className="relative z-10 flex flex-col items-center gap-12">
-                <div className="relative w-80 h-80 flex items-center justify-center">
-                    <canvas ref={canvasRef} width="400" height="400" className="w-full h-full" />
-                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                        <img src="/quillix-logo.png" className={`w-20 h-20 opacity-80 transition-transform duration-500 ${status === 'processing' ? 'scale-110' : 'scale-100'}`} />
-                    </div>
-                </div>
+            <div className="absolute inset-0 flex items-center justify-center">
+                <canvas ref={canvasRef} width={window.innerWidth} height={window.innerHeight} className="w-full h-full block" />
+            </div>
 
-                <div className="text-center max-w-xl px-6 min-h-[100px]">
-                    {error ? (
-                        <p className="text-red-400">{error}</p>
-                    ) : (
-                        <p className="text-2xl font-light text-white leading-relaxed transition-all duration-300">
-                            {status === 'listening' ? (transcript || "Listening...") : 
-                             status === 'processing' ? "Thinking..." : 
-                             response}
-                        </p>
-                    )}
-                </div>
+            {/* Text Overlay */}
+            <div className="absolute bottom-32 left-0 right-0 text-center max-w-2xl mx-auto px-6 z-20 pointer-events-none">
+                {error ? (
+                    <p className="text-red-400 text-lg">{error}</p>
+                ) : (
+                    <p className="text-3xl font-light text-white leading-relaxed transition-all duration-300 drop-shadow-lg">
+                        {status === 'listening' ? (transcript || "Listening...") : 
+                         status === 'processing' ? "Thinking..." : 
+                         response}
+                    </p>
+                )}
             </div>
 
             {/* Controls */}
-            <div className="absolute bottom-12 flex items-center gap-6 z-10">
-                <button onClick={() => setStatus(s => s === 'listening' ? 'processing' : 'listening')} className={`p-6 rounded-full transition-all duration-300 shadow-xl ${status === 'listening' ? 'bg-red-500/20 text-red-400 hover:bg-red-500/30' : 'bg-white/10 text-white hover:bg-white/20'}`}>
+            <div className="absolute bottom-12 flex items-center gap-6 z-20">
+                <button onClick={() => setStatus(s => s === 'listening' ? 'processing' : 'listening')} className={`p-6 rounded-full transition-all duration-300 shadow-xl backdrop-blur-md border border-white/10 ${status === 'listening' ? 'bg-red-500/20 text-red-400 hover:bg-red-500/30' : 'bg-white/10 text-white hover:bg-white/20'}`}>
                     {status === 'listening' ? (
                         <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/></svg>
                     ) : (
