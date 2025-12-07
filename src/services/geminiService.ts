@@ -298,6 +298,7 @@ filename: [desired_filename.ext]
 Supported filetypes are: pdf, html, txt.
 `;
 
+            // Prepare messages for API (OpenRouter)
             const historyMessages = history.map(msg => {
                 const m: any = { role: msg.role, content: msg.content };
                 if (msg.reasoning_details) {
@@ -397,22 +398,15 @@ Supported filetypes are: pdf, html, txt.
                 }
                 geminiContents.push({ role: 'user', parts: currentParts });
 
-                // Updated Model to 2.5 Flash Lite
-                const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite-preview-02-05:streamGenerateContent?alt=sse&key=${apiKey}`;
+                const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:streamGenerateContent?alt=sse&key=${apiKey}`;
                 
                 const response = await fetch(url, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         contents: geminiContents,
-                        systemInstruction: { parts: [{ text: systemInstruction }] },
-                        tools: [{ googleSearch: {} }], // Use googleSearch instead of googleSearchRetrieval
-                        generationConfig: {
-                            thinkingConfig: {
-                                includeThoughts: true, // camelCase
-                                budgetTokenCount: 1024 // camelCase
-                            }
-                        }
+                        system_instruction: { parts: [{ text: systemInstruction }] },
+                        tools: [{ googleSearch: {} }],
                     })
                 });
 
@@ -451,7 +445,7 @@ Supported filetypes are: pdf, html, txt.
                                         if (candidate.content?.parts) {
                                             for (const part of candidate.content.parts) {
                                                 if (part.text) {
-                                                    // Check for thought property (standard in v1beta thinking)
+                                                    // Trying to detect thought based on the user's explicit request "part.thought"
                                                     if (part.thought) {
                                                         fullThought += part.text;
                                                         yield { thought: fullThought, isComplete: false, mode: 'reasoning' };
@@ -461,6 +455,10 @@ Supported filetypes are: pdf, html, txt.
                                                     }
                                                 }
                                             }
+                                        }
+                                        // Grounding Metadata (Sources)
+                                        if (candidate.groundingMetadata?.groundingChunks) {
+                                            // Can yield this if needed, currently accumulated in text via citations usually
                                         }
                                     }
                                 } catch (e) {
