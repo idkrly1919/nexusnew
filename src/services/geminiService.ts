@@ -30,7 +30,11 @@ const getClient = () => {
     return new OpenAI({
         baseURL: "https://openrouter.ai/api/v1",
         apiKey: apiKey,
-        dangerouslyAllowBrowser: true
+        dangerouslyAllowBrowser: true,
+        defaultHeaders: {
+            "HTTP-Referer": "https://quillixai.com",
+            "X-Title": "Quillix"
+        }
     });
 };
 
@@ -294,7 +298,6 @@ filename: [desired_filename.ext]
 Supported filetypes are: pdf, html, txt.
 `;
 
-            // Prepare messages for API (OpenRouter)
             const historyMessages = history.map(msg => {
                 const m: any = { role: msg.role, content: msg.content };
                 if (msg.reasoning_details) {
@@ -394,19 +397,20 @@ Supported filetypes are: pdf, html, txt.
                 }
                 geminiContents.push({ role: 'user', parts: currentParts });
 
-                const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:streamGenerateContent?alt=sse&key=${apiKey}`;
+                // Updated Model to 2.5 Flash Lite
+                const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite-preview-02-05:streamGenerateContent?alt=sse&key=${apiKey}`;
                 
                 const response = await fetch(url, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         contents: geminiContents,
-                        system_instruction: { parts: [{ text: systemInstruction }] },
-                        tools: [{ google_search: {} }],
+                        systemInstruction: { parts: [{ text: systemInstruction }] },
+                        tools: [{ googleSearch: {} }], // Use googleSearch instead of googleSearchRetrieval
                         generationConfig: {
                             thinkingConfig: {
-                                include_thoughts: true,
-                                budget_token_count: 1024
+                                includeThoughts: true, // camelCase
+                                budgetTokenCount: 1024 // camelCase
                             }
                         }
                     })
@@ -447,7 +451,7 @@ Supported filetypes are: pdf, html, txt.
                                         if (candidate.content?.parts) {
                                             for (const part of candidate.content.parts) {
                                                 if (part.text) {
-                                                    // Trying to detect thought based on the user's explicit request "part.thought"
+                                                    // Check for thought property (standard in v1beta thinking)
                                                     if (part.thought) {
                                                         fullThought += part.text;
                                                         yield { thought: fullThought, isComplete: false, mode: 'reasoning' };
@@ -480,8 +484,10 @@ Supported filetypes are: pdf, html, txt.
 
             // Main Execution Logic
             if (hasImagesOrVideo) {
+                // Direct to Gemini for multimodal
                 yield* callGeminiFallback();
             } else {
+                // Try OpenRouter First (Text/Code only)
                 try {
                     const client = getClient();
                     const stream = await client.chat.completions.create({
