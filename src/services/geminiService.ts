@@ -117,6 +117,17 @@ async function callGeminiJSON(prompt: string, systemInstruction: string): Promis
 
 // --- UTILITY FUNCTIONS (Using Gemini 2.5 Flash Lite) ---
 
+export function cleanMarkdown(text: string): string {
+    if (!text) return "";
+    return text
+        .replace(/[#*`_~]/g, '') // Remove markdown characters
+        .replace(/\[(.*?)\]\(.*?\)/g, '$1') // Keep link text, remove URL
+        .replace(/^\s*[-•]\s*/gm, '') // Remove list bullets
+        .replace(/\n/g, ' ') // Replace newlines with spaces
+        .replace(/\s+/g, ' ') // Collapse multiple spaces
+        .trim();
+}
+
 export async function detectImageIntent(prompt: string): Promise<boolean> {
     const systemPrompt = `You are a strict intent classifier. Determine if the user is explicitly asking to generate, create, draw, or visualize a NEW image/picture/photo using an AI tool. Reply ONLY with "YES" or "NO".`;
     try {
