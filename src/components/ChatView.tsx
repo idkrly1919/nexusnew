@@ -168,20 +168,16 @@ const ChatView: React.FC = () => {
 
     useEffect(scrollToBottom, [messages, isLoading]);
 
-    // Handle regenerating the last response
     const handleRegenerate = async () => {
         if (messages.length < 2 || isLoading) return;
 
-        // Find the last user message
         const lastUserMsgIndex = messages.findLastIndex(m => m.role === 'user');
         if (lastUserMsgIndex === -1) return;
 
         const lastUserMsg = messages[lastUserMsgIndex];
         
-        // Remove everything after the last user message from UI
         setMessages(prev => prev.slice(0, lastUserMsgIndex + 1));
         
-        // Remove the last AI response from chat history to avoid context duplication
         setChatHistory(prev => {
             const newHistory = [...prev];
             if (newHistory.length > 0 && newHistory[newHistory.length - 1].role === 'assistant') {
@@ -206,7 +202,6 @@ const ChatView: React.FC = () => {
         const controller = new AbortController();
         abortControllerRef.current = controller;
         
-        // Load personalization
         let personalizationData: string[] = [];
         if (session) {
             const { data, error } = await supabase.from('user_personalization').select('entry').eq('user_id', session.user.id);
@@ -216,14 +211,13 @@ const ChatView: React.FC = () => {
         }
 
         try {
-            // We pass the CURRENT chat history (which we just trimmed)
             const stream = streamGemini(
                 userText, 
-                chatHistory, // This should be the trimmed history
+                chatHistory, 
                 true, 
                 personality, 
                 imageModelPref, 
-                [], // No new files for regen
+                [], 
                 controller.signal, 
                 profile?.first_name, 
                 personalizationData, 
@@ -233,18 +227,28 @@ const ChatView: React.FC = () => {
             
             let assistantMessageExists = false;
             let accumulatedText = "";
+            let accumulatedThought = "";
             const aiMsgId = `ai-${Date.now()}`;
             
             for await (const update of stream) {
                 if (update.mode) { setThinkingMode(update.mode); }
                 if (!assistantMessageExists) { 
-                    setMessages(prev => [...prev, { id: aiMsgId, role: 'assistant', text: '' }]); 
+                    setMessages(prev => [...prev, { id: aiMsgId, role: 'assistant', text: '', thought: '' }]); 
                     assistantMessageExists = true; 
                 }
+                
+                if (update.thought) {
+                    accumulatedThought = update.thought;
+                }
+
                 if (update.text) {
                     accumulatedText = update.text;
-                    setMessages(prev => prev.map(msg => msg.id === aiMsgId ? { ...msg, text: accumulatedText } : msg));
                 }
+
+                setMessages(prev => prev.map(msg => 
+                    msg.id === aiMsgId ? { ...msg, text: accumulatedText, thought: accumulatedThought } : msg
+                ));
+
                 if (update.isComplete) {
                     const saveRegex = /<SAVE_PERSONALIZATION>(.*?)<\/SAVE_PERSONALIZATION>/s;
                     const match = accumulatedText.match(saveRegex);
@@ -262,7 +266,6 @@ const ChatView: React.FC = () => {
                     }
                     if (update.newHistoryEntry) { 
                         const newEntry = { ...update.newHistoryEntry, content: cleanedText };
-                        // We don't add the user message to history here because it's already there from the previous turn
                         setChatHistory(prev => [...prev, newEntry]); 
                     }
                 }
@@ -320,7 +323,6 @@ const ChatView: React.FC = () => {
                         a.remove();
                     } catch (error) {
                         console.error('Proxy download failed, falling back to direct:', error);
-                        // Fallback: direct download logic
                         const a = document.createElement('a');
                         a.href = imageUrl;
                         a.download = `quillix-${Date.now()}.png`;
@@ -473,7 +475,6 @@ const ChatView: React.FC = () => {
         setAttachedFiles(prev => prev.filter(f => f.id !== fileId));
     };
     
-    // ... (Keep existing TTS logic) ...
     const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
     useEffect(() => {
         const synth = window.speechSynthesis;
@@ -509,7 +510,6 @@ const ChatView: React.FC = () => {
     };
 
     const generateTitleOnClient = async (userMessage: string, conversationId: string) => {
-        // ... (Keep existing title generation logic) ...
         // @ts-ignore
         const apiKey = process.env.API_KEY;
         if (!apiKey) {
@@ -581,7 +581,6 @@ const ChatView: React.FC = () => {
     const processSubmission = async (userText: string) => {
         if (isLoading || (!userText.trim() && attachedFiles.length === 0)) return;
 
-        // --- Context Management ---
         let currentChatHistory = [...chatHistory];
         const historyText = currentChatHistory.map(m => m.content).join('\n');
         const CONTEXT_THRESHOLD = 1900000;
@@ -715,18 +714,28 @@ const ChatView: React.FC = () => {
                 profile?.first_name, 
                 personalizationData, 
                 activePersona?.instructions || null,
-                activePersonaFile // Passing the persistent file
+                activePersonaFile
             );
             let assistantMessageExists = false;
             let accumulatedText = "";
+            let accumulatedThought = "";
             const aiMsgId = `ai-${Date.now()}`;
             for await (const update of stream) {
                 if (update.mode) { setThinkingMode(update.mode); }
-                if (!assistantMessageExists) { setMessages(prev => [...prev, { id: aiMsgId, role: 'assistant', text: '' }]); assistantMessageExists = true; }
+                if (!assistantMessageExists) { setMessages(prev => [...prev, { id: aiMsgId, role: 'assistant', text: '', thought: '' }]); assistantMessageExists = true; }
+                
+                if (update.thought) {
+                    accumulatedThought = update.thought;
+                }
+
                 if (update.text) {
                     accumulatedText = update.text;
-                    setMessages(prev => prev.map(msg => msg.id === aiMsgId ? { ...msg, text: accumulatedText } : msg));
                 }
+
+                setMessages(prev => prev.map(msg => 
+                    msg.id === aiMsgId ? { ...msg, text: accumulatedText, thought: accumulatedThought } : msg
+                ));
+
                 if (update.isComplete) {
                     const saveRegex = /<SAVE_PERSONALIZATION>(.*?)<\/SAVE_PERSONALIZATION>/s;
                     const match = accumulatedText.match(saveRegex);
@@ -779,7 +788,6 @@ const ChatView: React.FC = () => {
         }
     }, [inputValue]);
     
-    // ... (Keep remaining functions: startNewPersonaChat, resetChat, handleDeleteConversation, renderMessageContent, handleDeleteAllConversations, openSettings, handleDeletePersonalization, groupConversations, generalConversations, groupedConversations) ...
     const startNewPersonaChat = (persona: Persona) => {
         setActivePersona(persona);
         navigate('/chat');
@@ -802,8 +810,9 @@ const ChatView: React.FC = () => {
         }
     };
     
-    const renderMessageContent = (text: string) => {
-        if (!text) return null;
+    const renderMessageContent = (msg: Message) => {
+        const text = msg.text;
+        if (!text && !msg.thought) return null;
 
         // Widget Logic
         const widgetRegex = /```widget\n([\s\S]*?)\n```/;
@@ -834,6 +843,17 @@ const ChatView: React.FC = () => {
 
             return (
                 <div className="w-full">
+                    {msg.thought && (
+                        <details className="mb-4 bg-white/5 rounded-lg border border-white/10 overflow-hidden group/thought">
+                            <summary className="cursor-pointer p-3 text-xs font-mono text-zinc-400 flex items-center gap-2 hover:bg-white/5 transition-colors select-none">
+                                <svg className="w-4 h-4 transition-transform group-open/thought:rotate-90" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m9 18 6-6-6-6"/></svg>
+                                <span>Thought Process</span>
+                            </summary>
+                            <div className="p-3 pt-0 text-zinc-400 text-sm font-mono border-t border-white/5 bg-black/20 whitespace-pre-wrap leading-relaxed">
+                                {msg.thought}
+                            </div>
+                        </details>
+                    )}
                     {beforeText && <div dangerouslySetInnerHTML={{ __html: beforeText.replace(/\n/g, '<br/>') }} />}
                     {widgetComponent}
                     {afterText && <div className="mt-2" dangerouslySetInnerHTML={{ __html: afterText.replace(/\n/g, '<br/>') }} />}
@@ -980,8 +1000,23 @@ const ChatView: React.FC = () => {
 
             const parts = [];
     
-            if (cleanConfirmationText) {
-                parts.push(<div key="text-part" dangerouslySetInnerHTML={{ __html: simpleParse(cleanConfirmationText) }} />);
+            if (cleanConfirmationText || msg.thought) {
+                parts.push(
+                    <div key="text-part">
+                        {msg.thought && (
+                            <details className="mb-4 bg-white/5 rounded-lg border border-white/10 overflow-hidden group/thought">
+                                <summary className="cursor-pointer p-3 text-xs font-mono text-zinc-400 flex items-center gap-2 hover:bg-white/5 transition-colors select-none">
+                                    <svg className="w-4 h-4 transition-transform group-open/thought:rotate-90" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m9 18 6-6-6-6"/></svg>
+                                    <span>Thought Process</span>
+                                </summary>
+                                <div className="p-3 pt-0 text-zinc-400 text-sm font-mono border-t border-white/5 bg-black/20 whitespace-pre-wrap leading-relaxed">
+                                    {msg.thought}
+                                </div>
+                            </details>
+                        )}
+                        <div dangerouslySetInnerHTML={{ __html: simpleParse(cleanConfirmationText) }} />
+                    </div>
+                );
             }
     
             if (text.trim().endsWith('```')) {
@@ -1026,6 +1061,17 @@ const ChatView: React.FC = () => {
     
         return (
             <div className="w-full">
+                {msg.thought && (
+                    <details className="mb-4 bg-white/5 rounded-lg border border-white/10 overflow-hidden group/thought">
+                        <summary className="cursor-pointer p-3 text-xs font-mono text-zinc-400 flex items-center gap-2 hover:bg-white/5 transition-colors select-none">
+                            <svg className="w-4 h-4 transition-transform group-open/thought:rotate-90" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m9 18 6-6-6-6"/></svg>
+                            <span>Thought Process</span>
+                        </summary>
+                        <div className="p-3 pt-0 text-zinc-400 text-sm font-mono border-t border-white/5 bg-black/20 whitespace-pre-wrap leading-relaxed">
+                            {msg.thought}
+                        </div>
+                    </details>
+                )}
                 <div dangerouslySetInnerHTML={{ __html: simpleParse(textToDisplay) }} />
                 {sources.length > 0 && (
                     <div className="mt-4 flex flex-wrap gap-2 pt-4 border-t border-white/10">
@@ -1413,7 +1459,7 @@ const ChatView: React.FC = () => {
                                             {msg.role === 'assistant' ? (activePersona?.name || 'Quillix') : 'You'}
                                         </div>
                                         <div className={`${msg.role === 'assistant' ? 'text-zinc-100 prose prose-invert prose-sm max-w-none' : ''}`}>
-                                            {renderMessageContent(msg.text)}
+                                            {renderMessageContent(msg)}
                                         </div>
                                         {msg.role === 'assistant' && !isLoading && (
                                             <div className="flex items-center gap-2 mt-3 opacity-0 group-hover:opacity-100 transition-opacity">

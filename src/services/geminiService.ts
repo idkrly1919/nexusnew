@@ -34,6 +34,21 @@ const getClient = () => {
     });
 };
 
+const getGeminiClient = () => {
+    // @ts-ignore
+    const apiKey = process.env.VITE_GEMINI_API_KEY || process.env.GEMINI_API_KEY;
+    
+    if (!apiKey) {
+        console.warn("Gemini API Key is missing. Fallback may fail.");
+        return null;
+    }
+    return new OpenAI({
+        baseURL: "https://generativelanguage.googleapis.com/v1beta/openai/",
+        apiKey: apiKey,
+        dangerouslyAllowBrowser: true
+    });
+};
+
 export async function detectImageIntent(prompt: string): Promise<boolean> {
     const client = getClient();
     const systemPrompt = `You are a strict intent classifier. Determine if the user is explicitly asking to generate, create, draw, or visualize a NEW image/picture/photo using an AI tool.
@@ -114,7 +129,7 @@ export async function enhanceImagePrompt(prompt: string): Promise<string> {
     const systemPrompt = "You are an expert image prompt engineer. You will be given a user's image prompt. Your task is to enhance it for a diffusion model to generate a more beautiful, detailed, and visually appealing image. Add details about lighting, composition, style (e.g., photorealistic, cinematic, anime, watercolor), and quality. Respond ONLY with the enhanced prompt. Do not add any conversational text.";
     try {
         const response = await client.chat.completions.create({
-            model: 'x-ai/grok-4.1-fast',
+            model: 'qwen/qwen3-4b:free',
             messages: [
                 { role: 'system', content: systemPrompt },
                 { role: 'user', content: prompt }
@@ -143,7 +158,6 @@ export async function* streamGemini(
     personaFile: { name: string, content: string, type: string } | null = null
 ): AsyncGenerator<StreamUpdate> {
     
-    const textClient = getClient();
     const now = new Date();
     const timeString = now.toLocaleString('en-US', { 
         weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
@@ -175,7 +189,6 @@ export async function* streamGemini(
                 yield { text: `Generating image with prompt: \`${finalImagePrompt}\``, isComplete: false, mode: 'image' };
                 
                 let size = '1024x1792';
-                // You can add size logic here if you parse it from the prompt later
 
                 const { data: functionData, error: functionError } = await supabase.functions.invoke('infip-image-gen', {
                     body: { 
@@ -212,7 +225,6 @@ export async function* streamGemini(
             
             let personalizationBlock = '';
             
-            // Only add memory logic if NOT a custom persona
             if (!isCustomPersona) {
                 let memoriesList = "No memories yet.";
                 if (personalizationEntries && personalizationEntries.length > 0) {
@@ -283,30 +295,35 @@ filename: [desired_filename.ext]
 Supported filetypes are: pdf, html, txt.
 `;
 
-            // Construct messages array
-            let messages: any[] = [{ role: 'system', content: systemInstruction }, ...history];
-            let activeModel = 'x-ai/grok-4.1-fast'; 
+            const historyMessages = history.map(msg => {
+                const m: any = { role: msg.role, content: msg.content };
+                if (msg.reasoning_details) {
+                    m.reasoning_details = msg.reasoning_details;
+                }
+                return m;
+            });
 
+            let messages: any[] = [{ role: 'system', content: systemInstruction }, ...historyMessages];
+            
             const userMessageContent: any[] = [{ type: 'text', text: prompt }];
             let nonImageFileContent = '';
 
             const allFiles = [...(attachedFiles || [])];
             
-            // Add persona file if it exists
             if (personaFile) {
                 allFiles.push(personaFile);
             }
 
+            let hasImagesOrVideo = false;
+
             if (allFiles.length > 0) {
-                let hasMultimodal = false;
-                
                 allFiles.forEach(file => {
                     const isImage = file.type.startsWith('image/');
                     const isVideo = file.type.startsWith('video/');
                     const isAudio = file.type.startsWith('audio/');
                     
                     if (isImage || isVideo) {
-                        hasMultimodal = true;
+                        hasImagesOrVideo = true;
                         userMessageContent.push({ type: 'image_url', image_url: { url: file.content } });
                     } else if (isAudio) {
                         nonImageFileContent += `\n\n[Audio Attachment: ${file.name}] (Audio analysis not fully supported via this text channel)`;
@@ -328,50 +345,126 @@ Supported filetypes are: pdf, html, txt.
                         }
                     }
                 });
-
-                if (hasMultimodal) {
-                    activeModel = 'google/gemini-2.0-flash-001';
-                }
                 
                 if (nonImageFileContent) {
                     userMessageContent[0].text += nonImageFileContent;
                 }
                 
                 messages.push({ role: 'user', content: userMessageContent });
-
             } else {
                 messages.push({ role: 'user', content: prompt });
             }
 
-            try {
-                const stream = await textClient.chat.completions.create({
-                    model: activeModel, 
-                    messages: messages,
-                    stream: true,
-                    // max_tokens: null, // Removed to avoid provider issues
-                    ...((activeModel.includes('online') || useSearch) ? { include_search_results: true } : {}) 
-                }, { signal }) as any;
+            const callGeminiFallback = async function* () {
+                const geminiClient = getGeminiClient();
+                if (!geminiClient) {
+                    yield { text: "**Error:** Gemini API key is missing. Cannot use fallback.", isComplete: true };
+                    return;
+                }
 
-                let fullText = '';
-                let hasYielded = false;
+                // Gemini messages cleanup: remove OpenRouter-specific reasoning_details
+                const geminiMessages = messages.map(m => {
+                    const { reasoning_details, ...rest } = m;
+                    return rest;
+                });
 
-                for await (const chunk of stream) {
-                    const content = chunk.choices[0]?.delta?.content || '';
-                    if (content) {
-                        fullText += content;
-                        yield { text: fullText, isComplete: false, mode: 'reasoning' };
-                        hasYielded = true;
+                try {
+                    // Using Gemini 2.0 Flash Lite via Google API with grounding
+                    // Note: 'gemini-2.0-flash-lite-preview-02-05' is the specific version ID for the preview.
+                    const stream = await geminiClient.chat.completions.create({
+                        model: 'gemini-2.0-flash-lite-preview-02-05',
+                        messages: geminiMessages,
+                        stream: true,
+                        // @ts-ignore - Google specific tools for Grounding
+                        tools: [{ googleSearchRetrieval: {} }]
+                    }) as any;
+
+                    let fullText = '';
+                    let hasYielded = false;
+
+                    for await (const chunk of stream) {
+                        const content = chunk.choices[0]?.delta?.content || '';
+                        if (content) {
+                            fullText += content;
+                            yield { text: fullText, isComplete: false, mode: 'reasoning' };
+                            hasYielded = true;
+                        }
                     }
-                }
 
-                if (!hasYielded) {
-                     throw new Error("API returned an empty response.");
-                }
+                    if (!hasYielded) throw new Error("Gemini returned empty response.");
+                    
+                    const newHistoryEntry: OpenAIMessage = { role: 'assistant', content: fullText };
+                    yield { text: fullText, isComplete: true, newHistoryEntry, mode: 'reasoning' };
 
-                const newHistoryEntry: OpenAIMessage = { role: 'assistant', content: fullText };
-                yield { text: fullText, isComplete: true, newHistoryEntry, mode: 'reasoning' };
-            } catch (apiError: any) {
-                throw apiError;
+                } catch (err: any) {
+                    console.error("Gemini Fallback Error:", err);
+                    yield { text: `**System Error (Fallback):** ${err.message}`, isComplete: true };
+                }
+            };
+
+            // Main Execution Logic
+            if (hasImagesOrVideo) {
+                // Direct to Gemini for multimodal
+                yield* callGeminiFallback();
+            } else {
+                // Try OpenRouter First
+                try {
+                    const client = getClient();
+                    const stream = await client.chat.completions.create({
+                        model: "openai/gpt-oss-120b:exacto",
+                        messages: messages,
+                        stream: true,
+                        // OpenRouter specific params
+                        // @ts-ignore
+                        reasoning: { enabled: true },
+                        // @ts-ignore
+                        provider: { allow: ["groq"], sort: "throughput" },
+                        tools: [{ type: "web_search", web_search: { enable: true, recency: 30 } }],
+                        tool_choice: "auto",
+                    }) as any;
+
+                    let fullText = '';
+                    let fullThought = '';
+                    let hasYielded = false;
+                    let reasoningDetails: any = undefined;
+
+                    for await (const chunk of stream) {
+                        const delta = chunk.choices[0]?.delta;
+                        const content = delta?.content || '';
+                        
+                        // Capture reasoning details if present (for deepseek style models)
+                        // DeepSeek usually sends 'reasoning_content'
+                        // OpenRouter might send 'reasoning_details'
+                        if (delta?.reasoning_content) {
+                            fullThought += delta.reasoning_content;
+                            yield { thought: fullThought, isComplete: false, mode: 'reasoning' };
+                        }
+                        
+                        // For non-streaming deepseek via openrouter, sometimes reasoning comes in a separate field
+                        if (delta?.reasoning_details) {
+                            reasoningDetails = delta.reasoning_details;
+                        }
+
+                        if (content) {
+                            fullText += content;
+                            yield { text: fullText, isComplete: false, mode: 'reasoning' };
+                            hasYielded = true;
+                        }
+                    }
+
+                    if (!hasYielded) throw new Error("OpenRouter returned empty response.");
+
+                    const newHistoryEntry: OpenAIMessage = { 
+                        role: 'assistant', 
+                        content: fullText,
+                        reasoning_details: reasoningDetails
+                    };
+                    yield { text: fullText, thought: fullThought, isComplete: true, newHistoryEntry, mode: 'reasoning' };
+
+                } catch (openRouterError: any) {
+                    console.warn("OpenRouter failed, switching to Gemini fallback:", openRouterError);
+                    yield* callGeminiFallback();
+                }
             }
         }
     } catch (error: any) {
@@ -382,8 +475,6 @@ Supported filetypes are: pdf, html, txt.
 }
 
 // ... (Rest of the file remains unchanged)
-// We need to re-export the other functions to avoid breaking the file structure
-// Since we are rewriting the file, we must include the other existing functions.
 
 export async function generateQuiz(topic: string, numQuestions: number, fileContext: string): Promise<Quiz> {
     const client = getClient();
