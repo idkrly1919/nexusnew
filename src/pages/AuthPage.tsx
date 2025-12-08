@@ -151,7 +151,7 @@ const AuthPage: React.FC = () => {
                                     <input id="email" name="email" type="email" value={email} onChange={e => setEmail(e.target.value)} required className="w-full bg-white/5 border border-white/10 rounded-full px-4 py-3 text-white placeholder-zinc-500 focus:outline-none focus:border-indigo-500/50 focus:ring-2 focus:ring-indigo-500/30 transition-all duration-300" />
                                 </div>
                             </div>
-                            <button type="submit" disabled={isLoading} className="w-full flex justify-center py-3 px-4 border border-transparent rounded-full shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:bg-zinc-700">
+                            <button type="submit" disabled={isLoading} className="w-full flex justify-center py-3 px-4 border rounded-full shadow-sm text-sm font-medium text-white liquid-glass transition-colors border-indigo-500/50 hover:bg-indigo-500/20 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:border-zinc-700 disabled:text-zinc-400 disabled:bg-transparent">
                                 {isLoading ? 'Checking...' : 'Continue with Email'}
                             </button>
                         </form>
@@ -180,7 +180,7 @@ const AuthPage: React.FC = () => {
                                 <button type="button" onClick={() => setStep('forgot-password')} className="text-xs text-indigo-400 hover:text-indigo-300">Forgot Password?</button>
                             </div>
                         </div>
-                        <button type="submit" disabled={isLoading} className="w-full flex justify-center py-3 px-4 border border-transparent rounded-full shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:bg-zinc-700">
+                        <button type="submit" disabled={isLoading} className="w-full flex justify-center py-3 px-4 border rounded-full shadow-sm text-sm font-medium text-white liquid-glass transition-colors border-indigo-500/50 hover:bg-indigo-500/20 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:border-zinc-700 disabled:text-zinc-400 disabled:bg-transparent">
                             {isLoading ? 'Signing In...' : 'Sign In'}
                         </button>
                         <button onClick={() => setStep('email')} className="w-full text-center text-sm text-zinc-400 hover:text-white">Use a different email</button>
@@ -197,7 +197,7 @@ const AuthPage: React.FC = () => {
                         
                         {infoMessage && <div className="p-3 bg-indigo-500/20 text-indigo-200 text-sm rounded-lg text-center">{infoMessage}</div>}
                         
-                        <button type="submit" disabled={isLoading} className="w-full flex justify-center py-3 px-4 border border-transparent rounded-full shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 disabled:bg-zinc-700">
+                        <button type="submit" disabled={isLoading} className="w-full flex justify-center py-3 px-4 border rounded-full shadow-sm text-sm font-medium text-white liquid-glass transition-colors border-indigo-500/50 hover:bg-indigo-500/20 disabled:border-zinc-700 disabled:text-zinc-400 disabled:bg-transparent">
                             {isLoading ? 'Sending...' : 'Send Reset Link'}
                         </button>
                          <button type="button" onClick={() => setStep('login')} className="w-full text-center text-sm text-zinc-400 hover:text-white">Back to Login</button>
@@ -218,7 +218,7 @@ const AuthPage: React.FC = () => {
                             <a href="#" onClick={(e) => { e.preventDefault(); setLegalModal({ title: 'Terms of Service', content: termsOfService }); }} className="underline hover:text-indigo-400">Terms and Conditions</a> and{' '}
                             <a href="#" onClick={(e) => { e.preventDefault(); setLegalModal({ title: 'Privacy Policy', content: privacyPolicy }); }} className="underline hover:text-indigo-400">Privacy Policy</a>.
                         </p>
-                        <button type="submit" disabled={isLoading} className="w-full flex justify-center py-3 px-4 border border-transparent rounded-full shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:bg-zinc-700">
+                        <button type="submit" disabled={isLoading} className="w-full flex justify-center py-3 px-4 border rounded-full shadow-sm text-sm font-medium text-white liquid-glass transition-colors border-indigo-500/50 hover:bg-indigo-500/20 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:border-zinc-700 disabled:text-zinc-400 disabled:bg-transparent">
                             {isLoading ? 'Creating Account...' : 'Create Account'}
                         </button>
                         <button onClick={() => setStep('email')} className="w-full text-center text-sm text-zinc-400 hover:text-white">Use a different email</button>
