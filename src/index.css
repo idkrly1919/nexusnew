@@ -1,0 +1,17 @@
+:root {
+  --background-dark: #111827;
+  --background-medium: #1f2937;
+  --background-light: #374151;
+  --text-primary: #e5e7eb;
+  --text-secondary: #9ca3af;
+  --accent-primary: #60a5fa;
+  --accent-secondary: #818cf8;
+}
+
+/* Lighten all zinc-based colors by ~15% */
+.bg-zinc-900 { background-color: var(--background-medium) !important; }
+.bg-zinc-800 { background-color: var(--background-light) !important; }
+.text-zinc-100 { color: var(--text-primary) !important; }
+.text-zinc-300 { color: var(--text-secondary) !important; }
+.border-zinc-700 { border-color: #4b5563 !important; }
+.hover\:bg-zinc-800 { --tw-bg-opacity: 1; background-color: rgb(55 65 81 / var(--tw-bg-opacity)) !important; }
