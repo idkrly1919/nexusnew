@@ -105,7 +105,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           first_name: firstName,
           last_name: lastName,
         },
-      },
+      }
     });
     if (error) throw error;
     if (data.user) {

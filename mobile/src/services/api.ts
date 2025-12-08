@@ -29,7 +29,7 @@ export const api = {
           first_name: firstName,
           last_name: lastName,
         },
-      },
+      }
     });
     if (error) throw error;
     return data;
