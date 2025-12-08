@@ -115,7 +115,7 @@ const LandingPage: React.FC = () => {
 
                         <div className="flex items-center gap-4">
                             <Link to="/auth" className="text-sm font-medium text-zinc-300 hover:text-white hidden sm:block transition-colors duration-300">Log in</Link>
-                            <Link to="/auth" className="liquid-glass border border-white/10 text-white px-5 py-2.5 rounded-full text-sm font-semibold hover:bg-white/10 transition-all duration-300 interactive-lift">
+                            <Link to="/auth" className="bg-white/10 backdrop-blur-md border border-white/20 text-white px-5 py-2.5 rounded-full text-sm font-semibold hover:bg-white/20 transition-all duration-300 interactive-lift">
                                 Get Access
                             </Link>
                         </div>
@@ -143,7 +143,7 @@ const LandingPage: React.FC = () => {
                             <form className="relative" onSubmit={handleSignup}>
                                 <input type="email" placeholder="Enter your email..." required
                                     className="w-full bg-white/5 border border-white/10 rounded-full px-6 py-4 text-white placeholder-zinc-500 focus:outline-none focus:border-indigo-500/50 focus:ring-2 focus:ring-indigo-500/30 transition-all duration-300"/>
-                                <button type="submit" className="absolute right-2 top-1/2 -translate-y-1/2 liquid-glass border border-indigo-500/50 hover:bg-indigo-500/20 text-white px-6 py-2.5 rounded-full font-medium transition-all duration-300 shadow-[0_0_20px_rgba(129,140,248,0.4)] hover:shadow-[0_0_30px_rgba(129,140,248,0.6)] interactive-lift">
+                                <button type="submit" className="absolute right-2 top-1/2 -translate-y-1/2 bg-indigo-600 hover:bg-indigo-500 text-white px-6 py-2.5 rounded-full font-medium transition-all duration-300 shadow-[0_0_20px_rgba(129,140,248,0.4)] hover:shadow-[0_0_30px_rgba(129,140,248,0.6)] interactive-lift">
                                     Join Waitlist
                                 </button>
                             </form>
@@ -249,7 +249,7 @@ const LandingPage: React.FC = () => {
                                     <li className="flex items-center gap-3"><svg className="text-green-400 w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg> API Access (Beta)</li>
                                     <li className="flex items-center gap-3"><svg className="text-green-400 w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg> Community Support</li>
                                 </ul>
-                                <button onClick={() => navigate('/auth')} className="liquid-glass border border-white/20 text-white px-8 py-3 rounded-full font-bold hover:bg-white/10 transition-colors w-full md:w-auto">Start Building for Free</button>
+                                <button onClick={() => navigate('/auth')} className="bg-white text-black px-8 py-3 rounded-full font-bold hover:bg-zinc-200 transition-colors w-full md:w-auto">Start Building for Free</button>
                             </div>
                         </div>
                     </div>

@@ -20,7 +20,6 @@ import SupportModal from './SupportModal';
 import AccountSettingsModal from './AccountSettingsModal';
 import ImageGenerationPlaceholder from './ImageGenerationPlaceholder';
 import { termsOfService, privacyPolicy } from '../legal';
-import LiquidGlassContainer from './LiquidGlassContainer';
 
 const NexusIconSmall = () => (
     <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center border border-white/10 shadow-lg">
@@ -1187,12 +1186,10 @@ const ChatView: React.FC = () => {
             
             {showMemoryToast && (
                 <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-50">
-                    <LiquidGlassContainer type="pill" tintOpacity={0.2} className="animate-pop-in">
-                        <div className="flex items-center gap-3 py-2 px-5">
-                            <svg className="w-5 h-5 text-indigo-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 20h9"/><path d="M4 20h2"/><path d="M4 12h16"/><path d="M4 4h10"/><path d="M18 8h2"/><path d="M16 4v16"/></svg>
-                            <span className="text-sm font-medium text-white">Memory Updated</span>
-                        </div>
-                    </LiquidGlassContainer>
+                    <div data-liquid-glass className="liquid-glass flex items-center gap-3 py-2 px-5 rounded-full animate-pop-in">
+                        <svg className="w-5 h-5 text-indigo-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 20h9"/><path d="M4 20h2"/><path d="M4 12h16"/><path d="M4 4h10"/><path d="M18 8h2"/><path d="M16 4v16"/></svg>
+                        <span className="text-sm font-medium text-white">Memory Updated</span>
+                    </div>
                 </div>
             )}
 
@@ -1225,7 +1222,7 @@ const ChatView: React.FC = () => {
 
             {showSettings && (
                 <div className="fixed inset-0 z-[60] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4" onClick={() => setShowSettings(false)}>
-                    <LiquidGlassContainer className="w-full max-w-md shadow-2xl animate-pop-in" onClick={(e) => e.stopPropagation()}>
+                    <div data-liquid-glass className="liquid-glass w-full max-w-md shadow-2xl animate-pop-in" onClick={(e) => e.stopPropagation()}>
                         <div className="p-6 border-b border-white/10 flex justify-between items-center">
                             <h2 className="text-xl font-bold text-white font-brand">Settings</h2>
                             <button onClick={() => setShowSettings(false)} className="p-1.5 rounded-full text-zinc-400 hover:text-white hover:bg-white/10 transition-colors"><svg width="20" height="20" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5" fill="none"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
@@ -1276,117 +1273,115 @@ const ChatView: React.FC = () => {
                                 </div>
                             )}
                         </div>
-                    </LiquidGlassContainer>
+                    </div>
                 </div>
             )}
 
             {/* Sidebar code */}
-            <div className={`fixed inset-y-0 left-0 z-40 w-96 transform transition-transform duration-300 ease-in-out ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
-                <LiquidGlassContainer className="w-full h-full" borderRadius={0} tintOpacity={0.3}>
-                    <div className="flex flex-col h-full p-4 space-y-4">
-                        <div className="flex justify-between items-center"><div className="font-bold tracking-wide text-white flex items-center gap-2"><img src="/quillix-logo.png" alt="Quillix Logo" className="w-6 h-6 animate-spin-slow" />Quillix</div><button onClick={() => setIsSidebarOpen(false)} className="text-zinc-400 hover:text-white p-1 rounded-full hover:bg-white/10"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m15 18-6-6 6-6"/></svg></button></div>
-                        
-                        <button onClick={() => setSupportModal('suggestion')} className="w-full text-xs text-center text-indigo-400 hover:text-indigo-300 hover:underline transition-colors pb-1">
-                            Have suggestions?
-                        </button>
-                        
-                        <button onClick={() => { resetChat(); setIsSidebarOpen(false); }} className="w-full flex items-center justify-center gap-2 px-3 py-2.5 liquid-glass border border-white/20 text-white rounded-full transition-colors duration-300 text-sm font-semibold interactive-lift hover:bg-white/10"><svg width="16" height="16" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5" fill="none"><path d="M12 5v14"/><path d="M5 12h14"/></svg>New Chat</button>
-                        
-                        <div className="flex-1 overflow-y-auto space-y-1 p-2 scrollbar-hide">
-                            {isDataLoading ? (
-                                <div className="flex items-center justify-center gap-2 p-2 text-sm text-zinc-400">
-                                    <svg className="animate-spin h-4 w-4 text-zinc-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
-                                    Loading...
-                                </div>
-                            ) : (
-                                <>
-                                    <div className="border-b border-white/10 pb-2 mb-2">
-                                        <div className="flex items-center justify-between px-2">
-                                            <button onClick={() => setIsPersonaListOpen(prev => !prev)} className="w-full flex items-center justify-between text-left">
-                                                <h3 className="text-sm font-semibold text-zinc-300">My Personas</h3>
-                                                <svg className={`w-4 h-4 text-zinc-500 transition-transform ${isPersonaListOpen ? 'rotate-180' : ''}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
-                                            </button>
-                                            <button onClick={() => setShowPersonaManager(true)} className="p-1.5 text-zinc-400 hover:text-white hover:bg-white/10 rounded-full" title="Create New Persona">+</button>
-                                        </div>
-                                        {isPersonaListOpen && (
-                                            <div className="mt-2 space-y-1">
-                                                {personas.map(persona => (
-                                                    <div key={persona.id} className="group">
-                                                        <div onClick={() => startNewPersonaChat(persona)} className={`p-2 rounded-lg cursor-pointer ${activePersona?.id === persona.id && !currentConversationId ? 'bg-indigo-500/20' : 'hover:bg-white/5'}`}>
-                                                            <p className={`text-sm truncate ${activePersona?.id === persona.id && !currentConversationId ? 'text-indigo-300' : 'text-zinc-200'}`}>{persona.name}</p>
-                                                        </div>
-                                                        {conversations.filter(c => c.persona_id === persona.id).map(chat => (
-                                                            <div key={chat.id} onClick={() => navigate(`/chat/${chat.id}`)} className={`pl-6 p-2 rounded-lg relative cursor-pointer ${currentConversationId === chat.id ? 'bg-white/10' : 'hover:bg-white/5'}`}>
-                                                                <p className="text-xs text-zinc-400 truncate pr-6">{chat.title || 'New Chat'}</p>
-                                                                <button onClick={(e) => { e.stopPropagation(); handleDeleteConversation(chat.id); }} className="absolute right-1 top-1/2 -translate-y-1/2 p-1 text-zinc-500 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity" title="Delete Chat"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg></button>
-                                                            </div>
-                                                        ))}
+            <div data-liquid-glass className={`fixed inset-y-0 left-0 z-40 w-96 liquid-glass border-l-0 border-t-0 border-b-0 rounded-none rounded-r-2xl transform transition-transform duration-300 ease-in-out ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+                <div className="flex flex-col h-full p-4 space-y-4">
+                    <div className="flex justify-between items-center"><div className="font-bold tracking-wide text-white flex items-center gap-2"><img src="/quillix-logo.png" alt="Quillix Logo" className="w-6 h-6 animate-spin-slow" />Quillix</div><button onClick={() => setIsSidebarOpen(false)} className="text-zinc-400 hover:text-white p-1 rounded-full hover:bg-white/10"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m15 18-6-6 6-6"/></svg></button></div>
+                    
+                    <button onClick={() => setSupportModal('suggestion')} className="w-full text-xs text-center text-indigo-400 hover:text-indigo-300 hover:underline transition-colors pb-1">
+                        Have suggestions?
+                    </button>
+                    
+                    <button onClick={() => { resetChat(); setIsSidebarOpen(false); }} className="w-full flex items-center justify-center gap-2 px-3 py-2.5 bg-white hover:bg-zinc-200 text-black rounded-full transition-colors duration-300 text-sm font-semibold interactive-lift"><svg width="16" height="16" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5" fill="none"><path d="M12 5v14"/><path d="M5 12h14"/></svg>New Chat</button>
+                    
+                    <div className="flex-1 overflow-y-auto space-y-1 p-2 scrollbar-hide">
+                        {isDataLoading ? (
+                            <div className="flex items-center justify-center gap-2 p-2 text-sm text-zinc-400">
+                                <svg className="animate-spin h-4 w-4 text-zinc-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                                Loading...
+                            </div>
+                        ) : (
+                            <>
+                                <div className="border-b border-white/10 pb-2 mb-2">
+                                    <div className="flex items-center justify-between px-2">
+                                        <button onClick={() => setIsPersonaListOpen(prev => !prev)} className="w-full flex items-center justify-between text-left">
+                                            <h3 className="text-sm font-semibold text-zinc-300">My Personas</h3>
+                                            <svg className={`w-4 h-4 text-zinc-500 transition-transform ${isPersonaListOpen ? 'rotate-180' : ''}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                                        </button>
+                                        <button onClick={() => setShowPersonaManager(true)} className="p-1.5 text-zinc-400 hover:text-white hover:bg-white/10 rounded-full" title="Create New Persona">+</button>
+                                    </div>
+                                    {isPersonaListOpen && (
+                                        <div className="mt-2 space-y-1">
+                                            {personas.map(persona => (
+                                                <div key={persona.id} className="group">
+                                                    <div onClick={() => startNewPersonaChat(persona)} className={`p-2 rounded-lg cursor-pointer ${activePersona?.id === persona.id && !currentConversationId ? 'bg-indigo-500/20' : 'hover:bg-white/5'}`}>
+                                                        <p className={`text-sm truncate ${activePersona?.id === persona.id && !currentConversationId ? 'text-indigo-300' : 'text-zinc-200'}`}>{persona.name}</p>
                                                     </div>
-                                                ))}
+                                                    {conversations.filter(c => c.persona_id === persona.id).map(chat => (
+                                                        <div key={chat.id} onClick={() => navigate(`/chat/${chat.id}`)} className={`pl-6 p-2 rounded-lg relative cursor-pointer ${currentConversationId === chat.id ? 'bg-white/10' : 'hover:bg-white/5'}`}>
+                                                            <p className="text-xs text-zinc-400 truncate pr-6">{chat.title || 'New Chat'}</p>
+                                                            <button onClick={(e) => { e.stopPropagation(); handleDeleteConversation(chat.id); }} className="absolute right-1 top-1/2 -translate-y-1/2 p-1 text-zinc-500 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity" title="Delete Chat"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg></button>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                                {Object.entries(groupedConversations).map(([groupName, groupConversations]) => (
+                                    groupConversations.length > 0 && (
+                                        <div key={groupName} className="mb-3">
+                                            <div className="text-xs font-semibold text-zinc-500 px-2 py-1 uppercase tracking-wider mb-1">{groupName}</div>
+                                            {groupConversations.map(chat => (
+                                                <div key={chat.id} onClick={() => navigate(`/chat/${chat.id}`)} data-liquid-glass className={`liquid-glass p-3 rounded-xl my-1.5 group relative cursor-pointer transition-all duration-300 hover:scale-[1.03] hover:bg-white/10 ${currentConversationId === chat.id ? 'bg-white/10' : ''}`}>
+                                                    <div className={`w-full text-left text-sm truncate pr-6 ${currentConversationId === chat.id ? 'text-white font-semibold' : 'text-zinc-300'}`}>{chat.title || 'New Chat'}</div>
+                                                    <button onClick={(e) => { e.stopPropagation(); handleDeleteConversation(chat.id); }} className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-zinc-500 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity" title="Delete Chat"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg></button>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )
+                                ))}
+                            </>
+                        )}
+                    </div>
+                    <div className="space-y-2">
+                        <button onClick={() => window.open('https://gofund.me/4747854c6', '_blank')} className="w-full flex items-center gap-3 px-3 py-2 text-sm text-green-400 hover:text-green-300 hover:bg-green-500/10 rounded-lg transition-colors">
+                           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>
+                            Keep this project alive
+                        </button>
+                        <button onClick={() => setSupportModal('support')} className="w-full flex items-center gap-3 px-3 py-2 text-sm text-zinc-300 hover:text-white hover:bg-white/5 rounded-lg transition-colors">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                            Need help?
+                        </button>
+                        <button onClick={openSettings} className="w-full flex items-center gap-3 px-3 py-2 text-sm text-zinc-300 hover:text-white hover:bg-white/5 rounded-lg transition-colors"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l-.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.47a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.35a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>Settings</button>
+                        {session ? (
+                            <button onClick={() => setShowAccountSettings(true)} className="w-full flex items-center justify-between gap-3 px-3 py-2 bg-white/5 rounded-lg hover:bg-white/10 transition-colors">
+                                <div className="flex items-center gap-3 min-w-0">
+                                    <div className="shrink-0 group relative">
+                                        {profile?.avatar_url ? (
+                                            <img src={profile.avatar_url} alt="User Avatar" className="w-8 h-8 rounded-full object-cover" />
+                                        ) : (
+                                            <div className="w-8 h-8 rounded-full liquid-glass flex items-center justify-center border border-white/10">
+                                                <svg className="w-5 h-5 text-zinc-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
                                             </div>
                                         )}
                                     </div>
-                                    {Object.entries(groupedConversations).map(([groupName, groupConversations]) => (
-                                        groupConversations.length > 0 && (
-                                            <div key={groupName} className="mb-3">
-                                                <div className="text-xs font-semibold text-zinc-500 px-2 py-1 uppercase tracking-wider mb-1">{groupName}</div>
-                                                {groupConversations.map(chat => (
-                                                    <div key={chat.id} onClick={() => navigate(`/chat/${chat.id}`)} className={`p-3 rounded-xl my-1.5 group relative cursor-pointer transition-all duration-300 hover:scale-[1.03] hover:bg-white/10 ${currentConversationId === chat.id ? 'bg-white/10' : ''}`}>
-                                                        <div className={`w-full text-left text-sm truncate pr-6 ${currentConversationId === chat.id ? 'text-white font-semibold' : 'text-zinc-300'}`}>{chat.title || 'New Chat'}</div>
-                                                        <button onClick={(e) => { e.stopPropagation(); handleDeleteConversation(chat.id); }} className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-zinc-500 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity" title="Delete Chat"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg></button>
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        )
-                                    ))}
-                                </>
-                            )}
-                        </div>
-                        <div className="space-y-2">
-                            <button onClick={() => window.open('https://gofund.me/4747854c6', '_blank')} className="w-full flex items-center gap-3 px-3 py-2 text-sm text-green-400 hover:text-green-300 hover:bg-green-500/10 rounded-lg transition-colors">
-                               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>
-                                Keep this project alive
-                            </button>
-                            <button onClick={() => setSupportModal('support')} className="w-full flex items-center gap-3 px-3 py-2 text-sm text-zinc-300 hover:text-white hover:bg-white/5 rounded-lg transition-colors">
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-                                Need help?
-                            </button>
-                            <button onClick={openSettings} className="w-full flex items-center gap-3 px-3 py-2 text-sm text-zinc-300 hover:text-white hover:bg-white/5 rounded-lg transition-colors"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l-.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.47a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.35a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>Settings</button>
-                            {session ? (
-                                <button onClick={() => setShowAccountSettings(true)} className="w-full flex items-center justify-between gap-3 px-3 py-2 bg-white/5 rounded-lg hover:bg-white/10 transition-colors">
-                                    <div className="flex items-center gap-3 min-w-0">
-                                        <div className="shrink-0 group relative">
-                                            {profile?.avatar_url ? (
-                                                <img src={profile.avatar_url} alt="User Avatar" className="w-8 h-8 rounded-full object-cover" />
-                                            ) : (
-                                                <div className="w-8 h-8 rounded-full liquid-glass flex items-center justify-center border border-white/10">
-                                                    <svg className="w-5 h-5 text-zinc-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-                                                </div>
-                                            )}
-                                        </div>
-                                        <div className="text-sm text-zinc-200 truncate text-left">
-                                            {profile?.first_name && profile?.last_name 
-                                                ? `${profile.first_name} ${profile.last_name}` 
-                                                : session.user.email}
-                                        </div>
+                                    <div className="text-sm text-zinc-200 truncate text-left">
+                                        {profile?.first_name && profile?.last_name 
+                                            ? `${profile.first_name} ${profile.last_name}` 
+                                            : session.user.email}
                                     </div>
-                                    <button onClick={(e) => { e.stopPropagation(); supabase.auth.signOut(); }} className="text-zinc-300 hover:text-white p-1.5 hover:bg-white/10 rounded-md" title="Log Out"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg></button>
-                                </button>
-                            ) : (
-                                <button onClick={() => navigate('/auth')} className="w-full flex items-center justify-center gap-2 px-3 py-2.5 liquid-glass border border-indigo-500/50 text-white rounded-full transition-colors duration-300 text-sm font-semibold interactive-lift hover:bg-indigo-500/20">
-                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
-                                    Sign In / Sign Up
-                                </button>
-                            )}
-                            {session && (
-                                <button onClick={handleDeleteAllConversations} className="w-full flex items-center gap-3 px-3 py-2 text-sm text-zinc-400 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors">
-                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
-                                    Clear all chats
-                                </button>
-                            )}
-                        </div>
+                                </div>
+                                <button onClick={(e) => { e.stopPropagation(); supabase.auth.signOut(); }} className="text-zinc-300 hover:text-white p-1.5 hover:bg-white/10 rounded-md" title="Log Out"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg></button>
+                            </button>
+                        ) : (
+                            <button onClick={() => navigate('/auth')} className="w-full flex items-center justify-center gap-2 px-3 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-full transition-colors duration-300 text-sm font-semibold interactive-lift">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
+                                Sign In / Sign Up
+                            </button>
+                        )}
+                        {session && (
+                            <button onClick={handleDeleteAllConversations} className="w-full flex items-center gap-3 px-3 py-2 text-sm text-zinc-400 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
+                                Clear all chats
+                            </button>
+                        )}
                     </div>
-                </LiquidGlassContainer>
+                </div>
             </div>
 
             {isSidebarOpen && <div className="fixed inset-0 bg-black/50 z-30" onClick={() => setIsSidebarOpen(false)}></div>}
@@ -1398,7 +1393,7 @@ const ChatView: React.FC = () => {
                         <span className="font-semibold text-sm tracking-wide text-zinc-300">{activePersona ? activePersona.name : (currentConversationId && session ? conversations.find(c => c.id === currentConversationId)?.title : 'Quillix')}</span>
                     </div>
                     {!session && (
-                        <button onClick={() => navigate('/auth')} className="liquid-glass border border-white/10 text-white px-5 py-2.5 rounded-full text-sm font-semibold hover:bg-white/10 transition-all duration-300 interactive-lift">
+                        <button onClick={() => navigate('/auth')} className="bg-white/10 backdrop-blur-md border border-white/20 text-white px-5 py-2.5 rounded-full text-sm font-semibold hover:bg-white/20 transition-all duration-300 interactive-lift">
                             Sign In / Sign Up
                         </button>
                     )}
@@ -1416,48 +1411,44 @@ const ChatView: React.FC = () => {
                             </div>
                             <div className="w-full max-w-5xl mx-auto px-4 pb-8">
                                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                                    <LiquidGlassContainer borderRadius={16} tintOpacity={0.1} className="interactive-lift">
-                                        <button 
-                                            onClick={() => {
-                                                if (!session) { navigate('/auth'); return; }
-                                                setEmbeddedContent({ url: 'https://veoaifree.com', title: 'Video Generator' });
-                                            }}
-                                            className="w-full h-full bg-transparent p-4 rounded-2xl text-left space-y-2"
-                                        >
-                                            <h3 className="font-semibold text-white">Make a video</h3>
-                                            <p className="text-sm text-zinc-400">Create a video from a text prompt.</p>
-                                        </button>
-                                    </LiquidGlassContainer>
-                                    <LiquidGlassContainer borderRadius={16} tintOpacity={0.1} className="interactive-lift">
-                                        <button 
-                                            onClick={() => navigate('/dev')}
-                                            className="w-full h-full bg-transparent p-4 rounded-2xl text-left space-y-2"
-                                        >
-                                            <h3 className="font-semibold text-white">AI Web Developer</h3>
-                                            <p className="text-sm text-zinc-400">Build and edit code with an AI partner.</p>
-                                        </button>
-                                    </LiquidGlassContainer>
-                                    <LiquidGlassContainer borderRadius={16} tintOpacity={0.1} className="interactive-lift">
-                                        <button 
-                                            onClick={() => {
-                                                setInputValue('Make an image of ');
-                                                textareaRef.current?.focus();
-                                            }}
-                                            className="w-full h-full bg-transparent p-4 rounded-2xl text-left space-y-2"
-                                        >
-                                            <h3 className="font-semibold text-white">Make an image</h3>
-                                            <p className="text-sm text-zinc-400">Generate an image from a prompt.</p>
-                                        </button>
-                                    </LiquidGlassContainer>
-                                    <LiquidGlassContainer borderRadius={16} tintOpacity={0.1} className="interactive-lift">
-                                        <button 
-                                            onClick={() => navigate('/quiz')}
-                                            className="w-full h-full bg-transparent p-4 rounded-2xl text-left space-y-2"
-                                        >
-                                            <h3 className="font-semibold text-white">Quiz me on...</h3>
-                                            <p className="text-sm text-zinc-400">Test your knowledge on any topic.</p>
-                                        </button>
-                                    </LiquidGlassContainer>
+                                    <button 
+                                        onClick={() => {
+                                            if (!session) { navigate('/auth'); return; }
+                                            setEmbeddedContent({ url: 'https://veoaifree.com', title: 'Video Generator' });
+                                        }}
+                                        data-liquid-glass
+                                        className="liquid-glass p-4 rounded-2xl text-left interactive-lift space-y-2"
+                                    >
+                                        <h3 className="font-semibold text-white">Make a video</h3>
+                                        <p className="text-sm text-zinc-400">Create a video from a text prompt.</p>
+                                    </button>
+                                    <button 
+                                        onClick={() => navigate('/dev')}
+                                        data-liquid-glass
+                                        className="liquid-glass p-4 rounded-2xl text-left interactive-lift space-y-2"
+                                    >
+                                        <h3 className="font-semibold text-white">AI Web Developer</h3>
+                                        <p className="text-sm text-zinc-400">Build and edit code with an AI partner.</p>
+                                    </button>
+                                    <button 
+                                        onClick={() => {
+                                            setInputValue('Make an image of ');
+                                            textareaRef.current?.focus();
+                                        }}
+                                        data-liquid-glass
+                                        className="liquid-glass p-4 rounded-2xl text-left interactive-lift space-y-2"
+                                    >
+                                        <h3 className="font-semibold text-white">Make an image</h3>
+                                        <p className="text-sm text-zinc-400">Generate an image from a prompt.</p>
+                                    </button>
+                                    <button 
+                                        onClick={() => navigate('/quiz')}
+                                        data-liquid-glass
+                                        className="liquid-glass p-4 rounded-2xl text-left interactive-lift space-y-2"
+                                    >
+                                        <h3 className="font-semibold text-white">Quiz me on...</h3>
+                                        <p className="text-sm text-zinc-400">Test your knowledge on any topic.</p>
+                                    </button>
                                 </div>
                             </div>
                         </div>
@@ -1466,45 +1457,38 @@ const ChatView: React.FC = () => {
                             {messages.map((msg, index) => (
                                 <div key={msg.id} className={`flex items-start gap-4 animate-pop-in ${msg.role === 'user' ? 'justify-end' : ''} group`}>
                                     {msg.role === 'assistant' && <div className="shrink-0 mt-1"><NexusIconSmall /></div>}
-                                    <LiquidGlassContainer 
-                                        borderRadius={24} 
-                                        tintOpacity={msg.role === 'user' ? 0.3 : 0.1}
-                                        className={`relative max-w-[85%] leading-relaxed ${msg.role === 'user' ? 'rounded-br-lg' : 'rounded-bl-lg'}`}
-                                    >
-                                        <div className="px-5 py-3">
-                                            <div className="font-medium text-sm text-zinc-400 mb-2">
-                                                {msg.role === 'assistant' ? (activePersona?.name || 'Quillix') : 'You'}
-                                            </div>
-                                            <div className={`${msg.role === 'assistant' ? 'text-zinc-100 prose prose-invert prose-sm max-w-none' : 'text-white'}`}>
-                                                {renderMessageContent(msg)}
-                                            </div>
-                                            {msg.role === 'assistant' && !isLoading && (
-                                                <div className="flex items-center gap-2 mt-3 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                    <button onClick={() => handleTTS(msg.text)} className="p-1.5 text-zinc-500 hover:text-zinc-300 hover:bg-white/5 rounded-md transition-colors" title="Read Aloud">
-                                                        <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path></svg>
-                                                    </button>
-                                                    {index === messages.length - 1 && (
-                                                        <button onClick={handleRegenerate} className="p-1.5 text-zinc-500 hover:text-indigo-400 hover:bg-white/5 rounded-md transition-colors" title="Regenerate Response">
-                                                            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M16 21h5v-5"/></svg>
-                                                        </button>
-                                                    )}
-                                                </div>
-                                            )}
+                                    <div data-liquid-glass className={`relative max-w-[85%] leading-relaxed ${msg.role === 'user' ? 'light-liquid-glass text-white px-5 py-3 rounded-3xl rounded-br-lg' : 'dark-liquid-glass px-5 py-3 rounded-3xl rounded-bl-lg'}`}>
+                                        <div className="font-medium text-sm text-zinc-400 mb-2">
+                                            {msg.role === 'assistant' ? (activePersona?.name || 'Quillix') : 'You'}
                                         </div>
-                                    </LiquidGlassContainer>
+                                        <div className={`${msg.role === 'assistant' ? 'text-zinc-100 prose prose-invert prose-sm max-w-none' : ''}`}>
+                                            {renderMessageContent(msg)}
+                                        </div>
+                                        {msg.role === 'assistant' && !isLoading && (
+                                            <div className="flex items-center gap-2 mt-3 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                <button onClick={() => handleTTS(msg.text)} className="p-1.5 text-zinc-500 hover:text-zinc-300 hover:bg-white/5 rounded-md transition-colors" title="Read Aloud">
+                                                    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path></svg>
+                                                </button>
+                                                {/* Only show Regenerate for the LAST assistant message */}
+                                                {index === messages.length - 1 && (
+                                                    <button onClick={handleRegenerate} className="p-1.5 text-zinc-500 hover:text-indigo-400 hover:bg-white/5 rounded-md transition-colors" title="Regenerate Response">
+                                                        <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M16 21h5v-5"/></svg>
+                                                    </button>
+                                                )}
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
                             ))}
                             {isLoading && (
                                 <div className="flex items-start gap-4 animate-pop-in group">
                                     <div className="shrink-0 mt-1"><NexusIconSmall /></div>
                                     {thinkingMode === 'image' ? (
-                                        <LiquidGlassContainer borderRadius={24} tintOpacity={0.1} className="rounded-bl-lg">
-                                            <div className="p-4">
-                                                <div className="w-full max-w-lg aspect-[9/16] bg-black/20 rounded-xl flex items-center justify-center">
-                                                    <ImageGenerationPlaceholder />
-                                                </div>
+                                        <div data-liquid-glass className="dark-liquid-glass p-4 rounded-3xl rounded-bl-lg">
+                                            <div className="w-full max-w-lg aspect-[9/16] bg-black/20 rounded-xl flex items-center justify-center">
+                                                <ImageGenerationPlaceholder />
                                             </div>
-                                        </LiquidGlassContainer>
+                                        </div>
                                     ) : (
                                         <ThinkingProcess isThinking={true} mode="reasoning" />
                                     )}
@@ -1518,7 +1502,7 @@ const ChatView: React.FC = () => {
                 <div className="w-full max-w-5xl mx-auto p-4 z-20">
                     {isLoading ? (
                         <div className="flex flex-col items-center gap-3">
-                            <button onClick={handleStop} className="liquid-glass border border-white/10 hover:bg-white/10 text-white px-5 py-2.5 rounded-full font-medium transition-all shadow-lg flex items-center gap-2 text-sm interactive-lift">
+                            <button onClick={handleStop} className="bg-white/10 hover:bg-white/20 border border-white/20 text-white px-5 py-2.5 rounded-full font-medium transition-all shadow-lg flex items-center gap-2 text-sm interactive-lift">
                                 <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M6 6h12v12H6z"></path></svg>
                                 Stop Generating
                             </button>
@@ -1534,7 +1518,7 @@ const ChatView: React.FC = () => {
                     ) : (
                         <div className="relative">
                             <form onSubmit={handleChatSubmit} className="relative">
-                                <LiquidGlassContainer type="pill" tintOpacity={0.2} className="flex items-center p-2">
+                                <div data-liquid-glass className="liquid-glass rounded-full flex items-center p-2 transition-all duration-300 focus-within:shadow-2xl focus-within:shadow-indigo-500/20">
                                     <button type="button" onClick={triggerFileSelect} className="p-2 rounded-full text-zinc-300 hover:text-white hover:bg-white/10 transition-colors ml-1" title="Attach File"><svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg></button>
                                     <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" accept="image/*,application/pdf,text/plain,text/code,application/json" multiple />
                                     <textarea ref={textareaRef} value={inputValue} onChange={(e) => setInputValue(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleChatSubmit(e); } }} rows={1} placeholder="Message Quillix..." className="flex-1 bg-transparent border-none text-white placeholder-zinc-500 focus:ring-0 focus:outline-none resize-none py-3.5 px-3 h-auto max-h-[120px] overflow-y-auto scrollbar-hide"></textarea>
@@ -1551,7 +1535,7 @@ const ChatView: React.FC = () => {
                                         <button type="button" onClick={() => setIsVoiceMode(true)} className="p-2 rounded-full text-zinc-300 hover:text-white hover:bg-white/10 transition-colors"><svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/></svg></button>
                                         <button type="submit" disabled={isLoading || (!inputValue.trim() && attachedFiles.length === 0)} className={`w-9 h-9 flex items-center justify-center rounded-full transition-all duration-200 ml-1 ${(inputValue.trim() || attachedFiles.length > 0) && !isLoading ? 'bg-white text-black hover:bg-zinc-200 shadow-lg' : 'bg-white/10 text-zinc-500 cursor-not-allowed'}`}><svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg></button>
                                     </div>
-                                </LiquidGlassContainer>
+                                </div>
                                 {attachedFiles.length > 0 && (
                                     <div className="absolute bottom-full w-full left-0 mb-2 px-2">
                                         <div className="flex gap-3 flex-wrap p-2 bg-black/30 backdrop-blur-md rounded-xl border border-white/10">
