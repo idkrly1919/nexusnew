@@ -21,6 +21,8 @@ import AccountSettingsModal from './AccountSettingsModal';
 import ImageGenerationPlaceholder from './ImageGenerationPlaceholder';
 import { termsOfService, privacyPolicy } from '../legal';
 
+const GOOGLE_OPAL_VIDEO_URL = 'https://opal.google/?flow=drive:/1FrJlGm-c7ohm0cQl0XboQ9cHgc_Md1bo&shared&mode=app';
+
 const NexusIconSmall = () => (
     <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center border border-white/10 shadow-lg">
         <img src="/quillix-logo.png" alt="Quillix Logo" className="w-5 h-5" />
@@ -67,7 +69,7 @@ const ChatView: React.FC = () => {
     const [isVoiceMode, setIsVoiceMode] = useState(false);
     
     // Unified Embedded State
-    const [embeddedContent, setEmbeddedContent] = useState<{ url: string; title: string } | null>(null);
+    const [embeddedContent, setEmbeddedContent] = useState<{ url: string; title: string; hideTopPercent?: number } | null>(null);
     
     const [personalizationEntries, setPersonalizationEntries] = useState<{id: string, entry: string}[]>([]);
     const [showMemoryToast, setShowMemoryToast] = useState(false);
@@ -632,9 +634,9 @@ const ChatView: React.FC = () => {
                 navigate('/auth');
                 return;
             }
-            setEmbeddedContent({ url: 'https://veoaifree.com', title: 'Video Generator' });
+            window.open(GOOGLE_OPAL_VIDEO_URL, '_blank', 'noopener,noreferrer');
             const userMessage: Message = { id: `user-${Date.now()}`, role: 'user', text: userText };
-            const assistantMessage: Message = { id: `ai-${Date.now()}`, role: 'assistant', text: "Of course! Opening the video generation tool for you now." };
+            const assistantMessage: Message = { id: `ai-${Date.now()}`, role: 'assistant', text: "Of course! Opening the video generation tool for you now in a new tab." };
             setMessages(prev => [...prev, userMessage, assistantMessage]);
             setInputValue('');
             if (textareaRef.current) textareaRef.current.style.height = '52px';
@@ -1216,7 +1218,7 @@ const ChatView: React.FC = () => {
                 </div>
             )}
 
-            {embeddedContent && <EmbeddedView url={embeddedContent.url} title={embeddedContent.title} onClose={() => setEmbeddedContent(null)} />}
+            {embeddedContent && <EmbeddedView url={embeddedContent.url} title={embeddedContent.title} hideTopPercent={embeddedContent.hideTopPercent} onClose={() => setEmbeddedContent(null)} />}
             
             <PersonaManager isOpen={showPersonaManager} onClose={() => setShowPersonaManager(false)} onPersonaUpdate={fetchData} />
 
@@ -1414,7 +1416,7 @@ const ChatView: React.FC = () => {
                                     <button 
                                         onClick={() => {
                                             if (!session) { navigate('/auth'); return; }
-                                            setEmbeddedContent({ url: 'https://veoaifree.com', title: 'Video Generator' });
+                                            window.open(GOOGLE_OPAL_VIDEO_URL, '_blank', 'noopener,noreferrer');
                                         }}
                                         data-liquid-glass
                                         className="liquid-glass p-4 rounded-2xl text-left interactive-lift space-y-2"
