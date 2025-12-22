@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useSession } from '../contexts/SessionContext';
 import { supabase } from '../integrations/supabase/client';
+import { useNavigate } from 'react-router-dom';
 
 interface GeneratedImage {
     id: string;
@@ -11,6 +12,7 @@ interface GeneratedImage {
 
 const GalleryPage: React.FC = () => {
     const { session } = useSession();
+    const navigate = useNavigate();
     const [images, setImages] = useState<GeneratedImage[]>([]);
     const [isLoading, setIsLoading] = useState(true);
 
@@ -50,7 +52,7 @@ const GalleryPage: React.FC = () => {
                             Start creating amazing images with AI
                         </p>
                         <button
-                            onClick={() => window.location.href = '/chat'}
+                            onClick={() => navigate('/chat')}
                             className="px-6 py-2.5 bg-[var(--copilot-color-primary)] text-white rounded-full font-medium hover:bg-[var(--copilot-color-primary-hover)] transition-colors"
                         >
                             Create Image

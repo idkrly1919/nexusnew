@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import ChatView from '../components/ChatView';
 import ExplorePage from './ExplorePage';
@@ -17,6 +17,11 @@ const MainApp: React.FC = () => {
     };
 
     const [activeTab, setActiveTab] = useState<'chats' | 'explore' | 'gallery'>(getActiveTab());
+
+    // Sync tab state with URL changes (back/forward navigation)
+    useEffect(() => {
+        setActiveTab(getActiveTab());
+    }, [location.pathname]);
 
     const handleTabChange = (tab: 'chats' | 'explore' | 'gallery') => {
         setActiveTab(tab);

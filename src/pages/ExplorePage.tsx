@@ -2,12 +2,14 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import WeatherWidget from '../components/WeatherWidget';
 
+const GOOGLE_OPAL_VIDEO_URL = 'https://opal.google/?flow=drive:/1FrJlGm-c7ohm0cQl0XboQ9cHgc_Md1bo&shared&mode=app';
+
 const ExplorePage: React.FC = () => {
     const navigate = useNavigate();
 
     const quickActions = [
         { title: 'Generate Image', icon: '🎨', action: () => navigate('/chat?prompt=make+an+image') },
-        { title: 'Create Video', icon: '🎥', action: () => window.open('https://opal.google/?flow=drive:/1FrJlGm-c7ohm0cQl0XboQ9cHgc_Md1bo&shared&mode=app', '_blank', 'noopener,noreferrer') },
+        { title: 'Create Video', icon: '🎥', action: () => window.open(GOOGLE_OPAL_VIDEO_URL, '_blank', 'noopener,noreferrer') },
         { title: 'Code Assistant', icon: '💻', action: () => navigate('/dev') },
         { title: 'Take Quiz', icon: '📝', action: () => navigate('/quiz') },
     ];
