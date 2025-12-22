@@ -67,7 +67,7 @@ const ChatView: React.FC = () => {
     const [isVoiceMode, setIsVoiceMode] = useState(false);
     
     // Unified Embedded State
-    const [embeddedContent, setEmbeddedContent] = useState<{ url: string; title: string } | null>(null);
+    const [embeddedContent, setEmbeddedContent] = useState<{ url: string; title: string; hideTopPercent?: number } | null>(null);
     
     const [personalizationEntries, setPersonalizationEntries] = useState<{id: string, entry: string}[]>([]);
     const [showMemoryToast, setShowMemoryToast] = useState(false);
@@ -632,7 +632,7 @@ const ChatView: React.FC = () => {
                 navigate('/auth');
                 return;
             }
-            setEmbeddedContent({ url: 'https://veoaifree.com', title: 'Video Generator' });
+            setEmbeddedContent({ url: 'https://opal.google/?flow=drive:/1FrJlGm-c7ohm0cQl0XboQ9cHgc_Md1bo&shared&mode=app', title: 'Video Generator', hideTopPercent: 5 });
             const userMessage: Message = { id: `user-${Date.now()}`, role: 'user', text: userText };
             const assistantMessage: Message = { id: `ai-${Date.now()}`, role: 'assistant', text: "Of course! Opening the video generation tool for you now." };
             setMessages(prev => [...prev, userMessage, assistantMessage]);
@@ -1216,7 +1216,7 @@ const ChatView: React.FC = () => {
                 </div>
             )}
 
-            {embeddedContent && <EmbeddedView url={embeddedContent.url} title={embeddedContent.title} onClose={() => setEmbeddedContent(null)} />}
+            {embeddedContent && <EmbeddedView url={embeddedContent.url} title={embeddedContent.title} hideTopPercent={embeddedContent.hideTopPercent} onClose={() => setEmbeddedContent(null)} />}
             
             <PersonaManager isOpen={showPersonaManager} onClose={() => setShowPersonaManager(false)} onPersonaUpdate={fetchData} />
 
@@ -1414,7 +1414,7 @@ const ChatView: React.FC = () => {
                                     <button 
                                         onClick={() => {
                                             if (!session) { navigate('/auth'); return; }
-                                            setEmbeddedContent({ url: 'https://veoaifree.com', title: 'Video Generator' });
+                                            setEmbeddedContent({ url: 'https://opal.google/?flow=drive:/1FrJlGm-c7ohm0cQl0XboQ9cHgc_Md1bo&shared&mode=app', title: 'Video Generator', hideTopPercent: 5 });
                                         }}
                                         data-liquid-glass
                                         className="liquid-glass p-4 rounded-2xl text-left interactive-lift space-y-2"

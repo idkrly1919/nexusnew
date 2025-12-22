@@ -8,56 +8,197 @@
     <meta name="keywords" content="Quillix, ChatGPT alternative, Claude Pro alternative, free AI, unlimited uploads, AI quizzes, reasoning engine, smart models" />
     <link rel="icon" type="image/png" href="/quillix-logo.png" />
     <link rel="manifest" href="/manifest.json" />
-    <meta name="theme-color" content="#111014" />
+    <meta name="theme-color" content="#1C1B1F" />
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&family=Roboto+Flex:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" integrity="sha384-n8MVd4RsNIU0tAv4ct0nTaAbDJwPJzDEaqSD1odI+WdtXRGWt2kTvGFasHpSy3SV" crossorigin="anonymous">
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
     <style>
+        :root {
+            /* Material You Color Tokens - Dark Theme */
+            --md-sys-color-primary: #D0BCFF;
+            --md-sys-color-on-primary: #381E72;
+            --md-sys-color-primary-container: #4F378B;
+            --md-sys-color-on-primary-container: #EADDFF;
+            --md-sys-color-secondary: #CCC2DC;
+            --md-sys-color-on-secondary: #332D41;
+            --md-sys-color-secondary-container: #4A4458;
+            --md-sys-color-on-secondary-container: #E8DEF8;
+            --md-sys-color-tertiary: #EFB8C8;
+            --md-sys-color-on-tertiary: #492532;
+            --md-sys-color-tertiary-container: #633B48;
+            --md-sys-color-on-tertiary-container: #FFD8E4;
+            --md-sys-color-error: #F2B8B5;
+            --md-sys-color-on-error: #601410;
+            --md-sys-color-error-container: #8C1D18;
+            --md-sys-color-on-error-container: #F9DEDC;
+            --md-sys-color-background: #1C1B1F;
+            --md-sys-color-on-background: #E6E1E5;
+            --md-sys-color-surface: #1C1B1F;
+            --md-sys-color-on-surface: #E6E1E5;
+            --md-sys-color-surface-variant: #49454F;
+            --md-sys-color-on-surface-variant: #CAC4D0;
+            --md-sys-color-outline: #938F99;
+            --md-sys-color-outline-variant: #49454F;
+            --md-sys-color-surface-container-lowest: #0F0D13;
+            --md-sys-color-surface-container-low: #1D1B20;
+            --md-sys-color-surface-container: #211F26;
+            --md-sys-color-surface-container-high: #2B2930;
+            --md-sys-color-surface-container-highest: #36343B;
+            --md-sys-color-inverse-surface: #E6E1E5;
+            --md-sys-color-inverse-on-surface: #313033;
+            --md-sys-color-inverse-primary: #6750A4;
+            
+            /* Material You Elevation */
+            --md-sys-elevation-level0: none;
+            --md-sys-elevation-level1: 0px 1px 2px 0px rgba(0, 0, 0, 0.3), 0px 1px 3px 1px rgba(0, 0, 0, 0.15);
+            --md-sys-elevation-level2: 0px 1px 2px 0px rgba(0, 0, 0, 0.3), 0px 2px 6px 2px rgba(0, 0, 0, 0.15);
+            --md-sys-elevation-level3: 0px 4px 8px 3px rgba(0, 0, 0, 0.15), 0px 1px 3px 0px rgba(0, 0, 0, 0.3);
+            --md-sys-elevation-level4: 0px 6px 10px 4px rgba(0, 0, 0, 0.15), 0px 2px 3px 0px rgba(0, 0, 0, 0.3);
+            --md-sys-elevation-level5: 0px 8px 12px 6px rgba(0, 0, 0, 0.15), 0px 4px 4px 0px rgba(0, 0, 0, 0.3);
+            
+            /* Material You Shape */
+            --md-sys-shape-corner-none: 0px;
+            --md-sys-shape-corner-extra-small: 4px;
+            --md-sys-shape-corner-small: 8px;
+            --md-sys-shape-corner-medium: 12px;
+            --md-sys-shape-corner-large: 16px;
+            --md-sys-shape-corner-extra-large: 28px;
+            --md-sys-shape-corner-full: 9999px;
+        }
+        
         body {
-            font-family: 'Inter', sans-serif;
-            background-color: #000000; /* Set base to black */
+            font-family: 'Roboto', sans-serif;
+            background-color: var(--md-sys-color-background);
             overflow-x: hidden;
-            color: white;
+            color: var(--md-sys-color-on-background);
         }
         body.chat-active {
             overflow: hidden;
         }
 
         h1, h2, h3, .brand-font, .font-brand {
-            font-family: 'Space+Grotesk', sans-serif;
+            font-family: 'Roboto Flex', sans-serif;
         }
         
+        /* Material You Surfaces */
+        .md-surface {
+            background-color: var(--md-sys-color-surface);
+            color: var(--md-sys-color-on-surface);
+        }
+        
+        .md-surface-container {
+            background-color: var(--md-sys-color-surface-container);
+            color: var(--md-sys-color-on-surface);
+        }
+        
+        .md-surface-container-high {
+            background-color: var(--md-sys-color-surface-container-high);
+            color: var(--md-sys-color-on-surface);
+        }
+        
+        .md-surface-container-highest {
+            background-color: var(--md-sys-color-surface-container-highest);
+            color: var(--md-sys-color-on-surface);
+        }
+        
+        /* Material You Elevations */
+        .md-elevation-1 {
+            box-shadow: var(--md-sys-elevation-level1);
+        }
+        
+        .md-elevation-2 {
+            box-shadow: var(--md-sys-elevation-level2);
+        }
+        
+        .md-elevation-3 {
+            box-shadow: var(--md-sys-elevation-level3);
+        }
+        
+        /* Material You Buttons */
+        .md-filled-button {
+            background-color: var(--md-sys-color-primary);
+            color: var(--md-sys-color-on-primary);
+            border-radius: var(--md-sys-shape-corner-full);
+            padding: 10px 24px;
+            font-weight: 500;
+            transition: all 0.2s cubic-bezier(0.2, 0, 0, 1);
+            box-shadow: var(--md-sys-elevation-level0);
+        }
+        
+        .md-filled-button:hover {
+            box-shadow: var(--md-sys-elevation-level1);
+        }
+        
+        .md-outlined-button {
+            background-color: transparent;
+            color: var(--md-sys-color-primary);
+            border: 1px solid var(--md-sys-color-outline);
+            border-radius: var(--md-sys-shape-corner-full);
+            padding: 10px 24px;
+            font-weight: 500;
+            transition: all 0.2s cubic-bezier(0.2, 0, 0, 1);
+        }
+        
+        .md-text-button {
+            background-color: transparent;
+            color: var(--md-sys-color-primary);
+            border: none;
+            border-radius: var(--md-sys-shape-corner-full);
+            padding: 10px 12px;
+            font-weight: 500;
+            transition: all 0.2s cubic-bezier(0.2, 0, 0, 1);
+        }
+        
+        /* Material You Cards */
+        .md-card {
+            background-color: var(--md-sys-color-surface-container);
+            border-radius: var(--md-sys-shape-corner-medium);
+            transition: all 0.2s cubic-bezier(0.2, 0, 0, 1);
+        }
+        
+        .md-card-elevated {
+            background-color: var(--md-sys-color-surface-container-low);
+            border-radius: var(--md-sys-shape-corner-medium);
+            box-shadow: var(--md-sys-elevation-level1);
+            transition: all 0.2s cubic-bezier(0.2, 0, 0, 1);
+        }
+        
+        .md-card-elevated:hover {
+            box-shadow: var(--md-sys-elevation-level2);
+        }
+        
+        /* Legacy styles for compatibility */
         .liquid-glass {
-            background: linear-gradient(135deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.02));
-            backdrop-filter: blur(24px) saturate(150%);
-            -webkit-backdrop-filter: blur(24px) saturate(150%);
+            background-color: var(--md-sys-color-surface-container);
+            border: 1px solid var(--md-sys-color-outline-variant);
+            border-radius: var(--md-sys-shape-corner-medium);
         }
 
         .light-liquid-glass {
-            background: linear-gradient(135deg, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0.08));
-            backdrop-filter: blur(20px) saturate(150%);
-            -webkit-backdrop-filter: blur(20px) saturate(150%);
+            background-color: var(--md-sys-color-surface-container-high);
+            border: 1px solid var(--md-sys-color-outline-variant);
+            border-radius: var(--md-sys-shape-corner-medium);
         }
+        
         .dark-liquid-glass {
-            background: linear-gradient(135deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.04));
-            backdrop-filter: blur(28px) saturate(150%);
-            -webkit-backdrop-filter: blur(28px) saturate(150%);
+            background-color: var(--md-sys-color-surface-container-low);
+            border: 1px solid var(--md-sys-color-outline-variant);
+            border-radius: var(--md-sys-shape-corner-medium);
         }
 
         .interactive-lift {
-            transition: transform 0.4s cubic-bezier(0.165, 0.84, 0.44, 1), box-shadow 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
+            transition: transform 0.2s cubic-bezier(0.2, 0, 0, 1), box-shadow 0.2s cubic-bezier(0.2, 0, 0, 1);
+        }
         }
         .interactive-lift:hover {
-            transform: translateY(-6px) scale(1.02);
-            box-shadow: 
-                inset 0 1px 1px 0 rgba(255, 255, 255, 0.1),
-                0 15px 50px 0 rgba(0, 0, 0, 0.5);
+            transform: translateY(-2px);
+            box-shadow: var(--md-sys-elevation-level2);
         }
 
         .liquid-gradient-text {
-            background: linear-gradient(45deg, #e879f9, #a78bfa, #818cf8, #60a5fa);
+            background: linear-gradient(45deg, var(--md-sys-color-primary), var(--md-sys-color-secondary), var(--md-sys-color-tertiary));
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             animation: liquid-gradient-flow 8s ease infinite;
@@ -71,11 +212,11 @@
         }
 
         @keyframes pop-in {
-            0% { opacity: 0; transform: translateY(10px) scale(0.95); }
+            0% { opacity: 0; transform: translateY(10px) scale(0.98); }
             100% { opacity: 1; transform: translateY(0) scale(1); }
         }
         .animate-pop-in {
-            animation: pop-in 0.4s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+            animation: pop-in 0.2s cubic-bezier(0.2, 0, 0, 1) forwards;
         }
 
         .scrollbar-hide::-webkit-scrollbar { display: none; }
@@ -93,7 +234,7 @@
             position: fixed;
             inset: 0;
             z-index: -1;
-            background-color: #000000;
+            background-color: var(--md-sys-color-background);
             overflow: hidden;
         }
 
@@ -110,14 +251,14 @@
             animation-iteration-count: infinite;
         }
 
-        .idle .orb-1 { background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.19), rgba(255, 255, 255, 0.0) 80%); width: 40vw; height: 40vw; top: 10%; left: 5%; animation-name: fluid-drift-1; animation-duration: 50s; }
-        .idle .orb-2 { background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0.0) 80%); width: 30vw; height: 30vw; top: 50%; left: 20%; animation-name: fluid-drift-2; animation-duration: 60s; animation-delay: -5s; }
-        .idle .orb-3 { background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.22), rgba(255, 255, 255, 0.0) 80%); width: 35vw; height: 35vw; top: 20%; left: 60%; animation-name: fluid-drift-3; animation-duration: 56s; animation-delay: -2s; }
-        .idle .orb-4 { background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.14), rgba(255, 255, 255, 0.0) 80%); width: 25vw; height: 25vw; top: 70%; left: 75%; animation-name: fluid-drift-1; animation-duration: 70s; animation-delay: -10s; }
-        .idle .orb-5 { background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.18), rgba(255, 255, 255, 0.0) 80%); width: 20vw; height: 20vw; top: 80%; left: 10%; animation-name: fluid-drift-2; animation-duration: 44s; animation-delay: -8s; }
-        .idle .orb-6 { background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.21), rgba(255, 255, 255, 0.0) 80%); width: 30vw; height: 30vw; top: -10%; left: 40%; animation-name: fluid-drift-3; animation-duration: 64s; animation-delay: -3s; }
-        .idle .orb-7 { background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0.0) 80%); width: 30vw; height: 30vw; top: 60%; left: 45%; animation-name: fluid-drift-1; animation-duration: 52s; animation-delay: -4s; }
-        .idle .orb-8 { background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.19), rgba(255, 255, 255, 0.0) 80%); width: 25vw; height: 25vw; top: 5%; left: 80%; animation-name: fluid-drift-2; animation-duration: 58s; animation-delay: -7s; }
+        .idle .orb-1 { background: radial-gradient(circle at 30% 30%, rgba(208, 188, 255, 0.12), rgba(208, 188, 255, 0.0) 80%); width: 40vw; height: 40vw; top: 10%; left: 5%; animation-name: fluid-drift-1; animation-duration: 50s; }
+        .idle .orb-2 { background: radial-gradient(circle at 30% 30%, rgba(204, 194, 220, 0.10), rgba(204, 194, 220, 0.0) 80%); width: 30vw; height: 30vw; top: 50%; left: 20%; animation-name: fluid-drift-2; animation-duration: 60s; animation-delay: -5s; }
+        .idle .orb-3 { background: radial-gradient(circle at 30% 30%, rgba(239, 184, 200, 0.15), rgba(239, 184, 200, 0.0) 80%); width: 35vw; height: 35vw; top: 20%; left: 60%; animation-name: fluid-drift-3; animation-duration: 56s; animation-delay: -2s; }
+        .idle .orb-4 { background: radial-gradient(circle at 30% 30%, rgba(208, 188, 255, 0.08), rgba(208, 188, 255, 0.0) 80%); width: 25vw; height: 25vw; top: 70%; left: 75%; animation-name: fluid-drift-1; animation-duration: 70s; animation-delay: -10s; }
+        .idle .orb-5 { background: radial-gradient(circle at 30% 30%, rgba(204, 194, 220, 0.11), rgba(204, 194, 220, 0.0) 80%); width: 20vw; height: 20vw; top: 80%; left: 10%; animation-name: fluid-drift-2; animation-duration: 44s; animation-delay: -8s; }
+        .idle .orb-6 { background: radial-gradient(circle at 30% 30%, rgba(239, 184, 200, 0.13), rgba(239, 184, 200, 0.0) 80%); width: 30vw; height: 30vw; top: -10%; left: 40%; animation-name: fluid-drift-3; animation-duration: 64s; animation-delay: -3s; }
+        .idle .orb-7 { background: radial-gradient(circle at 30% 30%, rgba(208, 188, 255, 0.10), rgba(208, 188, 255, 0.0) 80%); width: 30vw; height: 30vw; top: 60%; left: 45%; animation-name: fluid-drift-1; animation-duration: 52s; animation-delay: -4s; }
+        .idle .orb-8 { background: radial-gradient(circle at 30% 30%, rgba(204, 194, 220, 0.12), rgba(204, 194, 220, 0.0) 80%); width: 25vw; height: 25vw; top: 5%; left: 80%; animation-name: fluid-drift-2; animation-duration: 58s; animation-delay: -7s; }
         .idle .orb-9, .idle .orb-10 { display: none; }
 
         @keyframes fluid-drift-1 {
@@ -159,20 +300,20 @@
             animation-duration: 1.8s;
         }
 
-        .loading-text .orb-1, .loading-image .orb-1 { background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.3), rgba(255, 255, 255, 0.0) 80%); width: 40vw; height: 40vw; top: 10%; left: 5%; animation-delay: 0s; }
-        .loading-text .orb-2, .loading-image .orb-2 { background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.25), rgba(255, 255, 255, 0.0) 80%); width: 30vw; height: 30vw; top: 50%; left: 20%; animation-delay: -0.3s; }
-        .loading-text .orb-3, .loading-image .orb-3 { background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.35), rgba(255, 255, 255, 0.0) 80%); width: 35vw; height: 35vw; top: 20%; left: 60%; animation-delay: -0.6s; }
-        .loading-text .orb-4, .loading-image .orb-4 { background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.22), rgba(255, 255, 255, 0.0) 80%); width: 25vw; height: 25vw; top: 70%; left: 75%; animation-delay: -0.9s; }
-        .loading-text .orb-5, .loading-image .orb-5 { background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.28), rgba(255, 255, 255, 0.0) 80%); width: 20vw; height: 20vw; top: 80%; left: 10%; animation-delay: -1.2s; }
-        .loading-text .orb-6, .loading-image .orb-6 { background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.32), rgba(255, 255, 255, 0.0) 80%); width: 30vw; height: 30vw; top: -10%; left: 40%; animation-delay: -1.5s; }
-        .loading-text .orb-7, .loading-image .orb-7 { background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.26), rgba(255, 255, 255, 0.0) 80%); width: 30vw; height: 30vw; top: 60%; left: 45%; animation-delay: -1.8s; }
-        .loading-text .orb-8, .loading-image .orb-8 { background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.3), rgba(255, 255, 255, 0.0) 80%); width: 25vw; height: 25vw; top: 5%; left: 80%; animation-delay: -2.1s; }
-        .loading-text .orb-9, .loading-image .orb-9 { background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0.0) 80%); width: 20vw; height: 20vw; top: 85%; left: 55%; animation-delay: -2.4s; }
-        .loading-text .orb-10, .loading-image .orb-10 { background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.36), rgba(255, 255, 255, 0.0) 80%); width: 35vw; height: 35vw; top: 35%; left: -5%; animation-delay: -2.7s; }
+        .loading-text .orb-1, .loading-image .orb-1 { background: radial-gradient(circle at 30% 30%, rgba(208, 188, 255, 0.25), rgba(208, 188, 255, 0.0) 80%); width: 40vw; height: 40vw; top: 10%; left: 5%; animation-delay: 0s; }
+        .loading-text .orb-2, .loading-image .orb-2 { background: radial-gradient(circle at 30% 30%, rgba(204, 194, 220, 0.20), rgba(204, 194, 220, 0.0) 80%); width: 30vw; height: 30vw; top: 50%; left: 20%; animation-delay: -0.3s; }
+        .loading-text .orb-3, .loading-image .orb-3 { background: radial-gradient(circle at 30% 30%, rgba(239, 184, 200, 0.30), rgba(239, 184, 200, 0.0) 80%); width: 35vw; height: 35vw; top: 20%; left: 60%; animation-delay: -0.6s; }
+        .loading-text .orb-4, .loading-image .orb-4 { background: radial-gradient(circle at 30% 30%, rgba(208, 188, 255, 0.18), rgba(208, 188, 255, 0.0) 80%); width: 25vw; height: 25vw; top: 70%; left: 75%; animation-delay: -0.9s; }
+        .loading-text .orb-5, .loading-image .orb-5 { background: radial-gradient(circle at 30% 30%, rgba(204, 194, 220, 0.23), rgba(204, 194, 220, 0.0) 80%); width: 20vw; height: 20vw; top: 80%; left: 10%; animation-delay: -1.2s; }
+        .loading-text .orb-6, .loading-image .orb-6 { background: radial-gradient(circle at 30% 30%, rgba(239, 184, 200, 0.28), rgba(239, 184, 200, 0.0) 80%); width: 30vw; height: 30vw; top: -10%; left: 40%; animation-delay: -1.5s; }
+        .loading-text .orb-7, .loading-image .orb-7 { background: radial-gradient(circle at 30% 30%, rgba(208, 188, 255, 0.22), rgba(208, 188, 255, 0.0) 80%); width: 30vw; height: 30vw; top: 60%; left: 45%; animation-delay: -1.8s; }
+        .loading-text .orb-8, .loading-image .orb-8 { background: radial-gradient(circle at 30% 30%, rgba(204, 194, 220, 0.25), rgba(204, 194, 220, 0.0) 80%); width: 25vw; height: 25vw; top: 5%; left: 80%; animation-delay: -2.1s; }
+        .loading-text .orb-9, .loading-image .orb-9 { background: radial-gradient(circle at 30% 30%, rgba(239, 184, 200, 0.17), rgba(239, 184, 200, 0.0) 80%); width: 20vw; height: 20vw; top: 85%; left: 55%; animation-delay: -2.4s; }
+        .loading-text .orb-10, .loading-image .orb-10 { background: radial-gradient(circle at 30% 30%, rgba(208, 188, 255, 0.32), rgba(208, 188, 255, 0.0) 80%); width: 35vw; height: 35vw; top: 35%; left: -5%; animation-delay: -2.7s; }
 
         .bw-to-color-hover {
             filter: grayscale(90%);
-            transition: filter 0.5s cubic-bezier(0.2, 0.8, 0.2, 1);
+            transition: filter 0.3s cubic-bezier(0.2, 0, 0, 1);
         }
         .bw-to-color-hover:hover {
             filter: grayscale(0%);
@@ -181,7 +322,7 @@
         .trusted-logo {
             filter: grayscale(100%) brightness(0.7);
             opacity: 0.5;
-            transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
+            transition: all 0.3s cubic-bezier(0.2, 0, 0, 1);
         }
         .trusted-logo:hover {
             filter: grayscale(0%) brightness(1);
