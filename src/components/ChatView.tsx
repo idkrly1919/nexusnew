@@ -21,6 +21,8 @@ import AccountSettingsModal from './AccountSettingsModal';
 import ImageGenerationPlaceholder from './ImageGenerationPlaceholder';
 import { termsOfService, privacyPolicy } from '../legal';
 
+const GOOGLE_OPAL_VIDEO_URL = 'https://opal.google/?flow=drive:/1FrJlGm-c7ohm0cQl0XboQ9cHgc_Md1bo&shared&mode=app';
+
 const NexusIconSmall = () => (
     <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center border border-white/10 shadow-lg">
         <img src="/quillix-logo.png" alt="Quillix Logo" className="w-5 h-5" />
@@ -632,7 +634,7 @@ const ChatView: React.FC = () => {
                 navigate('/auth');
                 return;
             }
-            window.open('https://opal.google/?flow=drive:/1FrJlGm-c7ohm0cQl0XboQ9cHgc_Md1bo&shared&mode=app', '_blank');
+            window.open(GOOGLE_OPAL_VIDEO_URL, '_blank', 'noopener,noreferrer');
             const userMessage: Message = { id: `user-${Date.now()}`, role: 'user', text: userText };
             const assistantMessage: Message = { id: `ai-${Date.now()}`, role: 'assistant', text: "Of course! Opening the video generation tool for you now in a new tab." };
             setMessages(prev => [...prev, userMessage, assistantMessage]);
@@ -1414,7 +1416,7 @@ const ChatView: React.FC = () => {
                                     <button 
                                         onClick={() => {
                                             if (!session) { navigate('/auth'); return; }
-                                            window.open('https://opal.google/?flow=drive:/1FrJlGm-c7ohm0cQl0XboQ9cHgc_Md1bo&shared&mode=app', '_blank');
+                                            window.open(GOOGLE_OPAL_VIDEO_URL, '_blank', 'noopener,noreferrer');
                                         }}
                                         data-liquid-glass
                                         className="liquid-glass p-4 rounded-2xl text-left interactive-lift space-y-2"
