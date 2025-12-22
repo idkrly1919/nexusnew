@@ -632,9 +632,9 @@ const ChatView: React.FC = () => {
                 navigate('/auth');
                 return;
             }
-            setEmbeddedContent({ url: 'https://opal.google/?flow=drive:/1FrJlGm-c7ohm0cQl0XboQ9cHgc_Md1bo&shared&mode=app', title: 'Video Generator', hideTopPercent: 5 });
+            window.open('https://opal.google/?flow=drive:/1FrJlGm-c7ohm0cQl0XboQ9cHgc_Md1bo&shared&mode=app', '_blank');
             const userMessage: Message = { id: `user-${Date.now()}`, role: 'user', text: userText };
-            const assistantMessage: Message = { id: `ai-${Date.now()}`, role: 'assistant', text: "Of course! Opening the video generation tool for you now." };
+            const assistantMessage: Message = { id: `ai-${Date.now()}`, role: 'assistant', text: "Of course! Opening the video generation tool for you now in a new tab." };
             setMessages(prev => [...prev, userMessage, assistantMessage]);
             setInputValue('');
             if (textareaRef.current) textareaRef.current.style.height = '52px';
@@ -1414,7 +1414,7 @@ const ChatView: React.FC = () => {
                                     <button 
                                         onClick={() => {
                                             if (!session) { navigate('/auth'); return; }
-                                            setEmbeddedContent({ url: 'https://opal.google/?flow=drive:/1FrJlGm-c7ohm0cQl0XboQ9cHgc_Md1bo&shared&mode=app', title: 'Video Generator', hideTopPercent: 5 });
+                                            window.open('https://opal.google/?flow=drive:/1FrJlGm-c7ohm0cQl0XboQ9cHgc_Md1bo&shared&mode=app', '_blank');
                                         }}
                                         data-liquid-glass
                                         className="liquid-glass p-4 rounded-2xl text-left interactive-lift space-y-2"
