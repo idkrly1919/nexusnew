@@ -8,6 +8,9 @@ interface EmbeddedViewProps {
 }
 
 const EmbeddedView: React.FC<EmbeddedViewProps> = ({ url, title = "External Tool", onClose, hideTopPercent = 0 }) => {
+    // Validate and clamp hideTopPercent to reasonable bounds (0-20%)
+    const safeHideTopPercent = Math.max(0, Math.min(20, hideTopPercent || 0));
+    
     return (
         <div className="fixed inset-0 z-[99] bg-black/80 backdrop-blur-lg flex flex-col animate-in fade-in duration-300">
             <div className="flex-shrink-0 h-16 flex items-center justify-between px-6 border-b border-white/10">
@@ -21,8 +24,8 @@ const EmbeddedView: React.FC<EmbeddedViewProps> = ({ url, title = "External Tool
                     src={url}
                     className="w-full border-none"
                     style={{
-                        height: hideTopPercent > 0 ? `${100 + hideTopPercent}%` : '100%',
-                        marginTop: hideTopPercent > 0 ? `-${hideTopPercent}%` : '0'
+                        height: safeHideTopPercent > 0 ? `${100 + safeHideTopPercent}%` : '100%',
+                        marginTop: safeHideTopPercent > 0 ? `-${safeHideTopPercent}%` : '0'
                     }}
                     title={title}
                     allow="microphone; camera; display-capture; autoplay; clipboard-write"
