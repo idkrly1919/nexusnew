@@ -1411,15 +1411,21 @@ const ChatView: React.FC = () => {
                             </div>
                             <div className="w-full max-w-5xl mx-auto px-4 pb-8">
                                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                                    <button 
-                                        onClick={() => {
-                                            if (!session) { navigate('/auth'); return; }
-                                            setEmbeddedContent({ url: 'https://veoaifree.com', title: 'Video Generator' });
-                                        }}
-                                        data-liquid-glass
-                                        className="liquid-glass p-4 rounded-2xl text-left interactive-lift space-y-2"
-                                    >
-                                        <h3 className="font-semibold text-white">Make a video</h3>
+                                     <button 
+                                         onClick={() => {
+                                             if (!session) { navigate('/auth'); return; }
+                                             const videoUrl = 'https://opal.google/?flow=drive:/1FrJlGm-c7ohm0cQl0XboQ9cHgc_Md1bo&shared&mode=app';
+                                             const newTab = window.open(videoUrl, '_blank', 'noopener,noreferrer');
+                                             if (newTab && !newTab.closed) {
+                                                 newTab.focus();
+                                             } else {
+                                                 alert('Please allow pop-ups to open the video generator.');
+                                             }
+                                         }}
+                                         data-liquid-glass
+                                         className="liquid-glass p-4 rounded-2xl text-left interactive-lift space-y-2"
+                                     >
+                                         <h3 className="font-semibold text-white">Make a video</h3>
                                         <p className="text-sm text-zinc-400">Create a video from a text prompt.</p>
                                     </button>
                                     <button 
