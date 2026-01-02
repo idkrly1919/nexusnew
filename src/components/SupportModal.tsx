@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../integrations/supabase/client';
 import { useSession } from '../contexts/SessionContext';
+import LiquidGlass from 'liquid-glass-react';
 
 interface SupportModalProps {
     type: 'support' | 'suggestion';
@@ -69,7 +70,13 @@ const SupportModal: React.FC<SupportModalProps> = ({ type, onClose }) => {
 
     return (
         <div className="fixed inset-0 z-[70] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4" onClick={onClose}>
-            <div data-liquid-glass className="liquid-glass w-full max-w-lg shadow-2xl animate-pop-in rounded-2xl overflow-hidden" onClick={(e) => e.stopPropagation()}>
+            <LiquidGlass 
+                className="w-full max-w-lg shadow-2xl animate-pop-in overflow-hidden" 
+                onClick={(e) => e.stopPropagation()}
+                padding="0"
+                cornerRadius={16}
+                elasticity={0.2}
+            >
                 <div className="p-6 border-b border-white/10 flex justify-between items-center bg-black/20">
                     <h2 className="text-xl font-bold text-white font-brand">
                         {type === 'support' ? 'Contact Support' : 'Share a Suggestion'}
@@ -131,7 +138,7 @@ const SupportModal: React.FC<SupportModalProps> = ({ type, onClose }) => {
                         </form>
                     )}
                 </div>
-            </div>
+            </LiquidGlass>
         </div>
     );
 };
