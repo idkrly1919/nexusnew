@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import { supabase } from '../integrations/supabase/client';
 import { format } from 'date-fns';
+import LiquidGlass from 'liquid-glass-react';
 
 interface StockWidgetProps {
     symbol: string;
@@ -85,7 +86,12 @@ const StockWidget: React.FC<StockWidgetProps> = ({ symbol }) => {
     const color = isPositive ? '#4ade80' : '#f87171'; // green-400 : red-400
 
     return (
-        <div data-liquid-glass className="liquid-glass p-6 rounded-2xl w-full max-w-lg my-4 border border-white/10 shadow-2xl overflow-hidden interactive-lift">
+        <LiquidGlass 
+            className="w-full max-w-lg my-4 border border-white/10 shadow-2xl overflow-hidden interactive-lift"
+            padding="24px"
+            cornerRadius={16}
+            elasticity={0.25}
+        >
             <div className="flex justify-between items-start mb-6">
                 <div>
                     <h3 className="text-2xl font-bold text-white tracking-tight">{symbol.toUpperCase()}</h3>
@@ -164,7 +170,7 @@ const StockWidget: React.FC<StockWidgetProps> = ({ symbol }) => {
             <div className="mt-2 text-right">
                  <span className="text-[10px] text-zinc-600 uppercase tracking-wider">Real-time Data • Market Open</span>
             </div>
-        </div>
+        </LiquidGlass>
     );
 };
 
