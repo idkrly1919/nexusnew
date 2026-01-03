@@ -20,6 +20,7 @@ import SupportModal from './SupportModal';
 import AccountSettingsModal from './AccountSettingsModal';
 import ImageGenerationPlaceholder from './ImageGenerationPlaceholder';
 import { termsOfService, privacyPolicy } from '../legal';
+import LiquidGlass from 'liquid-glass-react';
 
 const NexusIconSmall = () => (
     <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center border border-white/10 shadow-lg">
@@ -1186,10 +1187,15 @@ const ChatView: React.FC = () => {
             
             {showMemoryToast && (
                 <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-50">
-                    <div data-liquid-glass className="liquid-glass flex items-center gap-3 py-2 px-5 rounded-full animate-pop-in">
+                    <LiquidGlass 
+                        className="flex items-center gap-3 animate-pop-in"
+                        padding="8px 20px"
+                        cornerRadius={999}
+                        elasticity={0.3}
+                    >
                         <svg className="w-5 h-5 text-indigo-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 20h9"/><path d="M4 20h2"/><path d="M4 12h16"/><path d="M4 4h10"/><path d="M18 8h2"/><path d="M16 4v16"/></svg>
                         <span className="text-sm font-medium text-white">Memory Updated</span>
-                    </div>
+                    </LiquidGlass>
                 </div>
             )}
 
@@ -1222,7 +1228,13 @@ const ChatView: React.FC = () => {
 
             {showSettings && (
                 <div className="fixed inset-0 z-[60] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4" onClick={() => setShowSettings(false)}>
-                    <div data-liquid-glass className="liquid-glass w-full max-w-md shadow-2xl animate-pop-in" onClick={(e) => e.stopPropagation()}>
+                <LiquidGlass 
+                    className="w-full max-w-md shadow-2xl animate-pop-in" 
+                    onClick={(e) => e.stopPropagation()}
+                    padding="0"
+                    cornerRadius={16}
+                    elasticity={0.2}
+                >
                         <div className="p-6 border-b border-white/10 flex justify-between items-center">
                             <h2 className="text-xl font-bold text-white font-brand">Settings</h2>
                             <button onClick={() => setShowSettings(false)} className="p-1.5 rounded-full text-zinc-400 hover:text-white hover:bg-white/10 transition-colors"><svg width="20" height="20" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5" fill="none"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
@@ -1273,12 +1285,18 @@ const ChatView: React.FC = () => {
                                 </div>
                             )}
                         </div>
-                    </div>
+                    </LiquidGlass>
                 </div>
             )}
 
             {/* Sidebar code */}
-            <div data-liquid-glass className={`fixed inset-y-0 left-0 z-40 w-96 liquid-glass border-l-0 border-t-0 border-b-0 rounded-none rounded-r-2xl transform transition-transform duration-300 ease-in-out ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+            <LiquidGlass 
+                className={`fixed inset-y-0 left-0 z-40 w-96 border-l-0 border-t-0 border-b-0 rounded-none rounded-r-2xl transform transition-transform duration-300 ease-in-out ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}
+                padding="0"
+                cornerRadius={0}
+                elasticity={0.15}
+                style={{ borderTopLeftRadius: 0, borderBottomLeftRadius: 0, borderTopRightRadius: '1rem', borderBottomRightRadius: '1rem' }}
+            >
                 <div className="flex flex-col h-full p-4 space-y-4">
                     <div className="flex justify-between items-center"><div className="font-bold tracking-wide text-white flex items-center gap-2"><img src="/quillix-logo.png" alt="Quillix Logo" className="w-6 h-6 animate-spin-slow" />Quillix</div><button onClick={() => setIsSidebarOpen(false)} className="text-zinc-400 hover:text-white p-1 rounded-full hover:bg-white/10"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m15 18-6-6 6-6"/></svg></button></div>
                     
@@ -1327,10 +1345,17 @@ const ChatView: React.FC = () => {
                                         <div key={groupName} className="mb-3">
                                             <div className="text-xs font-semibold text-zinc-500 px-2 py-1 uppercase tracking-wider mb-1">{groupName}</div>
                                             {groupConversations.map(chat => (
-                                                <div key={chat.id} onClick={() => navigate(`/chat/${chat.id}`)} data-liquid-glass className={`liquid-glass p-3 rounded-xl my-1.5 group relative cursor-pointer transition-all duration-300 hover:scale-[1.03] hover:bg-white/10 ${currentConversationId === chat.id ? 'bg-white/10' : ''}`}>
+                                                <LiquidGlass
+                                                    key={chat.id}
+                                                    onClick={() => navigate(`/chat/${chat.id}`)}
+                                                    className={`p-3 rounded-xl my-1.5 group relative cursor-pointer transition-all duration-300 hover:scale-[1.03] ${currentConversationId === chat.id ? 'bg-white/10' : ''}`}
+                                                    padding="12px"
+                                                    cornerRadius={12}
+                                                    elasticity={0.2}
+                                                >
                                                     <div className={`w-full text-left text-sm truncate pr-6 ${currentConversationId === chat.id ? 'text-white font-semibold' : 'text-zinc-300'}`}>{chat.title || 'New Chat'}</div>
                                                     <button onClick={(e) => { e.stopPropagation(); handleDeleteConversation(chat.id); }} className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-zinc-500 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity" title="Delete Chat"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg></button>
-                                                </div>
+                                                </LiquidGlass>
                                             ))}
                                         </div>
                                     )
@@ -1382,7 +1407,7 @@ const ChatView: React.FC = () => {
                         )}
                     </div>
                 </div>
-            </div>
+            </LiquidGlass>
 
             {isSidebarOpen && <div className="fixed inset-0 bg-black/50 z-30" onClick={() => setIsSidebarOpen(false)}></div>}
 
@@ -1411,7 +1436,7 @@ const ChatView: React.FC = () => {
                             </div>
                             <div className="w-full max-w-5xl mx-auto px-4 pb-8">
                                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                                     <button 
+                                     <LiquidGlass
                                          onClick={() => {
                                              if (!session) { navigate('/auth'); return; }
                                              const videoUrl = 'https://opal.google/?flow=drive:/1FrJlGm-c7ohm0cQl0XboQ9cHgc_Md1bo&shared&mode=app';
@@ -1422,39 +1447,47 @@ const ChatView: React.FC = () => {
                                                  alert('Please allow pop-ups to open the video generator.');
                                              }
                                          }}
-                                         data-liquid-glass
-                                         className="liquid-glass p-4 rounded-2xl text-left interactive-lift space-y-2"
+                                         className="text-left space-y-2 interactive-lift"
+                                         padding="16px"
+                                         cornerRadius={16}
+                                         elasticity={0.25}
                                      >
                                          <h3 className="font-semibold text-white">Make a video</h3>
                                         <p className="text-sm text-zinc-400">Create a video from a text prompt.</p>
-                                    </button>
-                                    <button 
+                                    </LiquidGlass>
+                                    <LiquidGlass
                                         onClick={() => navigate('/dev')}
-                                        data-liquid-glass
-                                        className="liquid-glass p-4 rounded-2xl text-left interactive-lift space-y-2"
+                                        className="text-left space-y-2 interactive-lift"
+                                        padding="16px"
+                                        cornerRadius={16}
+                                        elasticity={0.25}
                                     >
                                         <h3 className="font-semibold text-white">AI Web Developer</h3>
                                         <p className="text-sm text-zinc-400">Build and edit code with an AI partner.</p>
-                                    </button>
-                                    <button 
+                                    </LiquidGlass>
+                                    <LiquidGlass
                                         onClick={() => {
                                             setInputValue('Make an image of ');
                                             textareaRef.current?.focus();
                                         }}
-                                        data-liquid-glass
-                                        className="liquid-glass p-4 rounded-2xl text-left interactive-lift space-y-2"
+                                        className="text-left space-y-2 interactive-lift"
+                                        padding="16px"
+                                        cornerRadius={16}
+                                        elasticity={0.25}
                                     >
                                         <h3 className="font-semibold text-white">Make an image</h3>
                                         <p className="text-sm text-zinc-400">Generate an image from a prompt.</p>
-                                    </button>
-                                    <button 
+                                    </LiquidGlass>
+                                    <LiquidGlass
                                         onClick={() => navigate('/quiz')}
-                                        data-liquid-glass
-                                        className="liquid-glass p-4 rounded-2xl text-left interactive-lift space-y-2"
+                                        className="text-left space-y-2 interactive-lift"
+                                        padding="16px"
+                                        cornerRadius={16}
+                                        elasticity={0.25}
                                     >
                                         <h3 className="font-semibold text-white">Quiz me on...</h3>
                                         <p className="text-sm text-zinc-400">Test your knowledge on any topic.</p>
-                                    </button>
+                                    </LiquidGlass>
                                 </div>
                             </div>
                         </div>
@@ -1463,7 +1496,15 @@ const ChatView: React.FC = () => {
                             {messages.map((msg, index) => (
                                 <div key={msg.id} className={`flex items-start gap-4 animate-pop-in ${msg.role === 'user' ? 'justify-end' : ''} group`}>
                                     {msg.role === 'assistant' && <div className="shrink-0 mt-1"><NexusIconSmall /></div>}
-                                    <div data-liquid-glass className={`relative max-w-[85%] leading-relaxed ${msg.role === 'user' ? 'light-liquid-glass text-white px-5 py-3 rounded-3xl rounded-br-lg' : 'dark-liquid-glass px-5 py-3 rounded-3xl rounded-bl-lg'}`}>
+                                    <LiquidGlass
+                                        className={`relative max-w-[85%] leading-relaxed ${msg.role === 'user' ? 'text-white' : ''}`}
+                                        padding="20px"
+                                        cornerRadius={msg.role === 'user' ? 24 : 24}
+                                        overLight={msg.role === 'user'}
+                                        elasticity={0.25}
+                                        blurAmount={0.08}
+                                        saturation={msg.role === 'user' ? 150 : 140}
+                                    >
                                         <div className="font-medium text-sm text-zinc-400 mb-2">
                                             {msg.role === 'assistant' ? (activePersona?.name || 'Quillix') : 'You'}
                                         </div>
@@ -1483,18 +1524,22 @@ const ChatView: React.FC = () => {
                                                 )}
                                             </div>
                                         )}
-                                    </div>
+                                    </LiquidGlass>
                                 </div>
                             ))}
                             {isLoading && (
                                 <div className="flex items-start gap-4 animate-pop-in group">
                                     <div className="shrink-0 mt-1"><NexusIconSmall /></div>
                                     {thinkingMode === 'image' ? (
-                                        <div data-liquid-glass className="dark-liquid-glass p-4 rounded-3xl rounded-bl-lg">
+                                        <LiquidGlass
+                                            padding="16px"
+                                            cornerRadius={24}
+                                            elasticity={0.25}
+                                        >
                                             <div className="w-full max-w-lg aspect-[9/16] bg-black/20 rounded-xl flex items-center justify-center">
                                                 <ImageGenerationPlaceholder />
                                             </div>
-                                        </div>
+                                        </LiquidGlass>
                                     ) : (
                                         <ThinkingProcess isThinking={true} mode="reasoning" />
                                     )}
@@ -1524,7 +1569,13 @@ const ChatView: React.FC = () => {
                     ) : (
                         <div className="relative">
                             <form onSubmit={handleChatSubmit} className="relative">
-                                <div data-liquid-glass className="liquid-glass rounded-full flex items-center p-2 transition-all duration-300 focus-within:shadow-2xl focus-within:shadow-indigo-500/20">
+                                <LiquidGlass
+                                    cornerRadius={999}
+                                    padding="8px"
+                                    elasticity={0.2}
+                                    blurAmount={0.08}
+                                    className="flex items-center transition-all duration-300 focus-within:shadow-2xl focus-within:shadow-indigo-500/20"
+                                >
                                     <button type="button" onClick={triggerFileSelect} className="p-2 rounded-full text-zinc-300 hover:text-white hover:bg-white/10 transition-colors ml-1" title="Attach File"><svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg></button>
                                     <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" accept="image/*,application/pdf,text/plain,text/code,application/json" multiple />
                                     <textarea ref={textareaRef} value={inputValue} onChange={(e) => setInputValue(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleChatSubmit(e); } }} rows={1} placeholder="Message Quillix..." className="flex-1 bg-transparent border-none text-white placeholder-zinc-500 focus:ring-0 focus:outline-none resize-none py-3.5 px-3 h-auto max-h-[120px] overflow-y-auto scrollbar-hide"></textarea>
@@ -1541,7 +1592,7 @@ const ChatView: React.FC = () => {
                                         <button type="button" onClick={() => setIsVoiceMode(true)} className="p-2 rounded-full text-zinc-300 hover:text-white hover:bg-white/10 transition-colors"><svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/></svg></button>
                                         <button type="submit" disabled={isLoading || (!inputValue.trim() && attachedFiles.length === 0)} className={`w-9 h-9 flex items-center justify-center rounded-full transition-all duration-200 ml-1 ${(inputValue.trim() || attachedFiles.length > 0) && !isLoading ? 'bg-white text-black hover:bg-zinc-200 shadow-lg' : 'bg-white/10 text-zinc-500 cursor-not-allowed'}`}><svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg></button>
                                     </div>
-                                </div>
+                                </LiquidGlass>
                                 {attachedFiles.length > 0 && (
                                     <div className="absolute bottom-full w-full left-0 mb-2 px-2">
                                         <div className="flex gap-3 flex-wrap p-2 bg-black/30 backdrop-blur-md rounded-xl border border-white/10">

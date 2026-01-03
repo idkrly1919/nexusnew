@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import LiquidGlass from 'liquid-glass-react';
 
 interface ThinkingProcessProps {
     isThinking?: boolean;
@@ -60,12 +61,17 @@ export const ThinkingProcess: React.FC<ThinkingProcessProps> = ({ isThinking = f
 
     if (devStatus) {
         return (
-            <div data-liquid-glass className="liquid-glass inline-flex items-center gap-3 py-2 px-4 rounded-full">
+            <LiquidGlass 
+                className="inline-flex items-center gap-3"
+                padding="8px 16px"
+                cornerRadius={999}
+                elasticity={0.25}
+            >
                 <ThinkingDotsAnimation />
                 <div className="text-sm font-mono text-zinc-400">
                     {devStatus}
                 </div>
-            </div>
+            </LiquidGlass>
         );
     }
 
@@ -76,11 +82,16 @@ export const ThinkingProcess: React.FC<ThinkingProcessProps> = ({ isThinking = f
     };
 
     return (
-        <div data-liquid-glass className="liquid-glass inline-flex items-center gap-3 py-2 px-4 rounded-full">
+        <LiquidGlass 
+            className="inline-flex items-center gap-3"
+            padding="8px 16px"
+            cornerRadius={999}
+            elasticity={0.25}
+        >
             {renderAnimation()}
             <div className="text-sm font-mono text-zinc-400">
                 {statusText}
             </div>
-        </div>
+        </LiquidGlass>
     );
 };

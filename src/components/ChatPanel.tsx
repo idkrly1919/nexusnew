@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Message } from '../types';
 import { ThinkingProcess } from './ThinkingProcess';
 import JSZip from 'jszip';
+import LiquidGlass from 'liquid-glass-react';
 
 interface ChatPanelProps {
     messages: Message[];
@@ -89,12 +90,18 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ messages, isLoading, onSubmit, on
                 {messages.map(msg => (
                     <div key={msg.id} className={`flex items-start gap-3 ${msg.role === 'user' ? 'justify-end' : ''}`}>
                         {msg.role === 'assistant' && <img src="/quillix-logo.png" className="w-7 h-7 rounded-full" />}
-                        <div data-liquid-glass className={`max-w-xs md:max-w-md p-3 rounded-2xl prose prose-invert prose-sm max-w-none ${msg.role === 'user' ? 'light-liquid-glass text-white' : msg.role === 'system' ? 'bg-transparent text-green-400 font-mono' : 'dark-liquid-glass'}`}>
+                        <LiquidGlass 
+                            className={`max-w-xs md:max-w-md prose prose-invert prose-sm max-w-none ${msg.role === 'user' ? 'text-white' : msg.role === 'system' ? 'bg-transparent text-green-400 font-mono' : ''}`}
+                            padding="12px"
+                            cornerRadius={16}
+                            overLight={msg.role === 'user'}
+                            elasticity={0.25}
+                        >
                            <div dangerouslySetInnerHTML={{ __html: msg.text.replace(/\n/g, '<br/>') }} />
-                        </div>
+                        </LiquidGlass>
                     </div>
                 ))}
-                {isLoading && <div className="flex items-start gap-3"><img src="/quillix-logo.png" className="w-7 h-7 rounded-full" /><div data-liquid-glass className="p-3 dark-liquid-glass rounded-2xl"><ThinkingProcess isThinking devStatus={devStatus} /></div></div>}
+                {isLoading && <div className="flex items-start gap-3"><img src="/quillix-logo.png" className="w-7 h-7 rounded-full" /><LiquidGlass padding="12px" cornerRadius={16}><ThinkingProcess isThinking devStatus={devStatus} /></LiquidGlass></div>}
                 <div ref={messagesEndRef} />
             </div>
             <div className="p-4 border-t border-white/10">

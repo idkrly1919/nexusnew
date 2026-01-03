@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { format } from 'date-fns';
+import LiquidGlass from 'liquid-glass-react';
 
 interface WeatherWidgetProps {
     locationQuery?: string;
@@ -90,17 +91,25 @@ const WeatherWidget: React.FC<WeatherWidgetProps> = ({ locationQuery }) => {
 
     if (loading) {
          return (
-            <div data-liquid-glass className="liquid-glass p-6 rounded-2xl w-full max-w-sm my-4 flex items-center justify-center h-48">
+            <LiquidGlass 
+                className="w-full max-w-sm my-4 flex items-center justify-center h-48"
+                padding="24px"
+                cornerRadius={16}
+            >
                 <svg className="animate-spin h-8 w-8 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
-            </div>
+            </LiquidGlass>
          );
     }
 
     if (error) {
         return (
-            <div data-liquid-glass className="liquid-glass p-4 rounded-xl w-full max-w-sm my-4 border border-red-500/30 text-red-400 text-sm">
+            <LiquidGlass 
+                className="w-full max-w-sm my-4 border border-red-500/30 text-red-400 text-sm"
+                padding="16px"
+                cornerRadius={12}
+            >
                 Error: {error}
-            </div>
+            </LiquidGlass>
         );
     }
 
@@ -110,7 +119,12 @@ const WeatherWidget: React.FC<WeatherWidgetProps> = ({ locationQuery }) => {
     const daily = weather.daily;
 
     return (
-        <div data-liquid-glass className="liquid-glass rounded-3xl w-full max-w-sm my-4 overflow-hidden shadow-2xl interactive-lift border border-white/10">
+        <LiquidGlass 
+            className="w-full max-w-sm my-4 overflow-hidden shadow-2xl interactive-lift border border-white/10"
+            padding="0"
+            cornerRadius={24}
+            elasticity={0.25}
+        >
             {/* Main Current Weather */}
             <div className={`p-6 bg-gradient-to-br ${current.is_day ? 'from-blue-500/20 to-cyan-500/20' : 'from-indigo-900/40 to-purple-900/40'}`}>
                 <div className="flex justify-between items-start">
@@ -162,7 +176,7 @@ const WeatherWidget: React.FC<WeatherWidgetProps> = ({ locationQuery }) => {
                     </div>
                 ))}
             </div>
-        </div>
+        </LiquidGlass>
     );
 };
 
