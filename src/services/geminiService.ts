@@ -230,8 +230,8 @@ export async function* streamGemini(
 - **Fallback Model:** Gemini 2.5 Flash Lite (used if primary model fails)
 
 **Image Generation:**
-- **Model:** ${imageModelPreference === 'nano-banana' ? 'Quillix K4 (Recommended)' : 'Quillix K3 (Fast)'}
-- **Backend:** Pollinations AI (Flux Model)
+- **Model:** Flux (via Pollinations AI)
+- **Backend:** Pollinations AI
 
 **System Features:**
 - ✅ Conversational mode with smart task handling

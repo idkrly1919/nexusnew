@@ -62,13 +62,13 @@ serve(async (req: Request) => {
     const bytes = new Uint8Array(arrayBuffer);
     
     // Convert to base64 in chunks to avoid stack overflow
-    let base64 = '';
+    let binary = '';
     const chunkSize = 8192; // Process 8KB at a time
     for (let i = 0; i < bytes.length; i += chunkSize) {
       const chunk = bytes.subarray(i, Math.min(i + chunkSize, bytes.length));
-      base64 += String.fromCharCode(...chunk);
+      binary += Array.from(chunk).map(b => String.fromCharCode(b)).join('');
     }
-    base64 = btoa(base64);
+    base64 = btoa(binary);
     
     const dataUrl = `data:${imageBlob.type};base64,${base64}`;
     
