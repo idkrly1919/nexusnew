@@ -68,7 +68,7 @@ serve(async (req: Request) => {
       const chunk = bytes.subarray(i, Math.min(i + chunkSize, bytes.length));
       binary += Array.from(chunk).map(b => String.fromCharCode(b)).join('');
     }
-    base64 = btoa(binary);
+    const base64 = btoa(binary);
     
     const dataUrl = `data:${imageBlob.type};base64,${base64}`;
     
