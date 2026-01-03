@@ -85,13 +85,13 @@ const Onboarding: React.FC = () => {
                         <h2 className="text-2xl font-bold text-white">Choose your preferred image model:</h2>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <button onClick={() => handleSelect('image_model_preference', 'img3')} className={`p-4 rounded-xl border text-left transition-all duration-300 ${formData.image_model_preference === 'img3' ? 'bg-indigo-500/20 border-indigo-500/50' : 'bg-white/5 border-white/10 hover:bg-white/10'}`}>
-                                <h3 className="font-semibold">Flux (Standard)</h3>
-                                <p className="text-sm text-zinc-400">Pollinations AI - Fast and reliable image generation.</p>
+                                <h3 className="font-semibold">Nexus K5 (Standard)</h3>
+                                <p className="text-sm text-zinc-400">Fast and reliable image generation.</p>
                             </button>
                             <button onClick={() => handleSelect('image_model_preference', 'nano-banana')} className={`p-4 rounded-xl border text-left transition-all duration-300 relative overflow-hidden ${formData.image_model_preference === 'nano-banana' ? 'bg-indigo-500/20 border-indigo-500/50' : 'bg-white/5 border-white/10 hover:bg-white/10'}`}>
                                 <span className="absolute top-2 right-2 bg-indigo-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">Recommended</span>
-                                <h3 className="font-semibold">Flux (Enhanced)</h3>
-                                <p className="text-sm text-zinc-400">Pollinations AI - Optimized for detailed visuals.</p>
+                                <h3 className="font-semibold">Nexus K5 (Enhanced)</h3>
+                                <p className="text-sm text-zinc-400">Optimized for detailed visuals.</p>
                             </button>
                         </div>
                     </div>

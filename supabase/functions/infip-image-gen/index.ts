@@ -28,11 +28,11 @@ serve(async (req: Request) => {
     // Note: Pollinations AI is typically free and doesn't require authentication
     // But we'll include the key if provided for potential premium features
     
-    console.log(`Generating image with prompt: "${prompt}", model: flux`);
+    console.log(`Generating image with prompt: "${prompt}", model: zimage`);
 
     // Pollinations API endpoint - encode the prompt for URL
     const encodedPrompt = encodeURIComponent(prompt);
-    const pollinationsUrl = `https://gen.pollinations.ai/image/${encodedPrompt}?model=flux`;
+    const pollinationsUrl = `https://gen.pollinations.ai/image/${encodedPrompt}?model=zimage`;
     
     const headers: HeadersInit = {};
     if (imageApiKey) {

@@ -1243,13 +1243,13 @@ const ChatView: React.FC = () => {
                                 <label className="block text-sm font-medium text-zinc-400 mb-3">Image Model Preference</label>
                                 <div className="grid grid-cols-2 gap-2">
                                     <button onClick={() => handleImageModelChange('img3')} className={`text-left px-4 py-3 rounded-xl border transition-all duration-300 ${imageModelPref === 'img3' ? 'bg-indigo-500/20 border-indigo-500/50 text-white shadow-lg' : 'bg-white/5 border-white/10 text-zinc-300 hover:border-white/20 hover:bg-white/10'}`}>
-                                        <div className="font-medium text-sm">Flux (Standard)</div>
-                                        <div className="text-xs opacity-60">Pollinations AI model.</div>
+                                        <div className="font-medium text-sm">Nexus K5 (Standard)</div>
+                                        <div className="text-xs opacity-60">Fast generation.</div>
                                     </button>
                                     <button onClick={() => handleImageModelChange('nano-banana')} className={`text-left px-4 py-3 rounded-xl border transition-all duration-300 relative overflow-hidden ${imageModelPref === 'nano-banana' ? 'bg-indigo-500/20 border-indigo-500/50 text-white shadow-lg' : 'bg-white/5 border-white/10 text-zinc-300 hover:border-white/20 hover:bg-white/10'}`}>
                                         <span className="absolute top-2 right-2 bg-indigo-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">Recommended</span>
-                                        <div className="font-medium text-sm">Flux (Enhanced)</div>
-                                        <div className="text-xs opacity-60">Pollinations AI model.</div>
+                                        <div className="font-medium text-sm">Nexus K5 (Enhanced)</div>
+                                        <div className="text-xs opacity-60">Highest quality.</div>
                                     </button>
                                 </div>
                             </div>
