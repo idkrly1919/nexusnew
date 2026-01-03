@@ -231,7 +231,7 @@ export async function* streamGemini(
 
 **Image Generation:**
 - **Model:** ${imageModelPreference === 'nano-banana' ? 'Quillix K4 (Recommended)' : 'Quillix K3 (Fast)'}
-- **Backend:** InfIP Image Generation
+- **Backend:** Pollinations AI (Flux Model)
 
 **System Features:**
 - ✅ Conversational mode with smart task handling
