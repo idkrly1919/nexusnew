@@ -25,26 +25,23 @@ serve(async (req: Request) => {
 
     // @ts-ignore
     const imageApiKey = Deno.env.get('IMAGE_API');
-    if (!imageApiKey) {
-      console.error("IMAGE_API missing");
-      return new Response(
-        JSON.stringify({ error: 'Server configuration error: API key missing.' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
-    }
-
-    console.log(`Generating image with prompt: "${prompt}", model: ${model || 'flux'}`);
+    // Note: Pollinations AI is typically free and doesn't require authentication
+    // But we'll include the key if provided for potential premium features
+    
+    console.log(`Generating image with prompt: "${prompt}", model: flux`);
 
     // Pollinations API endpoint - encode the prompt for URL
     const encodedPrompt = encodeURIComponent(prompt);
-    const pollinationsModel = model === 'nano-banana' || model === 'img3' ? 'flux' : 'flux';
-    const pollinationsUrl = `https://gen.pollinations.ai/image/${encodedPrompt}?model=${pollinationsModel}`;
+    const pollinationsUrl = `https://gen.pollinations.ai/image/${encodedPrompt}?model=flux`;
+    
+    const headers: HeadersInit = {};
+    if (imageApiKey) {
+      headers['Authorization'] = `Bearer ${imageApiKey}`;
+    }
     
     const response = await fetch(pollinationsUrl, {
         method: 'GET',
-        headers: {
-            "Authorization": `Bearer ${imageApiKey}`
-        }
+        headers: headers
     });
 
     if (!response.ok) {
@@ -60,9 +57,19 @@ serve(async (req: Request) => {
     // We need to convert this to match the expected format (similar to OpenAI's response)
     const imageBlob = await response.blob();
     
-    // Convert blob to base64 data URL
+    // Convert blob to base64 data URL using chunked approach to avoid stack overflow
     const arrayBuffer = await imageBlob.arrayBuffer();
-    const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
+    const bytes = new Uint8Array(arrayBuffer);
+    
+    // Convert to base64 in chunks to avoid stack overflow
+    let base64 = '';
+    const chunkSize = 8192; // Process 8KB at a time
+    for (let i = 0; i < bytes.length; i += chunkSize) {
+      const chunk = bytes.subarray(i, Math.min(i + chunkSize, bytes.length));
+      base64 += String.fromCharCode(...chunk);
+    }
+    base64 = btoa(base64);
+    
     const dataUrl = `data:${imageBlob.type};base64,${base64}`;
     
     // Return in the same format as the old API (with a data array containing url)
