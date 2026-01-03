@@ -24,45 +24,61 @@ serve(async (req: Request) => {
     }
 
     // @ts-ignore
-    const infipApiKey = Deno.env.get('INFIP_API_KEY');
-    if (!infipApiKey) {
-      console.error("INFIP_API_KEY missing");
-      return new Response(
-        JSON.stringify({ error: 'Server configuration error: API key missing.' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
-    }
-
-    console.log(`Generating image with prompt: "${prompt}", model: ${model || 'default'}`);
-
-    const infipUrl = "https://api.infip.pro/v1/images/generations";
+    const imageApiKey = Deno.env.get('IMAGE_API');
+    // Note: Pollinations AI is typically free and doesn't require authentication
+    // But we'll include the key if provided for potential premium features
     
-    const payload = {
-        prompt: prompt,
-        model: model || 'nano-banana',
-        n: 1,
-        size: size || '1024x1792'
-    };
+    console.log(`Generating image with prompt: "${prompt}", model: zimage`);
 
-    const response = await fetch(infipUrl, {
-        method: 'POST',
-        headers: {
-            "Authorization": `Bearer ${infipApiKey}`,
-            "Content-Type": "application/json"
-        },
-        body: JSON.stringify(payload)
+    // Pollinations API endpoint - encode the prompt for URL
+    const encodedPrompt = encodeURIComponent(prompt);
+    const pollinationsUrl = `https://gen.pollinations.ai/image/${encodedPrompt}?model=zimage`;
+    
+    const headers: HeadersInit = {};
+    if (imageApiKey) {
+      headers['Authorization'] = `Bearer ${imageApiKey}`;
+    }
+    
+    const response = await fetch(pollinationsUrl, {
+        method: 'GET',
+        headers: headers
     });
 
     if (!response.ok) {
         const errText = await response.text();
-        console.error(`Infip API Error ${response.status}:`, errText);
+        console.error(`Pollinations API Error ${response.status}:`, errText);
         return new Response(
           JSON.stringify({ error: `Image Service Error (${response.status}): ${errText}` }),
           { status: response.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         )
     }
 
-    const data = await response.json();
+    // Pollinations returns the image directly, not JSON with a URL
+    // We need to convert this to match the expected format (similar to OpenAI's response)
+    const imageBlob = await response.blob();
+    
+    // Convert blob to base64 data URL using chunked approach to avoid stack overflow
+    const arrayBuffer = await imageBlob.arrayBuffer();
+    const bytes = new Uint8Array(arrayBuffer);
+    
+    // Convert to base64 in chunks to avoid stack overflow
+    let binary = '';
+    const chunkSize = 8192; // Process 8KB at a time
+    for (let i = 0; i < bytes.length; i += chunkSize) {
+      const chunk = bytes.subarray(i, Math.min(i + chunkSize, bytes.length));
+      binary += Array.from(chunk).map(b => String.fromCharCode(b)).join('');
+    }
+    base64 = btoa(binary);
+    
+    const dataUrl = `data:${imageBlob.type};base64,${base64}`;
+    
+    // Return in the same format as the old API (with a data array containing url)
+    const data = {
+      data: [{
+        url: dataUrl
+      }]
+    };
+    
     console.log("Image generation successful");
 
     return new Response(

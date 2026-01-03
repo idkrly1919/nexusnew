@@ -230,8 +230,8 @@ export async function* streamGemini(
 - **Fallback Model:** Gemini 2.5 Flash Lite (used if primary model fails)
 
 **Image Generation:**
-- **Model:** ${imageModelPreference === 'nano-banana' ? 'Quillix K4 (Recommended)' : 'Quillix K3 (Fast)'}
-- **Backend:** InfIP Image Generation
+- **Model:** Nexus K5 (via Pollinations AI)
+- **Backend:** Pollinations AI (zimage model)
 
 **System Features:**
 - ✅ Conversational mode with smart task handling
