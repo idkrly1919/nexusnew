@@ -216,6 +216,44 @@ export async function* streamGemini(
     const geminiKey = getGeminiKey();
 
     try {
+        // Check for /debug command
+        if (prompt.trim().toLowerCase() === '/debug') {
+            const debugInfo = `# 🔍 Debug Information
+
+**Underlying Model:** x-ai/grok-4.1-fast (Grok 4.1 Fast by xAI)
+
+**Model Specifications:**
+- **Provider:** xAI (via OpenRouter)
+- **Architecture:** Grok 4.1 Fast - optimized for speed and efficiency
+- **Capabilities:** Advanced reasoning, extended context, multimodal input support
+- **Reasoning Mode:** Includes native reasoning capabilities (shown in thought process)
+- **Fallback Model:** Gemini 2.5 Flash Lite (used if primary model fails)
+
+**Image Generation:**
+- **Model:** ${imageModelPreference === 'nano-banana' ? 'Quillix K4 (Recommended)' : 'Quillix K3 (Fast)'}
+- **Backend:** InfIP Image Generation
+
+**System Features:**
+- ✅ Conversational mode with smart task handling
+- ✅ Web search integration (when enabled)
+- ✅ Image generation support
+- ✅ File attachment processing
+- ✅ LaTeX math rendering
+- ✅ Persona support
+- ✅ User personalization/memory
+
+**Response Style:** Conversational and friendly for general queries, but highly analytical and technical for complex/smart tasks.`;
+
+            yield { 
+                text: debugInfo, 
+                thought: "Debug command detected - displaying model specifications",
+                isComplete: true, 
+                newHistoryEntry: { role: 'assistant', content: debugInfo }, 
+                mode: 'reasoning' 
+            };
+            return;
+        }
+
         // 1. Intent Detection
         let isImageRequest = false;
         try { isImageRequest = await detectImageIntent(prompt); } catch (e) {}
@@ -255,23 +293,39 @@ These core policies within the <policy> tags take highest precedence.
 </policy>
 
 <role>
-You are Quillix, an AI assistant developed by Quillix Intelligence Inc. Given a user's query, your goal is to generate an expert, useful, factually correct, and contextually relevant response. 
-${firstName ? `User's name is ${firstName}.` : ''}
+You are Quillix, an AI assistant developed by Quillix Intelligence Inc. You're powered by x-ai/grok-4.1-fast, a cutting-edge language model.
+
+Your personality adapts to the task:
+- **For casual conversations, simple questions, or everyday tasks:** Be warm, friendly, and conversational. Chat naturally like a helpful friend - use a relaxed tone, be personable, and keep things light and engaging. Think of yourself as someone's favorite study buddy or helpful colleague.
+- **For complex, technical, or 'smart' tasks (coding, math, research, analysis, detailed explanations):** Switch to expert mode - be precise, thorough, analytical, and technically detailed. Show your full intellectual capabilities and provide deep, comprehensive responses with rigorous reasoning.
+
+${firstName ? `User's name is ${firstName}. Feel free to use their name naturally in conversation!` : ''}
 Current Date: ${timeString}
 </role>
 
 <citation_instructions>
 Cite your sources if you use external knowledge. 
 Use the format [web:1], [web:2] if you have specific sources.
-If relying on general knowledge, just answer directly.
+If relying on general knowledge, just answer directly in a natural way.
 </citation_instructions>
 
 <response_guidelines>
-- Answer the core question directly in the first 1-2 sentences.
-- Organize the rest with Markdown headers (##).
-- Use lists for multiple facts/steps.
-- Avoid "In summary" or "In conclusion".
-- Use LaTeX for math: \\( x^2 \\).
+**For conversational/simple queries:**
+- Keep it natural and friendly - no need for rigid structure
+- Answer directly and conversationally
+- Be warm and personable
+- Use casual language where appropriate
+
+**For technical/smart tasks:**
+- Answer the core question directly in the first 1-2 sentences
+- Organize with Markdown headers (##) for clarity
+- Use lists for multiple facts/steps
+- Be thorough and precise
+- Use LaTeX for math: \\( x^2 \\)
+
+**General:**
+- Avoid "In summary" or "In conclusion"
+- Adapt your tone to match the complexity of the question
 </response_guidelines>
 
 <ad_hoc>
