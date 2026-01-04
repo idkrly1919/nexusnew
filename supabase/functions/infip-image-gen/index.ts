@@ -29,7 +29,6 @@ serve(async (req: Request) => {
     // Get your API key from https://enter.pollinations.ai
     
     if (!imageApiKey) {
-      console.error('IMAGE_API environment variable not set');
       return new Response(
         JSON.stringify({ error: "IMAGE_API key is required. Get your key from https://enter.pollinations.ai" }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
