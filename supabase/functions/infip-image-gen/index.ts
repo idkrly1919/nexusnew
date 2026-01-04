@@ -25,23 +25,26 @@ serve(async (req: Request) => {
 
     // @ts-ignore
     const imageApiKey = Deno.env.get('IMAGE_API');
-    // Note: Pollinations AI is typically free and doesn't require authentication
-    // But we'll include the key if provided for potential premium features
+    // Note: Pollinations AI now requires authentication via API key
+    // Get your API key from https://enter.pollinations.ai
+    
+    if (!imageApiKey) {
+      console.error('IMAGE_API environment variable not set');
+      return new Response(
+        JSON.stringify({ error: "IMAGE_API key is required. Get your key from https://enter.pollinations.ai" }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
     
     console.log(`Generating image with prompt: "${prompt}", model: zimage`);
 
     // Pollinations API endpoint - encode the prompt for URL
+    // API key must be passed as a query parameter
     const encodedPrompt = encodeURIComponent(prompt);
-    const pollinationsUrl = `https://gen.pollinations.ai/image/${encodedPrompt}?model=zimage`;
-    
-    const headers: HeadersInit = {};
-    if (imageApiKey) {
-      headers['Authorization'] = `Bearer ${imageApiKey}`;
-    }
+    const pollinationsUrl = `https://gen.pollinations.ai/image/${encodedPrompt}?model=zimage&key=${imageApiKey}`;
     
     const response = await fetch(pollinationsUrl, {
-        method: 'GET',
-        headers: headers
+        method: 'GET'
     });
 
     if (!response.ok) {
