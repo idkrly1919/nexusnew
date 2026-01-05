@@ -278,9 +278,12 @@ export async function* streamGemini(
                 // Sanitize error message: remove HTML tags and limit length to prevent XSS and overly long messages
                 const sanitizedError = String(data.error)
                     .replace(/<[^>]*>/g, '') // Remove HTML tags
-                    .trim()
-                    .substring(0, 500); // Limit to 500 chars
-                throw new Error(`Image generation failed: ${sanitizedError}`);
+                    .trim();
+                const maxLength = 500;
+                const truncatedError = sanitizedError.length > maxLength
+                    ? sanitizedError.substring(0, maxLength) + '...'
+                    : sanitizedError;
+                throw new Error(`Image generation failed: ${truncatedError}`);
             }
             
             const imageUrl = data?.data?.[0]?.url;

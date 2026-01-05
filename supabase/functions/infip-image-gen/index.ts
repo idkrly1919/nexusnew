@@ -54,8 +54,12 @@ serve(async (req: Request) => {
     if (!response.ok) {
         const errText = await response.text();
         // Trim and limit error text to prevent extremely long messages and potential issues
-        const trimmedError = errText.trim().substring(0, 500);
-        const errorMessage = `Pollinations API Error (Status ${response.status}): ${trimmedError || 'No error details provided'}`;
+        const trimmedError = errText.trim();
+        const maxLength = 500;
+        const truncatedError = trimmedError.length > maxLength 
+            ? trimmedError.substring(0, maxLength) + '...' 
+            : trimmedError;
+        const errorMessage = `Pollinations API Error (Status ${response.status}): ${truncatedError || 'No error details provided'}`;
         console.error(errorMessage);
         console.error(`Request URL: ${pollinationsUrl.replace(/key=[^&]+/, 'key=***')}`); // Log URL with masked key
         return new Response(
