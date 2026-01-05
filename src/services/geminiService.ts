@@ -275,7 +275,12 @@ export async function* streamGemini(
             
             // Check for errors returned in the data payload from Pollinations API
             if (data?.error) {
-                throw new Error(`Image generation failed: ${data.error}`);
+                // Sanitize error message: remove HTML tags and limit length to prevent XSS and overly long messages
+                const sanitizedError = String(data.error)
+                    .replace(/<[^>]*>/g, '') // Remove HTML tags
+                    .trim()
+                    .substring(0, 500); // Limit to 500 chars
+                throw new Error(`Image generation failed: ${sanitizedError}`);
             }
             
             const imageUrl = data?.data?.[0]?.url;

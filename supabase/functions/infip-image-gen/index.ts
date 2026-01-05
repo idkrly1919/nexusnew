@@ -53,7 +53,9 @@ serve(async (req: Request) => {
 
     if (!response.ok) {
         const errText = await response.text();
-        const errorMessage = `Pollinations API Error (Status ${response.status}): ${errText || 'No error details provided'}`;
+        // Trim and limit error text to prevent extremely long messages and potential issues
+        const trimmedError = errText.trim().substring(0, 500);
+        const errorMessage = `Pollinations API Error (Status ${response.status}): ${trimmedError || 'No error details provided'}`;
         console.error(errorMessage);
         console.error(`Request URL: ${pollinationsUrl.replace(/key=[^&]+/, 'key=***')}`); // Log URL with masked key
         return new Response(
@@ -96,8 +98,11 @@ serve(async (req: Request) => {
     )
 
   } catch (error: any) {
-    console.error("Function Error:", error);
-    console.error("Error details:", { message: error.message, stack: error.stack, cause: error.cause });
+    // Log error details for debugging, but avoid exposing sensitive stack traces in response
+    console.error("Function Error:", error.message);
+    if (error.stack) {
+      console.error("Stack trace:", error.stack.substring(0, 500)); // Limit stack trace length
+    }
     return new Response(
       JSON.stringify({ error: `Image generation function error: ${error.message || "Internal Server Error"}` }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
