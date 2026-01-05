@@ -268,9 +268,40 @@ export async function* streamGemini(
                 body: { prompt: enhanced, model: imageModelPreference, size: '1024x1792' }
             });
 
-            if (error) throw new Error(error.message);
+            // Check for errors from the function invocation itself
+            if (error) {
+                throw new Error(`Image generation failed: ${error.message}`);
+            }
+            
+            // Check for errors returned in the data payload from Pollinations API
+            if (data?.error) {
+                // Defense-in-depth sanitization for displaying API error messages.
+                // Context: 
+                // - Source: Trusted Pollinations API (not user input)
+                // - Output: Error object message (text context, not HTML)
+                // - Display: React framework auto-escapes when rendering
+                // This sanitization is a precautionary measure, not strictly required.
+                // CodeQL alerts for incomplete HTML sanitization are theoretical here
+                // since we're in a text-only context, but we sanitize defensively anyway.
+                const errorStr = String(data.error);
+                // Basic cleanup: strip potentially harmful content and limit length
+                const basicClean = errorStr
+                    .replace(/<script[\s\S]*?<\/script>/gi, '[removed]') // Remove script tags
+                    .replace(/<[^>]+>/g, '') // Remove HTML tags
+                    .replace(/javascript:[^\s]+/gi, '')  // Remove javascript: URLs
+                    .replace(/data:[^\s]+/gi, '') // Remove data: URLs
+                    .trim();
+                const maxLength = 500;
+                const truncatedError = basicClean.length > maxLength
+                    ? basicClean.substring(0, maxLength) + '...'
+                    : basicClean;
+                throw new Error(`Image generation failed: ${truncatedError}`);
+            }
+            
             const imageUrl = data?.data?.[0]?.url;
-            if (!imageUrl) throw new Error("No image returned.");
+            if (!imageUrl) {
+                throw new Error("Image generation failed: No image returned from Pollinations API.");
+            }
             
             const markdown = `![${prompt}](${imageUrl})`;
             yield { text: markdown, isComplete: true, newHistoryEntry: { role: 'assistant', content: markdown }, mode: 'image' };
