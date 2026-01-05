@@ -280,12 +280,12 @@ export async function* streamGemini(
                 // The error is displayed in a controlled text context (Error object message).
                 // For complete XSS protection in HTML rendering, the UI framework should handle escaping.
                 const errorStr = String(data.error);
-                // Basic cleanup: remove length and strip potentially problematic content
+                // Basic cleanup: strip potentially harmful content and limit length
                 const basicClean = errorStr
                     .replace(/<script[\s\S]*?<\/script>/gi, '[removed]') // Remove script tags
                     .replace(/<[^>]+>/g, '') // Remove HTML tags
-                    .replace(/javascript:/gi, '')  // Remove javascript: URLs
-                    .replace(/data:/gi, '') // Remove data: URLs
+                    .replace(/javascript:[^\s]+/gi, '')  // Remove javascript: URLs
+                    .replace(/data:[^\s]+/gi, '') // Remove data: URLs
                     .trim();
                 const maxLength = 500;
                 const truncatedError = basicClean.length > maxLength

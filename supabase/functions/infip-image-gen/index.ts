@@ -7,6 +7,9 @@ const corsHeaders = {
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 }
 
+// Constants for error handling
+const MAX_ERROR_LENGTH = 500;
+
 serve(async (req: Request) => {
   // Handle CORS preflight request
   if (req.method === 'OPTIONS') {
@@ -55,9 +58,8 @@ serve(async (req: Request) => {
         const errText = await response.text();
         // Trim and limit error text to prevent extremely long messages and potential issues
         const trimmedError = errText.trim();
-        const maxLength = 500;
-        const truncatedError = trimmedError.length > maxLength 
-            ? trimmedError.substring(0, maxLength) + '...' 
+        const truncatedError = trimmedError.length > MAX_ERROR_LENGTH 
+            ? trimmedError.substring(0, MAX_ERROR_LENGTH) + '...' 
             : trimmedError;
         const errorMessage = `Pollinations API Error (Status ${response.status}): ${truncatedError || 'No error details provided'}`;
         console.error(errorMessage);
@@ -105,7 +107,7 @@ serve(async (req: Request) => {
     // Log error details for debugging, but avoid exposing sensitive stack traces in response
     console.error("Function Error:", error.message);
     if (error.stack) {
-      console.error("Stack trace:", error.stack.substring(0, 500)); // Limit stack trace length
+      console.error("Stack trace:", error.stack.substring(0, MAX_ERROR_LENGTH)); // Limit stack trace length
     }
     return new Response(
       JSON.stringify({ error: `Image generation function error: ${error.message || "Internal Server Error"}` }),
