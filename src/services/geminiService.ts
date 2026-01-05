@@ -268,9 +268,20 @@ export async function* streamGemini(
                 body: { prompt: enhanced, model: imageModelPreference, size: '1024x1792' }
             });
 
-            if (error) throw new Error(error.message);
+            // Check for errors from the function invocation itself
+            if (error) {
+                throw new Error(`Image generation failed: ${error.message}`);
+            }
+            
+            // Check for errors returned in the data payload from Pollinations API
+            if (data?.error) {
+                throw new Error(`Image generation failed: ${data.error}`);
+            }
+            
             const imageUrl = data?.data?.[0]?.url;
-            if (!imageUrl) throw new Error("No image returned.");
+            if (!imageUrl) {
+                throw new Error("Image generation failed: No image returned from Pollinations API.");
+            }
             
             const markdown = `![${prompt}](${imageUrl})`;
             yield { text: markdown, isComplete: true, newHistoryEntry: { role: 'assistant', content: markdown }, mode: 'image' };

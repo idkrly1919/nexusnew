@@ -29,6 +29,7 @@ serve(async (req: Request) => {
     // Get your API key from https://enter.pollinations.ai
     
     if (!imageApiKey) {
+      console.error("IMAGE_API environment variable is not set");
       return new Response(
         JSON.stringify({ error: "IMAGE_API key is required. Get your key from https://enter.pollinations.ai" }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -42,15 +43,21 @@ serve(async (req: Request) => {
     const encodedPrompt = encodeURIComponent(prompt);
     const pollinationsUrl = `https://gen.pollinations.ai/image/${encodedPrompt}?model=zimage&key=${imageApiKey}`;
     
+    console.log(`Calling Pollinations API: ${pollinationsUrl.replace(/key=[^&]+/, 'key=***')}`);
+    
     const response = await fetch(pollinationsUrl, {
         method: 'GET'
     });
+    
+    console.log(`Pollinations API response status: ${response.status}`);
 
     if (!response.ok) {
         const errText = await response.text();
-        console.error(`Pollinations API Error ${response.status}:`, errText);
+        const errorMessage = `Pollinations API Error (Status ${response.status}): ${errText || 'No error details provided'}`;
+        console.error(errorMessage);
+        console.error(`Request URL: ${pollinationsUrl.replace(/key=[^&]+/, 'key=***')}`); // Log URL with masked key
         return new Response(
-          JSON.stringify({ error: `Image Service Error (${response.status}): ${errText}` }),
+          JSON.stringify({ error: errorMessage }),
           { status: response.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         )
     }
@@ -89,9 +96,10 @@ serve(async (req: Request) => {
     )
 
   } catch (error: any) {
-    console.error("Function Error:", error.message);
+    console.error("Function Error:", error);
+    console.error("Error details:", { message: error.message, stack: error.stack, cause: error.cause });
     return new Response(
-      JSON.stringify({ error: error.message || "Internal Server Error" }),
+      JSON.stringify({ error: `Image generation function error: ${error.message || "Internal Server Error"}` }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
   }
