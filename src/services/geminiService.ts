@@ -232,6 +232,7 @@ export async function* streamGemini(
 **Image Generation:**
 - **Model:** Nexus K5 (via Pollinations AI)
 - **Backend:** Pollinations AI (zimage model)
+- **Authentication:** API key required from https://enter.pollinations.ai
 
 **System Features:**
 - ✅ Conversational mode with smart task handling

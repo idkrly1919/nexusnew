@@ -16,5 +16,8 @@ View your app in AI Studio: https://ai.studio/apps/drive/1gOdCjbyWanGH8lF1sIWwiP
 1. Install dependencies:
    `npm install`
 2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
+3. Set the `IMAGE_API` environment variable for Pollinations AI image generation:
+   - Get your free API key from [enter.pollinations.ai](https://enter.pollinations.ai)
+   - Add `IMAGE_API=your_key_here` to your Supabase environment variables
+4. Run the app:
    `npm run dev`
