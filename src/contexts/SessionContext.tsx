@@ -32,7 +32,7 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
                 .from('profiles')
                 .select('*')
                 .eq('id', session.user.id)
-                .single();
+                .maybeSingle();
             if (profileData) {
                 setProfile(profileData);
             }
@@ -54,7 +54,7 @@ export const SessionProvider: React.FC<{ children: React.ReactNode }> = ({ child
                             .from('profiles')
                             .select('*')
                             .eq('id', session.user.id)
-                            .single();
+                            .maybeSingle();
                         
                         const timeoutPromise = new Promise((_, reject) => 
                             setTimeout(() => reject(new Error('Profile fetch timed out after 3 seconds.')), 3000)
