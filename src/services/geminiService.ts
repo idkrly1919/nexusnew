@@ -275,14 +275,22 @@ export async function* streamGemini(
             
             // Check for errors returned in the data payload from Pollinations API
             if (data?.error) {
-                // Sanitize error message: remove HTML tags and limit length to prevent XSS and overly long messages
-                const sanitizedError = String(data.error)
-                    .replace(/<[^>]*>/g, '') // Remove HTML tags
+                // Basic sanitization for displaying API error messages.
+                // Note: Error messages come from the trusted Pollinations API, not user input.
+                // The error is displayed in a controlled text context (Error object message).
+                // For complete XSS protection in HTML rendering, the UI framework should handle escaping.
+                const errorStr = String(data.error);
+                // Basic cleanup: remove length and strip potentially problematic content
+                const basicClean = errorStr
+                    .replace(/<script[\s\S]*?<\/script>/gi, '[removed]') // Remove script tags
+                    .replace(/<[^>]+>/g, '') // Remove HTML tags
+                    .replace(/javascript:/gi, '')  // Remove javascript: URLs
+                    .replace(/data:/gi, '') // Remove data: URLs
                     .trim();
                 const maxLength = 500;
-                const truncatedError = sanitizedError.length > maxLength
-                    ? sanitizedError.substring(0, maxLength) + '...'
-                    : sanitizedError;
+                const truncatedError = basicClean.length > maxLength
+                    ? basicClean.substring(0, maxLength) + '...'
+                    : basicClean;
                 throw new Error(`Image generation failed: ${truncatedError}`);
             }
             
