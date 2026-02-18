@@ -412,7 +412,10 @@ ${memoryBlock}
         try {
             const pollinationsApiKey = getPollinationsApiKey();
             
-            // First, check if thinking/reasoning is needed by calling nova-fast
+            // First, call nova-fast for thinking/reasoning
+            // This two-phase approach:
+            // 1. Uses nova-fast to analyze the request and provide reasoning (thinking mode)
+            // 2. Then uses gemini-search for the main response with search capabilities
             let thinkingContent = '';
             
             // Call nova-fast for thinking/reasoning
@@ -497,7 +500,8 @@ ${memoryBlock}
                                 yield { text: fullText, isComplete: false, mode: 'reasoning' };
                             }
                         } catch (e) {
-                            // Skip invalid JSON
+                            // Skip invalid JSON chunks (common in streaming responses)
+                            console.debug("Skipping non-JSON chunk in stream:", data.substring(0, 50));
                         }
                     }
                 }
