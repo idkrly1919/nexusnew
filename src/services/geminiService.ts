@@ -24,7 +24,7 @@ const getPollinationsApiKey = () => {
     // @ts-ignore
     const apiKey = process.env.API_KEY || process.env.VITE_API_KEY;
     if (!apiKey) {
-         throw new Error("API Key is missing. Please set API_KEY in your deployment environment variables.");
+         throw new Error("Pollinations API Key is missing. Please set API_KEY environment variable with a key from https://enter.pollinations.ai");
     }
     return apiKey;
 };
@@ -469,6 +469,8 @@ ${memoryBlock}
             });
 
             if (!response.ok) {
+                const errorText = await response.text();
+                console.error(`Pollinations API error: ${response.status} ${response.statusText}`, errorText);
                 throw new Error(`Pollinations API error: ${response.status} ${response.statusText}`);
             }
 
@@ -516,10 +518,24 @@ ${memoryBlock}
             };
 
         } catch (err: any) {
-            console.warn("Primary Model (Pollinations) Failed, switching to Fallback (Gemini 2.5 Flash Lite):", err);
+            console.error("Primary Model (Pollinations) Failed:", err);
             
             // --- FALLBACK PATH: GEMINI 2.5 FLASH LITE ---
-            if (!geminiKey) throw new Error("Primary failed and no Gemini key for fallback.");
+            if (!geminiKey) {
+                const errorMsg = `**Configuration Error**
+
+The AI service is currently unavailable. This appears to be an API configuration issue.
+
+**For the site administrator:**
+Please ensure that either:
+1. The \`API_KEY\` environment variable is set with a valid Pollinations API key from https://enter.pollinations.ai
+2. OR set \`VITE_GEMINI_API_KEY\` or \`GEMINI_API_KEY\` as a fallback
+
+**Error details:** ${err.message || 'Primary API failed'}`;
+                throw new Error(errorMsg);
+            }
+            
+            console.warn("Switching to Fallback (Gemini 2.5 Flash Lite)");
             
             const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:streamGenerateContent?alt=sse&key=${geminiKey}`;
             
