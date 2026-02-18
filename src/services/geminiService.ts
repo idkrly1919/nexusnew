@@ -454,17 +454,22 @@ ${memoryBlock}
             
             // Now call gemini-search for the main response with streaming
             const chatUrl = 'https://gen.pollinations.ai/v1/chat/completions';
+            const requestBody = {
+                model: 'gemini-search',
+                messages: messages,
+                stream: true
+            };
+            
+            console.log('Calling Pollinations API with model:', requestBody.model);
+            console.log('Message count:', requestBody.messages.length);
+            
             const response = await fetch(chatUrl, {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${pollinationsApiKey}`,
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({
-                    model: 'gemini-search',
-                    messages: messages,
-                    stream: true
-                }),
+                body: JSON.stringify(requestBody),
                 signal
             });
 
