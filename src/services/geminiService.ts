@@ -419,7 +419,8 @@ ${memoryBlock}
             let thinkingContent = '';
             
             // Call nova-fast for thinking/reasoning
-            const thinkingUrl = 'https://gen.pollinations.ai/v1/chat/completions';
+            // Using query parameter authentication (same as image API)
+            const thinkingUrl = `https://gen.pollinations.ai/v1/chat/completions?key=${pollinationsApiKey}`;
             const thinkingMessages = [
                 { role: 'system', content: systemInstruction + '\n\nYou are in thinking mode. Analyze the user\'s request and provide your reasoning process.' },
                 ...history,
@@ -430,7 +431,6 @@ ${memoryBlock}
                 const thinkingResponse = await fetch(thinkingUrl, {
                     method: 'POST',
                     headers: {
-                        'Authorization': `Bearer ${pollinationsApiKey}`,
                         'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({
@@ -453,7 +453,8 @@ ${memoryBlock}
             }
             
             // Now call gemini-search for the main response with streaming
-            const chatUrl = 'https://gen.pollinations.ai/v1/chat/completions';
+            // Using query parameter authentication (same as image API)
+            const chatUrl = `https://gen.pollinations.ai/v1/chat/completions?key=${pollinationsApiKey}`;
             const requestBody = {
                 model: 'gemini-search',
                 messages: messages,
@@ -462,11 +463,11 @@ ${memoryBlock}
             
             console.debug('Calling Pollinations API with model:', requestBody.model);
             console.debug('Message count:', requestBody.messages.length);
+            console.debug('Auth method: query parameter');
             
             const response = await fetch(chatUrl, {
                 method: 'POST',
                 headers: {
-                    'Authorization': `Bearer ${pollinationsApiKey}`,
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify(requestBody),
