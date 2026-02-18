@@ -19,7 +19,17 @@ export interface SearchResult {
     date?: string;
 }
 
-// --- OpenRouter Client (Primary) ---
+// --- Pollinations Client (Primary) ---
+const getPollinationsApiKey = () => {
+    // @ts-ignore
+    const apiKey = process.env.API_KEY || process.env.VITE_API_KEY;
+    if (!apiKey) {
+         throw new Error("Pollinations API Key is missing. Please set API_KEY environment variable with a key from https://enter.pollinations.ai");
+    }
+    return apiKey;
+};
+
+// Legacy OpenRouter client (kept for potential fallback)
 const getOpenRouterClient = () => {
     // @ts-ignore
     const apiKey = process.env.API_KEY;
@@ -220,18 +230,20 @@ export async function* streamGemini(
         if (prompt.trim().toLowerCase() === '/debug') {
             const debugInfo = `# 🔍 Debug Information
 
-**Underlying Model:** x-ai/grok-4.1-fast (Grok 4.1 Fast by xAI)
+**Underlying Text Model:** gemini-search (via Pollinations AI)
 
 **Model Specifications:**
-- **Provider:** xAI (via OpenRouter)
-- **Architecture:** Grok 4.1 Fast - optimized for speed and efficiency
-- **Capabilities:** Advanced reasoning, extended context, multimodal input support
-- **Reasoning Mode:** Includes native reasoning capabilities (shown in thought process)
+- **Provider:** Pollinations AI
+- **Text Model:** gemini-search - Google search-enabled Gemini model
+- **Thinking Model:** nova-fast - Fast reasoning model
+- **Capabilities:** Advanced reasoning, web search integration, multimodal input support
+- **Reasoning Mode:** Includes native reasoning capabilities with nova-fast
 - **Fallback Model:** Gemini 2.5 Flash Lite (used if primary model fails)
 
 **Image Generation:**
-- **Model:** Nexus K5 (via Pollinations AI)
-- **Backend:** Pollinations AI (zimage model)
+- **Model:** imagen-4 (via Pollinations AI)
+- **Backend:** Pollinations AI imagen-4 model
+- **UI Branding:** Nexus K5 (powered by imagen-4)
 - **Authentication:** API key required from https://enter.pollinations.ai
 
 **System Features:**
@@ -325,7 +337,7 @@ These core policies within the <policy> tags take highest precedence.
 </policy>
 
 <role>
-You are Quillix, an AI assistant developed by Quillix Intelligence Inc. You're powered by x-ai/grok-4.1-fast, a cutting-edge language model.
+You are Quillix, an AI assistant developed by Quillix Intelligence Inc. You're powered by gemini-search via Pollinations AI, a cutting-edge language model with integrated web search capabilities.
 
 Your personality adapts to the task:
 - **For casual conversations, simple questions, or everyday tasks:** Be warm, friendly, and conversational. Chat naturally like a helpful friend - use a relaxed tone, be personable, and keep things light and engaging. Think of yourself as someone's favorite study buddy or helpful colleague.
@@ -396,66 +408,138 @@ ${memoryBlock}
         }
         messages.push({ role: 'user', content: contentParts });
 
-        // --- PRIMARY PATH: OpenRouter (x-ai/grok-4.1-fast) ---
+        // --- PRIMARY PATH: Pollinations AI (gemini-search for text, nova-fast for thinking) ---
         try {
-            const client = getOpenRouterClient();
-            const stream = await client.chat.completions.create({
-                model: "x-ai/grok-4.1-fast",
-                messages: messages as any,
-                stream: true,
-                // @ts-ignore
-                include_reasoning: true 
-            }, { signal });
-
-            let fullText = '';
-            let fullThought = '';
-            let inThinkingBlock = false;
-
-            for await (const chunk of stream) {
-                const delta = chunk.choices[0]?.delta;
+            const pollinationsApiKey = getPollinationsApiKey();
+            
+            // First, call nova-fast for thinking/reasoning
+            // This two-phase approach:
+            // 1. Uses nova-fast to analyze the request and provide reasoning (thinking mode)
+            // 2. Then uses gemini-search for the main response with search capabilities
+            let thinkingContent = '';
+            
+            // Call nova-fast for thinking/reasoning
+            // Using query parameter authentication (same as image API)
+            const thinkingUrl = `https://gen.pollinations.ai/v1/chat/completions?key=${pollinationsApiKey}`;
+            const thinkingMessages = [
+                { role: 'system', content: systemInstruction + '\n\nYou are in thinking mode. Analyze the user\'s request and provide your reasoning process.' },
+                ...history,
+                { role: 'user', content: contentParts }
+            ];
+            
+            try {
+                const thinkingResponse = await fetch(thinkingUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        model: 'nova-fast',
+                        messages: thinkingMessages,
+                        stream: false
+                    }),
+                    signal
+                });
                 
-                // @ts-ignore
-                if (delta?.reasoning) {
-                    // @ts-ignore
-                    fullThought += delta.reasoning;
-                    yield { thought: fullThought, isComplete: false, mode: 'reasoning' };
+                if (thinkingResponse.ok) {
+                    const thinkingData = await thinkingResponse.json();
+                    thinkingContent = thinkingData.choices?.[0]?.message?.content || '';
+                    if (thinkingContent) {
+                        yield { thought: thinkingContent, isComplete: false, mode: 'reasoning' };
+                    }
                 }
+            } catch (thinkingErr) {
+                console.warn("Thinking model (nova-fast) failed, continuing without thinking:", thinkingErr);
+            }
+            
+            // Now call gemini-search for the main response with streaming
+            // Using query parameter authentication (same as image API)
+            const chatUrl = `https://gen.pollinations.ai/v1/chat/completions?key=${pollinationsApiKey}`;
+            const requestBody = {
+                model: 'gemini-search',
+                messages: messages,
+                stream: true
+            };
+            
+            console.debug('Calling Pollinations API with model:', requestBody.model);
+            console.debug('Message count:', requestBody.messages.length);
+            console.debug('Auth method: query parameter');
+            
+            const response = await fetch(chatUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(requestBody),
+                signal
+            });
 
-                const content = delta?.content || '';
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.error(`Pollinations API error: ${response.status} ${response.statusText}`, errorText);
+                throw new Error(`Pollinations API error: ${response.status} ${response.statusText}`);
+            }
+
+            if (!response.body) {
+                throw new Error("No response body from Pollinations API");
+            }
+
+            const reader = response.body.getReader();
+            const decoder = new TextDecoder();
+            let fullText = '';
+
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
                 
-                if (content) {
-                    let textChunk = content;
-                    
-                    if (textChunk.includes('<think>')) {
-                        inThinkingBlock = true;
-                        textChunk = textChunk.replace('<think>', '');
-                    }
-                    
-                    if (textChunk.includes('</think>')) {
-                        inThinkingBlock = false;
-                        const parts = textChunk.split('</think>');
-                        fullThought += parts[0];
-                        yield { thought: fullThought, isComplete: false, mode: 'reasoning' };
-                        textChunk = parts[1] || '';
-                    }
-
-                    if (inThinkingBlock) {
-                        fullThought += textChunk;
-                        yield { thought: fullThought, isComplete: false, mode: 'reasoning' };
-                    } else {
-                        fullText += textChunk;
-                        yield { text: fullText, isComplete: false, mode: 'reasoning' };
+                const chunk = decoder.decode(value, { stream: true });
+                const lines = chunk.split('\n');
+                
+                for (const line of lines) {
+                    if (line.startsWith('data: ')) {
+                        const data = line.slice(6);
+                        if (data === '[DONE]') continue;
+                        
+                        try {
+                            const parsed = JSON.parse(data);
+                            const content = parsed.choices?.[0]?.delta?.content || '';
+                            if (content) {
+                                fullText += content;
+                                yield { text: fullText, isComplete: false, mode: 'reasoning' };
+                            }
+                        } catch (e) {
+                            // Skip invalid JSON chunks (common in streaming responses)
+                            console.debug("Skipping non-JSON chunk in stream:", data.substring(0, 50));
+                        }
                     }
                 }
             }
 
-            yield { text: fullText, thought: fullThought, isComplete: true, newHistoryEntry: { role: 'assistant', content: fullText }, mode: 'reasoning' };
+            yield { 
+                text: fullText, 
+                thought: thinkingContent, 
+                isComplete: true, 
+                newHistoryEntry: { role: 'assistant', content: fullText }, 
+                mode: 'reasoning' 
+            };
 
         } catch (err: any) {
-            console.warn("Primary Model (Grok) Failed, switching to Fallback (Gemini 2.5 Flash Lite):", err);
+            console.error("Primary Model (Pollinations) Failed:", err);
             
             // --- FALLBACK PATH: GEMINI 2.5 FLASH LITE ---
-            if (!geminiKey) throw new Error("Primary failed and no Gemini key for fallback.");
+            if (!geminiKey) {
+                const errorMsg = `Configuration Error: The AI service is currently unavailable.
+
+For site administrators:
+Please ensure that either:
+1. API_KEY environment variable is set with a valid Pollinations API key from https://enter.pollinations.ai
+2. OR set VITE_GEMINI_API_KEY or GEMINI_API_KEY as a fallback
+
+Error details: ${err.message || 'Primary API failed'}`;
+                throw new Error(errorMsg);
+            }
+            
+            console.warn("Switching to Fallback (Gemini 2.5 Flash Lite)");
             
             const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:streamGenerateContent?alt=sse&key=${geminiKey}`;
             
