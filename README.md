@@ -15,14 +15,18 @@ View your app in AI Studio: https://ai.studio/apps/drive/1gOdCjbyWanGH8lF1sIWwiP
 
 1. Install dependencies:
    `npm install`
-2. Set the `API_KEY` environment variable for Pollinations AI text/chat:
+2. Copy `.env.example` to `.env.local` and fill in your API keys:
+   ```bash
+   cp .env.example .env.local
+   ```
+3. Set the `API_KEY` environment variable for Pollinations AI text/chat:
    - Get your free API key from [enter.pollinations.ai](https://enter.pollinations.ai)
-   - Add `API_KEY=your_key_here` to your environment variables or `.env.local` file
-3. Set the `new_api` environment variable for Pollinations AI image generation:
+   - Add `API_KEY=your_key_here` to your `.env.local` file
+4. Set the `new_api` environment variable for Pollinations AI image generation:
    - Get your free API key from [enter.pollinations.ai](https://enter.pollinations.ai)
    - Add `new_api=your_key_here` to your Supabase environment variables
    - Note: You can use the same key for both `API_KEY` and `new_api`
-4. (Optional) Set the `GEMINI_API_KEY` in [.env.local](.env.local) as a fallback:
+5. (Optional) Set the `GEMINI_API_KEY` in `.env.local` as a fallback:
    - This is used if the Pollinations API is unavailable
-5. Run the app:
+6. Run the app:
    `npm run dev`
