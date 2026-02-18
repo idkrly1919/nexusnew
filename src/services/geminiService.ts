@@ -460,8 +460,8 @@ ${memoryBlock}
                 stream: true
             };
             
-            console.log('Calling Pollinations API with model:', requestBody.model);
-            console.log('Message count:', requestBody.messages.length);
+            console.debug('Calling Pollinations API with model:', requestBody.model);
+            console.debug('Message count:', requestBody.messages.length);
             
             const response = await fetch(chatUrl, {
                 method: 'POST',
@@ -527,16 +527,14 @@ ${memoryBlock}
             
             // --- FALLBACK PATH: GEMINI 2.5 FLASH LITE ---
             if (!geminiKey) {
-                const errorMsg = `**Configuration Error**
+                const errorMsg = `Configuration Error: The AI service is currently unavailable.
 
-The AI service is currently unavailable. This appears to be an API configuration issue.
-
-**For the site administrator:**
+For site administrators:
 Please ensure that either:
-1. The \`API_KEY\` environment variable is set with a valid Pollinations API key from https://enter.pollinations.ai
-2. OR set \`VITE_GEMINI_API_KEY\` or \`GEMINI_API_KEY\` as a fallback
+1. API_KEY environment variable is set with a valid Pollinations API key from https://enter.pollinations.ai
+2. OR set VITE_GEMINI_API_KEY or GEMINI_API_KEY as a fallback
 
-**Error details:** ${err.message || 'Primary API failed'}`;
+Error details: ${err.message || 'Primary API failed'}`;
                 throw new Error(errorMsg);
             }
             

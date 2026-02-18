@@ -23,9 +23,10 @@ View your app in AI Studio: https://ai.studio/apps/drive/1gOdCjbyWanGH8lF1sIWwiP
    - Get your free API key from [enter.pollinations.ai](https://enter.pollinations.ai)
    - Add `API_KEY=your_key_here` to your `.env.local` file
 4. Set the `new_api` environment variable for Pollinations AI image generation:
-   - Get your free API key from [enter.pollinations.ai](https://enter.pollinations.ai)
+   - This is set in your **Supabase project settings** (not in .env.local)
+   - Go to your Supabase project → Settings → Edge Functions → Secrets
    - Add `new_api=your_key_here` to your Supabase environment variables
-   - Note: You can use the same key for both `API_KEY` and `new_api`
+   - Note: You can use the same Pollinations API key for both `API_KEY` (local) and `new_api` (Supabase)
 5. (Optional) Set the `GEMINI_API_KEY` in `.env.local` as a fallback:
    - This is used if the Pollinations API is unavailable
 6. Run the app:
